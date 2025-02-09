@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width">
+	<title>Current Background Info</title>
+	<link rel="stylesheet" href="/stylesheets/site.css">
+	<link rel="stylesheet" href="/stylesheets/bootstrap/css/mau.min.css">
+	<script lang="javascript" href="/stylesheets/bootstrap/js/bootstrap.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+	<script lang="javascript" href="/stylesheets/bootstrap/js/bootstrap.min.js"></script>
+	<link rel="shortcut icon" href="/favicon.ico" type="image/x-icon"> 
+	<link rel="icon" href="/favicon.ico" type="image/x-icon"> 
+</head>
+<body class="bg-dark">
+	<div id="app">
+
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">Current Background Info</h5>
+            </div>
+            <div id="infoPic" class="card-body">
+
+            </div>
+          </div>        
+
+
+    </div>
+
+
+<script type="module">
+	import comms from './scripts/comms.js'; 
+	import boom from './scripts/dynamite.js'; 
+    import {jsonToHtml} from './scripts/cc/ccUtilities.js'
+	window.comms=new comms({server: "http://127.0.0.1:3000"});
+	window.tnt=new boom();
+    let config=await window.comms.getConfig();
+    let currentPic=config.picHistories.find(ph=>ph.picNum===0);
+
+    let randomIIPicked={i:"ImageItemData",c:"bg-AliceBlue fw-bolder text-FireBrick",b:[]}
+    let flexRow1={i:"ImageItemDataFlexRow1",c:"d-flex flex-row mb-3",b:[]}
+    flexRow1.b.push(
+        {i:"op",c:"p-2 fw-bold",t:"Operation: ",b:[{i:"opVal",c:"text-Maroon float-end ms-2 fst-italic",t: currentPic.imageItem.operation}]},
+        {i:"loc",c:"p-2 fw-bold",t:"Location: ",b:[{i:"locVal",c:"text-Maroon float-end ms-2 fst-italic",t: currentPic.imageItem.location}]},
+    )
+
+
+
+
+    randomIIPicked.b.push(flexRow1);
+    document.querySelector("#infoPic").insertAdjacentHTML("beforeend",jsonToHtml(randomIIPicked))
+
+
+    // {
+    // "picNum": 0,
+    //         "originName": "J:\\media\\Pictures\\2016\\IMG_20160717_153937342.jpg",
+    //         "saveName": "C:\\Users\\Dominic\\.Metamorphoun\\pic0.jpg",
+    //         "imageItem": {
+    //             "use": true,
+    //             "name": "WallpapersJelly",
+    //             "title": "Wallpapers",
+    //             "location": "J:\\media\\Pictures",
+    //             "operation": "Folder",
+    //             "inherent": true
+    //         },
+    //         "filter": "original",
+    //         "Sizing": "stretch",
+    //         "quoteStatement": "Say what you mean and mean what you say.",
+    //         "quoteAuthor": "Gen. George S. Patton",
+    //         "quoteFont": "",
+    //         "quoteTextColorR": 255,
+    //         "quoteTextColorG": 236,
+    //         "quoteTextColorB": 255,
+    //         "quoteBackgroundColorR": 29,
+    //         "quoteBackgroundColorG": 69,
+    //         "quoteBackgroundColorB": 0,
+    //         "quoteOpacity": 175
+    //     }
+</script>
+
+</body>
+</html>

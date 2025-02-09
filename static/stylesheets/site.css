@@ -1,0 +1,149 @@
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@200;400&display=swap');
+
+body {color: #c0392b}
+
+.btn-reactive{
+    font-size: 1.3vw !important;
+}
+
+body {
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
+  overflow-x: hidden;
+  background: linear-gradient(112.9deg, rgb(92 27 141 / 30%) -0.14%, rgb(221 177 18 / 22%) 45.98%, rgb(107 21 153 / 29%) 100.47%);
+  transition: all 0.3s ease 0s;
+  font-family: 'Oswald', sans-serif;
+}
+
+header {
+  padding: 0 1rem;
+  text-shadow: 0 0 1rem #ffffff;
+}
+
+.tabs {
+  display: flex;
+  padding: 1rem 1rem 0;
+  width: 100%;
+  /* border-bottom: solid 0.1rem rgb(255 255 255 / 70%); */
+}
+
+.tabs>.nav {
+  position: relative;
+  padding: 0.5rem 1.5rem;
+  margin: 0 0.75rem 0.1rem 0;
+  border-top-right-radius: 0.5rem;
+  border-top-left-radius: 0.5rem;
+  background-color: rgb(255 255 255 / 30%);
+  backdrop-filter: blur(13px);
+  z-index: 20;
+}
+
+.tabs>.nav:hover {
+  cursor: pointer;
+  background-color: rgb(255 255 255 / 80%);
+  transform: scale(1.1);
+  margin-top: -0.3rem;
+  padding-top: 0.75rem;
+  z-index: 30;
+}
+
+:has(#tab-1:checked) [for="tab-1"],
+:has(#tab-2:checked) [for="tab-2"],
+:has(#tab-3:checked) [for="tab-3"] {
+  cursor: pointer;
+  background-color: rgb(255 255 255 / 80%);
+  transform: scale(1.1);
+  margin-top: -0.3rem;
+  padding-top: 0.75rem;
+  z-index: 30;
+}
+
+
+.content {
+  position: relative;
+  width: 100%;
+  /* height: calc(100vh - 3rem); */
+  padding: 0.6rem;
+  background-color: rgb(255 255 255 / 10%);
+  backdrop-filter: blur(13px);
+  z-index: 10;
+  border-top-right-radius: 1.25rem;
+  border-top-left-radius: 1.25rem;
+  border-bottom-right-radius: 1.25rem;
+  border-bottom-left-radius: 1.25rem;
+  color:cornsilk;
+}
+
+.content>section {
+  display: none;
+  flex-direction: column;
+}
+
+.content>section>p {
+  padding: 0 0.5rem;
+}
+
+.content>section>p+p {
+  margin: 0.25rem 0;
+}
+  
+.content:has([id="tab-1"]:checked)>section:nth-child(1),
+.content:has([id="tab-2"]:checked)>section:nth-child(2),
+.content:has([id="tab-3"]:checked)>section:nth-child(3) {
+  display: flex;
+}
+
+
+/*   Open state of the dialog  */
+dialog[open] {
+  opacity: 1;
+  transform: scaleY(1);
+}
+
+/*   Closed state of the dialog   */
+dialog {
+  opacity: 0;
+  transform: scaleY(0);
+  transition:
+    opacity 0.7s ease-out,
+    transform 0.7s ease-out,
+    overlay 0.7s ease-out allow-discrete,
+    display 0.7s ease-out allow-discrete;
+  /* Equivalent to
+  transition: all 0.7s allow-discrete; */
+}
+
+/*   Before-open state  */
+/* Needs to be after the previous dialog[open] rule to take effect,
+    as the specificity is the same */
+@starting-style {
+  dialog[open] {
+    opacity: 0;
+    transform: scaleY(0);
+  }
+}
+
+/* Transition the :backdrop when the dialog modal is promoted to the top layer */
+dialog::backdrop {
+  background-color: rgb(0 0 0 / 0%);
+  transition:
+    display 0.7s allow-discrete,
+    overlay 0.7s allow-discrete,
+    background-color 0.7s;
+  /* Equivalent to
+  transition: all 0.7s allow-discrete; */
+}
+
+dialog[open]::backdrop {
+  background-color: rgb(0 0 0 / 25%);
+}
+
+/* This starting-style rule cannot be nested inside the above selector
+because the nesting selector cannot represent pseudo-elements. */
+
+@starting-style {
+  dialog[open]::backdrop {
+    background-color: rgb(0 0 0 / 0%);
+  }
+}

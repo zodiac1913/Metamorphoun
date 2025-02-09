@@ -1,0 +1,635 @@
+package config
+
+import (
+	"MorphPrototype/zutil"
+	"encoding/json"
+	"fmt"
+	"os"
+	"os/user"
+	"path/filepath"
+)
+
+// Define the structure of your configuration ...
+type Config struct {
+	ServerAddress                   string        `json:"server_address"`
+	ServerPort                      int           `json:"serverPort"`
+	SourceCurrentBackgroundName     string        `json:"sourceCurrentBackgroundName"`
+	SourceCurrentBackgroundFolder   string        `json:"sourceCurrentBackgroundFolder"`
+	OriginalCurrentBackgroundName   string        `json:"originalCurrentBackgroundName"`
+	OriginalCurrentBackgroundFolder string        `json:"originalCurrentBackgroundFolder"`
+	CurrentBackgroundName           string        `json:"currentBackgroundName"`
+	CurrentBackgroundFolder         string        `json:"currentBackgroundFolder"`
+	BackgroundChangingBlock         bool          `json:"backgroundChangingBlock"`
+	StartOnStartup                  bool          `json:"startOnStartup"`
+	ChangeWallpaperOnStartup        bool          `json:"changeWallpaperOnStartup"`
+	ChangeMinutes                   int32         `json:"changeMinutes"`
+	Images                          []Image       `json:"images"`
+	WallpaperImageSizing            string        `json:"wallpaperImageSizing"`
+	WallpaperFilterOriginal         bool          `json:"wallpaperFilterOriginal"`
+	WallpaperFilterBlurSoft         bool          `json:"wallpaperFilterBlurSoft"`
+	WallpaperFilterBlurHard         bool          `json:"wallpaperFilterBlurHard"`
+	WallpaperFilterPixelate         bool          `json:"wallpaperFilterPixelate"`
+	WallpaperFilterOilify           bool          `json:"wallpaperFilterOilify"`
+	WallpaperFilterWavy             bool          `json:"wallpaperFilterWavy"`
+	WallpaperFilterSpiral           bool          `json:"wallpaperFilterSpiral"`
+	WallpaperFilterMonochrome       bool          `json:"wallpaperFilterMonochrome"`
+	ShowTextOverlay                 bool          `json:"showTextOverlay"`
+	TextChangeMinutes               int           `json:"textChangeMinutes"`
+	TextLibraries                   []TextLibrary `json:"textLibraries"`
+	TextFontFile                    string        `json:"textFontFile"`
+	TextFontPath                    string        `json:"textFontPath"`
+	TextBoxLocation                 string        `json:"textBoxLocation"`
+	CurrentQuoteStatement           string        `json:"currentQuoteStatement"`
+	CurrentQuoteAuthor              string        `json:"currentQuoteAuthor"`
+	QuoteAppearanceRandom           bool          `json:"quoteAppearanceRandom"`
+	QuoteTextColor                  string        `json:"quoteTextColor"`
+	QuoteBackgroundColor            string        `json:"quoteBackgroundColor"`
+	QuoteBackgroundOpacity          string        `json:"quoteBackgroundOpacity"`
+	PicHistories                    []PicHistory  `json:"picHistories"`
+	// Add other configuration fields here
+}
+type Image struct {
+	Use       bool   `json:"use"`
+	Name      string `json:"name"`
+	Title     string `json:"title"`
+	Location  string `json:"location"`
+	Operation string `json:"operation"`
+	Inherent  bool   `json:"inherent"` // Indicates if the image is inherent to the system
+}
+
+type TextLibrary struct {
+	Use      bool   `json:"use"`
+	Name     string `json:"name"`
+	Title    string `json:"title"`
+	Location string `json:"location"`
+	Citation string `json:"citation"`
+	Creators string `json:"creators"`
+	Info     string `json:"info"`
+	Inherent bool   `json:"inherent"` // Indicates if the image is inherent to the system
+}
+
+type PicHistory struct {
+	PicNum                int16  `json:"picNum"`
+	OriginName            string `json:"originName"`
+	SaveName              string `json:"saveName"`
+	ImageItem             Image  `json:"imageItem"`
+	Filter                string `json:"filter"`
+	Sizing                string `json:"Sizing"`
+	QuoteStatement        string `json:"quoteStatement"`
+	QuoteAuthor           string `json:"quoteAuthor"`
+	QuoteFont             string `json:"quoteFont"`
+	QuoteTextColorR       uint8  `json:"quoteTextColorR"`
+	QuoteTextColorG       uint8  `json:"quoteTextColorG"`
+	QuoteTextColorB       uint8  `json:"quoteTextColorB"`
+	QuoteBackgroundColorR uint8  `json:"quoteBackgroundColorR"`
+	QuoteBackgroundColorG uint8  `json:"quoteBackgroundColorG"`
+	QuoteBackgroundColorB uint8  `json:"quoteBackgroundColorB"`
+	QuoteOpacity          uint64 `json:"quoteOpacity"`
+}
+
+var ConfigInstance *Config
+
+func init() {
+	// Load the configuration
+	cfg, err := LoadConfig()
+	if err != nil {
+		fmt.Println("Error loading config:", err)
+		// Handle the error (e.g., create a default config)
+		cfg = &Config{ServerAddress: "default_address"} // Set default values
+	}
+	ConfigInstance = cfg
+}
+
+// GetConfig returns the current Config instance
+func GetConfig() *Config {
+	cfg, err := LoadConfig()
+	if err != nil {
+		fmt.Println("Error loading config:", err)
+		// Handle the error (e.g., create a default config)
+		cfg = &Config{ServerAddress: "default_address"} // Set default values
+	}
+	ConfigInstance = cfg
+	return ConfigInstance
+}
+func GetConfigCopy() Config {
+	return *ConfigInstance
+}
+
+// SetConfig updates the Config instance and saves it to the file
+func SetConfig(newConfig *Config) error {
+	ConfigInstance = newConfig
+	return SaveConfig(newConfig)
+}
+
+func UpdateConfigField(propertyName string, newValue interface{}) error {
+	//fmt.Println("UpdateConfigField:")
+	//fmt.Println(propertyName)
+	//fmt.Println(newValue)
+	ConfigInstance = GetConfig()
+	//fmt.Println("Config-BEFORE")
+	//fmt.Println(ConfigInstance)
+	switch propertyName {
+	case "serverAddress":
+		ConfigInstance.ServerAddress = newValue.(string)
+	case "serverPort":
+		toString := fmt.Sprintf("%v", newValue)
+		ConfigInstance.ServerPort = zutil.AsInt(toString)
+	case "startOnStartup":
+		boolValue := zutil.AsBool(fmt.Sprintf("%v", newValue))
+		ConfigInstance.StartOnStartup = boolValue
+		fmt.Println("StartOnStartup-SET")
+	case "changeWallpaperOnStartup":
+		boolValue := zutil.AsBool(fmt.Sprintf("%v", newValue))
+		ConfigInstance.ChangeWallpaperOnStartup = boolValue
+		fmt.Println("StartOnStartup-SET")
+	case "changeMinutes":
+		intValue := zutil.AsInt(fmt.Sprintf("%v", newValue))
+		ConfigInstance.ChangeMinutes = int32(intValue)
+	case "sourceCurrentBackgroundName":
+		ConfigInstance.SourceCurrentBackgroundName = newValue.(string)
+	case "sourceCurrentBackgroundFolder":
+		ConfigInstance.SourceCurrentBackgroundFolder = newValue.(string)
+	case "originalCurrentBackgroundName":
+		ConfigInstance.OriginalCurrentBackgroundName = newValue.(string)
+	case "originalCurrentBackgroundFolder":
+		ConfigInstance.OriginalCurrentBackgroundFolder = newValue.(string)
+	case "currentBackgroundName":
+		ConfigInstance.CurrentBackgroundName = newValue.(string)
+	case "currentBackgroundFolder":
+		ConfigInstance.CurrentBackgroundFolder = newValue.(string)
+	case "backgroundChangingBlock":
+		ConfigInstance.BackgroundChangingBlock = newValue.(bool)
+	case "currentQuoteStatement":
+		ConfigInstance.CurrentQuoteStatement = newValue.(string)
+	case "currentQuoteAuthor":
+		ConfigInstance.CurrentQuoteAuthor = newValue.(string)
+	case "showTextOverlay":
+		boolValue := zutil.AsBool(fmt.Sprintf("%v", newValue))
+		ConfigInstance.ShowTextOverlay = boolValue
+	case "textChangeMinutes":
+		intValue := zutil.AsInt(fmt.Sprintf("%v", newValue))
+		ConfigInstance.TextChangeMinutes = int(intValue)
+	case "textFontPath":
+		ConfigInstance.TextFontPath = newValue.(string)
+	case "textFontFile":
+		ConfigInstance.TextFontFile = newValue.(string)
+	case "textBoxLocation":
+		ConfigInstance.TextBoxLocation = newValue.(string)
+	case "quoteAppearanceRandom":
+		boolValue := zutil.AsBool(fmt.Sprintf("%v", newValue))
+		ConfigInstance.QuoteAppearanceRandom = boolValue
+	case "quoteTextColor":
+		ConfigInstance.QuoteTextColor = newValue.(string)
+	case "quoteBackgroundColor":
+		ConfigInstance.QuoteBackgroundColor = newValue.(string)
+	case "quoteBackgroundOpacity":
+		ConfigInstance.QuoteBackgroundOpacity = newValue.(string)
+	case "wallpaperImageSizing":
+		ConfigInstance.WallpaperImageSizing = newValue.(string)
+	case "wallpaperFilterOriginal":
+		ConfigInstance.WallpaperFilterOriginal = zutil.AsBool(fmt.Sprintf("%v", newValue))
+	case "wallpaperFilterBlurSoft":
+		ConfigInstance.WallpaperFilterBlurSoft = zutil.AsBool(fmt.Sprintf("%v", newValue))
+	case "wallpaperFilterBlurHard":
+		ConfigInstance.WallpaperFilterBlurHard = zutil.AsBool(fmt.Sprintf("%v", newValue))
+	case "wallpaperFilterPixelate":
+		ConfigInstance.WallpaperFilterPixelate = zutil.AsBool(fmt.Sprintf("%v", newValue))
+	case "wallpaperFilterOilify":
+		ConfigInstance.WallpaperFilterOilify = zutil.AsBool(fmt.Sprintf("%v", newValue))
+	case "wallpaperFilterWavy":
+		ConfigInstance.WallpaperFilterWavy = zutil.AsBool(fmt.Sprintf("%v", newValue))
+	case "wallpaperFilterSpiral":
+		ConfigInstance.WallpaperFilterSpiral = zutil.AsBool(fmt.Sprintf("%v", newValue))
+	case "wallpaperFilterMonochrome":
+		ConfigInstance.WallpaperFilterMonochrome = zutil.AsBool(fmt.Sprintf("%v", newValue))
+	default:
+		fmt.Printf("invalid field name: %s", propertyName)
+		return fmt.Errorf("invalid field name: %s", propertyName)
+	}
+	//fmt.Println("Config-AFTER")
+	//fmt.Println(ConfigInstance)
+	return SaveConfig(ConfigInstance)
+}
+
+func UpdateImagesField(imageName string, newValue bool) error {
+	ConfigInstance = GetConfig()
+	var foundImage *Image
+	for i, image := range ConfigInstance.Images {
+		if image.Name == imageName {
+			foundImage = &ConfigInstance.Images[i] // Use pointer assignment
+			break                                  // Exit the loop after finding the image
+		}
+	}
+	foundImage.Use = newValue
+	return SaveConfig(ConfigInstance)
+}
+func AddImagesField(use bool, name string, title string,
+	location string, operation string) error {
+	ConfigInstance = GetConfig()
+	ConfigInstance.Images = append(ConfigInstance.Images, Image{
+		Use:       use,
+		Name:      name,
+		Title:     title,
+		Location:  location,
+		Operation: operation,
+	})
+	return SaveConfig(ConfigInstance)
+}
+
+func UpdateQuotesField(quotesName string, newValue interface{}) error {
+	ConfigInstance = GetConfig()
+	var foundQuotes *TextLibrary
+	for i, textLib := range ConfigInstance.TextLibraries {
+		if textLib.Name == quotesName {
+			foundQuotes = &ConfigInstance.TextLibraries[i] // Use pointer assignment
+			break                                          // Exit the loop after finding the image
+		}
+	}
+	foundQuotes.Use = zutil.AsBool(newValue.(string))
+	return SaveConfig(ConfigInstance)
+
+}
+
+// AddPicHistory adds a new PicHistory to the stack, updates PicNum,
+// and ensures the stack size does not exceed the limit.
+func (cfg *Config) AddPicHistory(newPic PicHistory) error {
+	ConfigInstance = GetConfig()
+	// Prepend the new PicHistory to the stack
+	ConfigInstance.PicHistories = append([]PicHistory{newPic}, ConfigInstance.PicHistories...)
+
+	// Ensure the stack size does not exceed the limit (5 for now)
+	if len(ConfigInstance.PicHistories) > 5 {
+		ConfigInstance.PicHistories = ConfigInstance.PicHistories[:5]
+	}
+
+	// Update PicNum for all PicHistories in the stack
+	for i := range ConfigInstance.PicHistories {
+		ConfigInstance.PicHistories[i].PicNum = int16(i)
+	}
+	return SaveConfig(ConfigInstance)
+}
+
+// LoadConfig reads the configuration from the JSON file
+func LoadConfig() (*Config, error) {
+	// Get the user's home directory
+	usr, err := user.Current()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user home directory: %w", err)
+	}
+	configPath := filepath.Join(usr.HomeDir, ".Metamorphoun", "config.json") // Adjust path as needed
+
+	// Read the config file
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read config file: %w", err)
+	}
+
+	// Unmarshal the JSON data into the Config struct
+	var config Config
+	err = json.Unmarshal(data, &config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
+	}
+
+	return &config, nil
+}
+
+// SaveConfig writes the configuration to the JSON file
+func SaveConfig(config *Config) error {
+	println("Saving Config!")
+	// Get the user's home directory
+	usr, err := user.Current()
+	if err != nil {
+		return fmt.Errorf("failed to get user home directory: %w", err)
+	}
+	configPath := filepath.Join(usr.HomeDir, ".Metamorphoun", "config.json")
+
+	// Create the config directory if it doesn't exist
+	err = os.MkdirAll(filepath.Dir(configPath), 0700) // Adjust permissions as needed
+	if err != nil {
+		return fmt.Errorf("failed to create config directory: %w", err)
+	}
+
+	// Marshal the config struct to JSON
+	data, err := json.MarshalIndent(config, "", "    ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal config: %w", err)
+	}
+
+	// Write the JSON data to the file
+	err = os.WriteFile(configPath, data, 0600) // Adjust permissions as needed
+	if err != nil {
+		return fmt.Errorf("failed to write config file: %w", err)
+	}
+	cfg, err := LoadConfig()
+	if err != nil {
+		fmt.Println("Error loading config:", err)
+		// Handle the error (e.g., create a default config)
+		cfg = &Config{ServerAddress: "default_address"} // Set default values
+	}
+	ConfigInstance = cfg
+	return nil
+}
+
+// f writes the configuration to the JSON file
+func CreateConfig() error {
+	usr, err := user.Current()
+	if err != nil {
+		return fmt.Errorf("failed to get user home directory: %w", err)
+	}
+	exePath, errEP := os.Executable()
+	if errEP != nil {
+		fmt.Println("Error:", errEP)
+	}
+	exeDir := filepath.Dir(exePath)
+	fmt.Println(exeDir)
+	wallpaperDir := filepath.Join(usr.HomeDir, "Pictures")
+	wallpaperFavs := filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites")
+	cfg := Config{
+		ServerAddress:                   "127.0.0.1",
+		ServerPort:                      3000,
+		SourceCurrentBackgroundName:     "",
+		SourceCurrentBackgroundFolder:   "",
+		OriginalCurrentBackgroundName:   "",
+		OriginalCurrentBackgroundFolder: "",
+		CurrentBackgroundName:           "",
+		CurrentBackgroundFolder:         "",
+		BackgroundChangingBlock:         false,
+		StartOnStartup:                  true,
+		ChangeWallpaperOnStartup:        true,
+		ChangeMinutes:                   15,
+		Images: []Image{
+			{
+				Use:       true,
+				Name:      "Favorites",
+				Title:     "Favorites",
+				Location:  wallpaperFavs,
+				Operation: "Folder",
+				Inherent:  true,
+			},
+			{
+				Use:       true,
+				Name:      "Bing",
+				Title:     "Bing Photo of the Day",
+				Location:  "https://bing.gifposter.com",
+				Operation: "Webpage",
+				Inherent:  true,
+			},
+			{
+				Use:       true,
+				Name:      "Flickr",
+				Title:     "DR Flickr Photos",
+				Location:  "https://www.flickr.com/photos/202229109@N02",
+				Operation: "WebPicPage",
+				Inherent:  true,
+			},
+			// {
+			// 	Use:       true,
+			// 	Name:      "Flickr",
+			// 	Title:     "PL Flickr Photos",
+			// 	Location:  "https://www.flickr.com/photos/peter-levi/",
+			// 	Operation: "WebPicPage",
+			// 	Inherent:  true,
+			// },
+			{
+				Use:       true,
+				Name:      "NASA",
+				Title:     "NASA's Astronomy Random Picture of the Day",
+				Location:  "https://apod.nasa.gov/apod/random_apod.html",
+				Operation: "Webpage",
+				Inherent:  true,
+			},
+			{
+				Use:       true,
+				Name:      "UnSplash",
+				Title:     "Photos from Unsplash.com",
+				Location:  "https://unsplash.com",
+				Operation: "WebPicPage",
+				Inherent:  true,
+			},
+			{
+				Use:       true,
+				Name:      "WallpapersLocal",
+				Title:     "Wallpapers",
+				Location:  wallpaperDir,
+				Operation: "Folder",
+				Inherent:  true,
+			},
+		},
+		ShowTextOverlay:           false,
+		TextChangeMinutes:         5,
+		TextFontPath:              "C:\\Windows\\Fonts\\",
+		TextFontFile:              "DejaVuSans-Bold.ttf",
+		TextBoxLocation:           "TopRight",
+		WallpaperImageSizing:      "",
+		WallpaperFilterOriginal:   true,
+		WallpaperFilterBlurSoft:   false,
+		WallpaperFilterBlurHard:   false,
+		WallpaperFilterPixelate:   false,
+		WallpaperFilterOilify:     false,
+		WallpaperFilterWavy:       false,
+		WallpaperFilterSpiral:     false,
+		WallpaperFilterMonochrome: false,
+		QuoteAppearanceRandom:     false,
+		QuoteTextColor:            "#FFFFFF",
+		QuoteBackgroundColor:      "#000000",
+		QuoteBackgroundOpacity:    "90",
+		TextLibraries: []TextLibrary{
+			{
+				Use:      true,
+				Name:     "BibleVerses",
+				Title:    "King James Bible Verses",
+				Location: "quotes/biblekjv.json",
+				Citation: "https://aruljohn.com/Bible/",
+				Creators: "Arul John",
+				Info:     "",
+			},
+			{
+				Use:      true,
+				Name:     "MartinLutherQuotes",
+				Title:    "Martin Luther Quotes",
+				Location: "quotes/martinLuther.json",
+				Citation: "https://gracequotes.org/author-quote/martin-luther/page/2/",
+				Creators: "Grace Quotes",
+				Info:     "‘Grace Quotes’ is a growing database containing over 10,000 great Christian quotes arranged over hundreds of topics. The material is from theologically sound, well-respected pastors, authors and Christian heroes from across the centuries.",
+			},
+			{
+				Use:      false,
+				Name:     "GeneralMacArthurQuotes",
+				Title:    "General Douglas MacArthur Quotes",
+				Location: "/quotes/macarthur.json",
+				Citation: "https://www.goodreads.com/author/quotes/317613.Douglas_MacArthur",
+				Creators: "GoodReads.com",
+				Info:     "The right book in the right hands at the right time can change the world. Who We Are Goodreads is the world’s largest site for readers and book recommendations. Our mission is to help readers discover books they love and get more out of reading. Goodreads launched in January 2007.",
+			},
+			{
+				Use:      false,
+				Name:     "GeneralPattonQuotes",
+				Title:    "General George S. Patton Quotes",
+				Location: "/quotes/patton.json",
+				Citation: "https://www.wearethemighty.com/lists/general-george-patton-quotes/",
+				Creators: "We Are The Mighty",
+				Info:     "We Are The Mighty is a veteran-led digital publisher and Emmy Award-winning media agency servicing brands with video production, marketing, advertising, and consulting services to engage with the military community. In addition to our digital publisher, we also run the Military Influencer Conference, the largest in-person event servicing our military community. WATM is owned by Recurrent Ventures and is a GSA-approved vendor.",
+			},
+			{
+				Use:      false,
+				Name:     "MarkTwainQuotes",
+				Title:    "Quotes by Samuel Clemens (Mark Twain)",
+				Location: "/quotes/markTwain.json",
+				Citation: "https://parade.com/1216401/jessicasager/mark-twain-quotes/",
+				Creators: "Parade",
+				Info:     "The Parade brand has been delighting, enlightening and inspiring readers since it was founded in 1941. Through our access to A-list celebrities, top experts and today’s most intriguing and influential personalities, our team provides information, solutions, perspectives and advice on trending topics in entertainment, pop culture and lifestyle. We give you reasons to feel good about your life and the world around you through the stories we tell.",
+			},
+			{
+				Use:      false,
+				Name:     "WillRogers",
+				Title:    "Will Rogers Quotes",
+				Location: "/quotes/willRogers.json",
+				Citation: "https://www.willrogers.com/quotes",
+				Creators: "Will Rogers Memorial Museum",
+				Info:     "The Will Rogers Memorial Museum is a 19,052-square-foot museum in Claremore, Oklahoma that memorializes entertainer Will Rogers. The museum houses artifacts, memorabilia, photographs, and manuscripts pertaining to Rogers' life, and documentaries, speeches, and movies starring Rogers are shown in a theater. The museum is one of five attractions operated by the Will Rogers Memorial Museums, Inc., a non-profit organization.",
+			},
+			{
+				Use:      false,
+				Name:     "DatabaseQuotes",
+				Title:    "5000+ Famous Quotes",
+				Location: "/quotes/JamesFTquotes.json",
+				Citation: "https://github.com/JamesFT/Database-Quotes-JSON",
+				Creators: "James F Thompson (JamesFT)",
+				Info:     "#Database Quotes JSON ##JSON file with more than 5000+ famous quotes. Some example on how to work on this JSON quotes file",
+			},
+			{
+				Use:      false,
+				Name:     "CelebrityQuotes",
+				Title:    "Celebrity Quotes",
+				Location: "/quotes/NasrulHazimQuotes.json",
+				Citation: "https://gist.github.com/nasrulhazim/54b659e43b1035215cd0ba1d4577ee80",
+				Creators: "Nasrul Hazim",
+				Info:     "The Parade brand has been delighting, enlightening and inspiring readers since it was founded in 1941. Through our access to A-list celebrities, top experts and today’s most intriguing and influential personalities, our team provides information, solutions, perspectives and advice on trending topics in entertainment, pop culture and lifestyle. We give you reasons to feel good about your life and the world around you through the stories we tell.",
+			},
+			{
+				Use:      false,
+				Name:     "CallOfDuty",
+				Title:    "Quoted sayings in the Call of Duty series",
+				Location: "/quotes/callOfDuty.json",
+				Citation: "https://callofduty.fandom.com/wiki/Quoted_sayings_in_the_Call_of_Duty_series",
+				Creators: "Fandom",
+				Info:     "Our Mission -- We power fan experiences.  Our mission is to understand, inform, entertain, and celebrate fans by building the best entertainment and gaming communities, content, services, and experiences.",
+			},
+		},
+		PicHistories: []PicHistory{},
+	}
+
+	// Get the user's home directory
+	//println(usr.Username)
+	configPath := filepath.Join(usr.HomeDir, ".Metamorphoun", "config.json")
+
+	// Create the config directory if it doesn't exist
+	err = os.MkdirAll(filepath.Dir(configPath), 0700) // Adjust permissions as needed
+	if err != nil {
+		return fmt.Errorf("failed to create config directory: %w", err)
+	}
+	err = os.MkdirAll(filepath.Dir(wallpaperFavs), 0700) // Adjust permissions as needed
+	if err != nil {
+		return fmt.Errorf("failed to create config directory: %w", err)
+	}
+
+	// Marshal the config struct to JSON
+	data, err := json.MarshalIndent(cfg, "", "    ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal config: %w", err)
+	}
+
+	// Write the JSON data to the file
+	//err = ioutil.WriteFile(configPath, data, 0600) // Adjust permissions as needed
+	err = os.WriteFile(configPath, data, 0600) // Adjust permissions as needed
+	if err != nil {
+		return fmt.Errorf("failed to write config file: %w", err)
+	}
+
+	return nil
+}
+
+func SetupSystemFolders() {
+	usr, err := user.Current()
+	if err != nil {
+		fmt.Printf("failed to get user home directory: %w", err)
+	}
+	metamorphounDirs := []string{"Favorites", "WebPicPage", "Webpage", "Quotes", "MyPics", "Logs"}
+	for _, fldr := range metamorphounDirs {
+		folderPath := filepath.Join(usr.HomeDir, ".Metamorphoun", fldr)
+
+		_, err := os.Stat(folderPath)
+		if os.IsNotExist(err) {
+			fmt.Println("Folder does not exist.")
+			//fp := filepath.Dir(folderPath)
+			err = os.MkdirAll(folderPath, 0755) // Adjust permissions as needed
+			if err != nil {
+				fmt.Printf("failed to create config directory: %w", err)
+			}
+			if fldr == "Quotes" {
+				//copy in common quotes
+				//simple
+				exePath, err := os.Executable()
+				if err != nil {
+					fmt.Println("Error:", err)
+					return
+				}
+				// Get the directory containing the executable
+				exeDir := filepath.Dir(exePath)
+				fmt.Println("Executable Path:", exePath)
+				fmt.Println("Executable Directory:", exeDir)
+
+				appFolder := filepath.Join(exeDir, "static", "quotes")
+				appFile := filepath.Join(appFolder, "simple.json")
+				userFolder := folderPath
+				userFileMMDir := filepath.Join(userFolder, ".Metamorphoun", "Quotes", "simple.json")
+				err1 := zutil.CopyFile(appFile, userFileMMDir)
+				if err1 != nil {
+					fmt.Println("Error copying file:", err1)
+				} else {
+					fmt.Println("File copied successfully!")
+				}
+			}
+		} else if err != nil {
+			fmt.Println("Error checking folder:", err)
+		} else {
+			fmt.Println("Folder exists.")
+		}
+	}
+	//add favorites subfolders
+	wallpaperFavs := filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites")
+
+	err = os.MkdirAll(filepath.Join(filepath.Dir(wallpaperFavs), "Pictures", "WithQuotes"), 0700) // Adjust permissions as needed
+	if err != nil {
+		fmt.Println("failed to create config directory: %w", err)
+	}
+	err = os.MkdirAll(filepath.Join(filepath.Dir(wallpaperFavs), "Pictures", "WithOutQuotes"), 0700) // Adjust permissions as needed
+	if err != nil {
+		fmt.Println("failed to create config directory: %w", err)
+
+		err = os.MkdirAll(filepath.Join(filepath.Dir(wallpaperFavs), "Quotes"), 0700) // Adjust permissions as needed
+		if err != nil {
+			fmt.Println("failed to create config directory: %w", err)
+		}
+	}
+}
+
+// // zutil.CopyFile copies a file from src to dst. If dst does not exist, it will be created.
+// func copyFile(src, dst string) error {
+// 	// Open the source file
+// 	source, err := os.Open(src)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	defer source.Close()
+// 	// Create the destination file
+// 	destination, err := os.Create(dst)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	defer destination.Close()
+// 	// Copy the contents from source to destination
+// 	_, err = io.Copy(destination, source)
+// 	return err
+// }

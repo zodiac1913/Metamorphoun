@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width">
+	<title>Metamorphoun Settings</title>
+	<link rel="stylesheet" href="/stylesheets/site.css">
+	<link rel="stylesheet" href="/stylesheets/bootstrap/css/mau.min.css">
+	<script lang="javascript" href="/stylesheets/bootstrap/js/bootstrap.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+	<script lang="javascript" href="/stylesheets/bootstrap/js/bootstrap.min.js"></script>
+	<link rel="shortcut icon" href="/favicon.ico" type="image/x-icon"> 
+	<link rel="icon" href="/favicon.ico" type="image/x-icon"> 
+	<!-- <script lang="javascript" type="module" href="/scripts/comms.js"></script> -->
+</head>
+<body class="bg-dark">
+	<div id="app">
+	<nav class="navbar navbar-dark bg-dark" data-bs-theme="dark">
+		<div class="container-fluid">
+			<a class="navbar-brand text-center" href="#">Metamorphoun</a>
+	</nav>
+	<!-- Tabs navs -->
+
+	<nav class="tabs">
+		<label class="nav" for="tab-1">General</label>
+		<label class="nav" for="tab-2">Wallpaper</label>
+		<label class="nav" for="tab-3">Quotes</label>
+	  </nav>
+	  <article class="content">
+		<section>
+			<p>
+				<div class="container-fluid ms-4">
+					<div class="form-check form-switch">
+						<input class="form-check-input primaryInput" type="checkbox" role="switch" id="startOnStartup" aria-checked="false">
+						<label class="form-check-label" for="startOnStartup">Start Metamorphoun on start up</label>
+					</div>
+					<div class="form-check form-switch">
+						<input class="form-check-input primaryInput" type="checkbox" role="switch" id="changeWallpaperOnStartup" aria-checked="false">
+						<label class="form-check-label" for="changeWallpaperOnStartup">Change wallpaper on start up</label>
+					</div>
+					<div class="form-input">
+						<label class="form-label" for="changeMinutes">Change wallpaper every</label>
+						<input class="form-input primaryInput" type="number" size="4" min="0" placeholder="0" id="changeMinutes">
+						<label class="form-label" for="changeMinutes">minutes</label>
+					</div>
+				</div>
+				<div>
+					Images
+					<div id="ImagesSection" class="container-fluid row ms-4 mt-3">
+						<div id="ImageSectionRow" class="row">
+							<div id="ImagesDiv" class="col-10"></div>
+							<div id="ImagesTool" class="col-2">
+								<div class="btn-group-vertical" aria-label="Controls For Libraries">
+									<button type="button" class="btn btn-DarkGreen text-alabaster mt-1 btn-reactive"
+									id="AddLibraryButton"
+									title="Add a new folder or other choices" data-op="AddLibrary">
+									 Add Library</button>
+									<button type="button" class="d-none btn btn-DarkKhaki text-Maroon mt-1 btn-reactive"
+ 									 id="OpenFolderButton"
+									 title="Open the folder for viewing files/page" data-op="OpenFolder">
+									 Open Folder</button>
+									<button type="button" class="d-none btn btn-DarkCyan text-Chartreuse mt-1 btn-reactive"
+									id="EditLibraryButton"	
+									title="If allowed editing the configuration" data-op="EditLibrary">
+									 Edit</button>
+									<button type="button" class="d-none btn btn-gray-800 text-DodgerBlue mt-1 btn-reactive"
+									id="RemoveLibraryButton"
+									title="Remove this option(Not all are allowed to be removed)" data-op="RemoveLibrary">Remove</button>
+									<button type="button" class="d-none btn btn-MidnightBlue text-GoldenRod mt-1 btn-reactive"
+									id="UseLibraryButton"
+									title="Mark to use" data-op="ToggleUse">Use</button>
+								</div>
+							</div>
+					</div>
+				</div>				
+			</p>
+		</section>
+		<section>
+		  <p>
+			<div class="container-fluid ms-4">
+				<div class="form-input">
+					<label class="form-label" for="wallpaperImageSizing">Image Sizing</label>
+					<select class="primaryInput" id="wallpaperImageSizing" title="Sizing images to fit the screen or not">
+						<option value="asIs" title="This will leave the image ">None</option>
+						<option value="stretch" title="Will stretch image to fill screen">Stretch</option>
+						<!-- <option value="stretchSmart" title="Will stretch image to fill the screen as possible">Smart Stretch</option> -->
+					</select>
+				</div>
+				<div class="container-fluid ms-4">
+					<label class="form-label" for="wallpaperImageSizing">Filters</label>
+					<div id="wallpaperLibraries" class="container-fluid ms-4">
+						<div id="wallpaperFilterLibraries" class="w-75 border border-Aquamarine border-2">
+								<div id="wallpaperLibrariesRow1" class="row">
+									<div class="col">
+										<div class="form-check form-switch">
+											<input class="form-check-input primaryInput" id="wallpaperFilterOriginal" 
+												type="checkbox" role="switch" aria-checked="true"
+												title="Leave the picture alone.  Use original appearance"/>
+											<label class="form-check-label" for="wallpaperFilterOriginal"
+												title="Leave the picture alone.  Use original appearance">Original</label>
+										</div>
+									</div>
+									<div class="col">
+										<div class="form-check form-switch">
+											<input class="form-check-input primaryInput" id="wallpaperFilterBlurSoft" 
+												type="checkbox" role="switch" aria-checked="false"
+												title="Slightly blur the picture"/>
+											<label class="form-check-label" for="wallpaperFilterBlurSoft"
+												title="Slightly blur the picture">Soft Blur</label>
+										</div>
+									</div>
+									<div class="col">
+										<div class="form-check form-switch">
+											<input class="form-check-input primaryInput" id="wallpaperFilterBlurHard" 
+												type="checkbox" role="switch" aria-checked="false"
+												title="Heavy blur the picture"/>
+											<label class="form-check-label" for="wallpaperFilterBlurHard"
+												title="Heavy blur the picture">Hard Blur</label>
+										</div>
+									</div>
+									<div class="col">
+										<div class="form-check form-switch">
+											<input class="form-check-input primaryInput" id="wallpaperFilterPixelate" 
+												type="checkbox" role="switch" aria-checked="false"
+												title="Pixelate the picture in random pixel size"/>
+											<label class="form-check-label" for="wallpaperFilterPixelate"
+												title="Pixelate the picture in random pixel size">Pixelate</label>
+										</div>
+									</div>
+								</div>
+								<div id="wallpaperLibrariesRow2" class="row">
+									<div class="col">
+										<div class="form-check form-switch">
+											<input class="form-check-input primaryInput" id="wallpaperFilterOilify" 
+												type="checkbox" role="switch" aria-checked="false"
+												title="Change the picture to appear as an oil painting"/>
+											<label class="form-check-label" for="wallpaperFilterOilify"
+												title="Change the picture to appear as an oil painting">Oilify</label>
+										</div>
+									</div>									
+									<div class="col">
+										<div class="form-check form-switch">
+											<input class="form-check-input primaryInput" id="wallpaperFilterWavy" 
+												type="checkbox" role="switch" aria-checked="false"
+												title="Change the picture to appear as wavy"/>
+											<label class="form-check-label" for="wallpaperFilterWavy"
+												title="Change the picture to appear as wavy">Wavy</label>
+										</div>
+									</div>
+									<!-- <div class="col">
+										<div class="form-check form-switch">
+											<input class="form-check-input primaryInput" id="wallpaperFilterSpiral" 
+												type="checkbox" role="switch" aria-checked="false"
+												title="Change the picture to appear as wavy"/>
+											<label class="form-check-label" for="wallpaperFilterSpiral"
+												title="Change the picture to appear as wavy">Picasso</label>
+										</div>
+									</div>									 -->
+									<div class="col">
+										<div class="form-check form-switch">
+											<input class="form-check-input primaryInput" id="wallpaperFilterMonochrome" 
+												type="checkbox" role="switch" aria-checked="false"
+												title="Change the picture to appear as grayscale"/>
+											<label class="form-check-label" for="wallpaperFilterMonochrome"
+												title="Change the picture to appear as grayscale">Monochrome</label>
+										</div>
+									</div>
+								</div>
+							</div>
+					</div>
+				</div>
+		  </p>
+		</section>
+		<section>
+			<p>
+				Text overlay (Display Quotes or Text):
+				<div class="container-fluid ms-4">
+					<div class="form-check form-switch">
+						<input class="form-check-input primaryInput" type="checkbox" role="switch" id="showTextOverlay" aria-checked="false">
+						<label class="form-check-label" for="showTextOverlay">Show text (like quotes on the background)</label>
+					</div>
+					<div class="form-input">
+						<label class="form-label" for="textChangeMinutes">Change text every</label>
+						<input class="form-input primaryInput" type="number" size="4" min="0" placeholder="0" id="textChangeMinutes" value="15">
+						<label class="form-label" for="textChangeMinutes">minutes</label>
+					</div>
+				</div>
+				Quote Box Appearance:
+				<div class="container-fluid ms-4">
+					<div class="row">
+						<div class="col-3">
+							<div class="form-check form-switch">
+								<input class="form-check-input primaryInput" type="checkbox"  role="switch" id="quoteAppearanceRandom" 
+								 title="Check here to randomize the appearance of the quote box" aria-checked="false" value="false">
+								<label class="form-check-label" for="quoteAppearanceRandom">Randomize</label>
+							</div>
+						</div>
+						<div class="col-3">
+							<div class="form-input">
+								<label class="form-label" for="quoteTextColor">Text Color</label>
+								<input class="form-input primaryInput" type="color" id="quoteTextColor" value="#ffffff" placeholder="Choose Color">
+							</div>
+						</div>
+						<div class="col-3">
+							<div class="form-input">
+								<label class="form-label" for="quoteBackgroundColor">Background Color</label>
+								<input class="form-input primaryInput" type="color" id="quoteBackgroundColor" value="#000000" placeholder="Choose Color">
+							</div>
+						</div>
+						<div class="col-3">
+							<div class="form-input">
+								<label class="form-label" for="quoteBackgroundOpacity">Opacity: (clear)</label>
+								<input class="primaryInput" type="number" min="100" max="254" value="100" id="quoteBackgroundOpacity">
+								<label class="form-label" for="quoteBackgroundOpacity">(opaque)</label>
+							</div>
+						</div>
+					</div>
+				</div>
+				Text Location
+				<div class="container-fluid ms-4">
+					<div class="">
+						<label class="form-label" for="textBoxLocation">Location of quote</label>
+						<select class="w-25 primaryInput ms-2" id="textBoxLocation" title="Pick Location for quote box">
+							<option value="random" selected="true" title="This will make the text box location random">Random</option>
+							<option value="topLeft" title="This will make the text box location on the top left of screen">Top Left</option>
+							<option value="topRight" title="This will make the text box location on the top right of screen">Top Right</option>
+							<option value="center" title="This will make the text box location on the center of screen">Centered</option>
+							<option value="bottomLeft" title="This will make the text box location on the bottom left of screen">Bottom Left</option>
+							<option value="bottomRight" title="This will make the text box location on the bottom left of screen">Bottom Right</option>
+						</select>
+	
+					</div>
+				</div>
+				Font:
+				<div id="fontChoice" class="container-fluid ms-4">
+					<label class="form-label" for="textFontFile">Font</label>
+					<!-- accept=".ttf,.otf,.woff,.woff2" -->
+					<select class="primaryInput" id="textFontFile" title="Pick your Font">
+						<option value="random" title="This will make the font random">Random</option>
+					</select>
+					<input class="primaryInput" type="hidden" id="textFontPath">
+				</div>
+				Sources:
+				<div id="textLibraries" class="container-fluid ms-4 border-top border-Aquamarine border-2">
+				</div>
+			</p>
+		</section>
+		<input type="radio" name="tabs" id="tab-1" hidden checked />
+		<input type="radio" name="tabs" id="tab-2" hidden />
+		<input type="radio" name="tabs" id="tab-3" hidden />		
+	  </article>
+
+	</div>
+	<div id="modal" class="d-none">
+
+	</div>
+
+
+<script type="module">
+	import comms from './scripts/comms.js'; 
+	import boom from './scripts/dynamite.js'; 
+	window.comms=new comms({server: "http://127.0.0.1:3000"});
+	window.tnt=new boom();
+	document.addEventListener("DOMContentLoaded",async ()=>{
+		let config=await window.comms.fetchConfig();
+
+		//convert the bible
+		// let res=await fetch("http://127.0.0.1:3000/quotes/KJV.json");
+		// let resObj={
+		// 	ok: res.ok,
+		// 	url: res.url,
+		// 	text: res.statusText,
+		// 	sessionTimeout: false,
+		// 	redirected: res.redirected,
+		// 	status: res.status,
+		// 	bodyUsed: res.bodyUsed
+		// }
+		// let kjvJson=await res.json();
+
+		// //console.log(kjv);
+
+		// let kjv=[];
+
+		// for(let book of kjvJson.Books){
+		// 	for(let chap of book.Chapters){
+		// 		for(let verse of chap.Verses){			
+		// 			//console.log("Verse: " + verse.Text);
+		// 			//console.log("Author:" + book.Name + " " + chap.BookChapter + ":" + verse.VerseNumber);
+		// 			kjv.push({quote: verse.Text,author: book.Name + " " + chap.BookChapter + ":" + verse.VerseNumber})
+		// 		}
+		// 	}
+		// }
+
+
+		// console.log(JSON.stringify(kjv));
+
+
+		let inputz=Array.from(document.querySelectorAll(".primaryInput"));
+		for(let inpt of inputz){
+			//set current
+			inpt.value=config[inpt.id];
+			//set change functions
+			inpt.addEventListener("change",async (e)=>{
+				await window.comms.formFieldChanged(e);
+			});
+		}
+		await window.comms.getFonts();
+	})
+</script>
+
+</body>
+</html>

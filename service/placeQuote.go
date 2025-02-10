@@ -247,6 +247,7 @@ func getOpacityAndSetBoxBackground(currentPic config.PicHistory, dc *gg.Context,
 		fmt.Println("Error parsing opacity:", errO)
 		return true, currentPic, nil
 	}
+	//Where did this go
 	if config.ConfigInstance.QuoteAppearanceRandom {
 		opacity = 110 + uint64(rand.Intn(144))
 	}

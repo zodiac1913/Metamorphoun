@@ -433,7 +433,7 @@ func CreateConfig() error {
 		QuoteAppearanceRandom:     false,
 		QuoteTextColor:            "#FFFFFF",
 		QuoteBackgroundColor:      "#000000",
-		QuoteBackgroundOpacity:    "90",
+		QuoteBackgroundOpacity:    "110",
 		TextLibraries: []TextLibrary{
 			{
 				Use:      true,

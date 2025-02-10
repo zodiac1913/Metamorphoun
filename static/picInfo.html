@@ -34,22 +34,30 @@
     import {jsonToHtml} from './scripts/cc/ccUtilities.js'
 	window.comms=new comms({server: "http://127.0.0.1:3000"});
 	window.tnt=new boom();
-    let config=await window.comms.getConfig();
-    let currentPic=config.picHistories.find(ph=>ph.picNum===0);
 
-    let randomIIPicked={i:"ImageItemData",c:"bg-AliceBlue fw-bolder text-FireBrick",b:[]}
-    let flexRow1={i:"ImageItemDataFlexRow1",c:"d-flex flex-row mb-3",b:[]}
-    flexRow1.b.push(
-        {i:"op",c:"p-2 fw-bold",t:"Operation: ",b:[{i:"opVal",c:"text-Maroon float-end ms-2 fst-italic",t: currentPic.imageItem.operation}]},
-        {i:"loc",c:"p-2 fw-bold",t:"Location: ",b:[{i:"locVal",c:"text-Maroon float-end ms-2 fst-italic",t: currentPic.imageItem.location}]},
-    )
+    document.addEventListener("DOMContentLoaded", async ()=> {
+        let config=await window.comms.getConfig();
+        let currentPic=config.picHistories.find(ph=>ph.picNum===0);
+        let randomIIPicked={i:"ImageItemData",c:"bg-AliceBlue fw-bolder text-FireBrick w-50 mx-auto",b:[]}
+        let flexRow1={i:"ImageItemDataFlexRow1",c:"d-flex justify-content-between mb-3",b:[]}
+        flexRow1.b.push(
+            {i:"op",c:"p-2 fw-bold",t:"Operation: ",b:[{i:"opVal",c:"text-Maroon float-end ms-2 fst-italic",t: currentPic.imageItem.operation}]},
+            {i:"loc",c:"p-2 fw-bold",t:"Location: ",b:[{i:"locVal","data-url":currentPic.imageItem.location,c:"text-Maroon float-end ms-2 fst-italic opencapable",t: currentPic.imageItem.location}]},
+        )
+        let flexRow2={i:"ImageItemDataFlexRow2",c:"d-flex flex-row mb-3 bg-dark",b:[]}
+        randomIIPicked.b.push(flexRow1);
+        flexRow2.b.push(
+            {i:"source",c:"p-2 fw-bold",t:"Picture Source: ",b:[{i:"opVal","data-url":currentPic.originName,c:"text-Lavender float-end ms-2 fst-italic opencapable",t: currentPic.originName}]},
+        )
+        randomIIPicked.b.push(flexRow2);
+        document.querySelector("#infoPic").insertAdjacentHTML("beforeend",jsonToHtml(randomIIPicked))
 
-
-
-
-    randomIIPicked.b.push(flexRow1);
-    document.querySelector("#infoPic").insertAdjacentHTML("beforeend",jsonToHtml(randomIIPicked))
-
+        for(let oc of document.querySelectorAll(".opencapable")){
+            oc.addEventListener("click",async (e)=>{
+                window.comms.locationClicked(e);
+            })
+        }
+    })
 
     // {
     // "picNum": 0,
@@ -76,6 +84,8 @@
     //         "quoteBackgroundColorB": 0,
     //         "quoteOpacity": 175
     //     }
+
+
 </script>
 
 </body>

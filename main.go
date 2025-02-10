@@ -1,10 +1,10 @@
 package main
 
 import (
-	"MorphPrototype/config"
-	"MorphPrototype/server"
-	"MorphPrototype/service"
-	"MorphPrototype/systemTray"
+	"Metamorphoun/config"
+	"Metamorphoun/server"
+	"Metamorphoun/service"
+	"Metamorphoun/systemTray"
 	"context"
 	"fmt"
 	"io/ioutil"

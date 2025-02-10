@@ -12,8 +12,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"MorphPrototype/config"
-	"MorphPrototype/zutil"
+	"Metamorphoun/config"
+	"Metamorphoun/zutil"
 
 	"github.com/tidwall/gjson"
 )

@@ -1,11 +1,11 @@
 package systemTray
 
 import (
-	"MorphPrototype/config"
-	"MorphPrototype/icon"
-	"MorphPrototype/server"
-	"MorphPrototype/service"
-	"MorphPrototype/zutil"
+	"Metamorphoun/config"
+	"Metamorphoun/icon"
+	"Metamorphoun/server"
+	"Metamorphoun/service"
+	"Metamorphoun/zutil"
 	"fmt"
 	"os"
 	"os/user"

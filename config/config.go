@@ -1,7 +1,7 @@
 package config
 
 import (
-	"MorphPrototype/zutil"
+	"Metamorphoun/zutil"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -442,16 +442,58 @@ func CreateConfig() error {
 				Location: "quotes/biblekjv.json",
 				Citation: "https://aruljohn.com/Bible/",
 				Creators: "Arul John",
-				Info:     "",
+				Info:     "The King James Bible",
+				Inherent: true,
+			},
+			{
+				Use:      true,
+				Name:     "AugustineQuotes",
+				Title:    "Augustine Quotes",
+				Location: "quotes/augustine.json",
+				Citation: "https://gracequotes.org/author-quote/augustine/",
+				Creators: "Grace Quotes",
+				Info:     "‘Grace Quotes’ is a growing database containing over 10,000 great Christian quotes arranged over hundreds of topics. The material is from theologically sound, well-respected pastors, authors and Christian heroes from across the centuries.",
+				Inherent: true,
+			},
+			{
+				Use:      true,
+				Name:     "RichardBaxterQuotes",
+				Title:    "Richard Baxter Quotes",
+				Location: "quotes/richardBaxter.json",
+				Citation: "https://gracequotes.org/author-quote/richard-baxter/",
+				Creators: "Grace Quotes",
+				Info:     "‘Grace Quotes’ is a growing database containing over 10,000 great Christian quotes arranged over hundreds of topics. The material is from theologically sound, well-respected pastors, authors and Christian heroes from across the centuries.",
+				Inherent: true,
+			},
+			{
+				Use:      true,
+				Name:     "JohnCalvinQuotes",
+				Title:    "John Calvin Quotes",
+				Location: "quotes/johnCalvin.json",
+				Citation: "https://gracequotes.org/author-quote/john-calvin/",
+				Creators: "Grace Quotes",
+				Info:     "‘Grace Quotes’ is a growing database containing over 10,000 great Christian quotes arranged over hundreds of topics. The material is from theologically sound, well-respected pastors, authors and Christian heroes from across the centuries.",
+				Inherent: true,
+			},
+			{
+				Use:      true,
+				Name:     "CSLewisQuotes",
+				Title:    "C.S. Lewis Quotes",
+				Location: "quotes/csLewis.json",
+				Citation: "https://gracequotes.org/author-quote/c-s-lewis/",
+				Creators: "Grace Quotes",
+				Info:     "‘Grace Quotes’ is a growing database containing over 10,000 great Christian quotes arranged over hundreds of topics. The material is from theologically sound, well-respected pastors, authors and Christian heroes from across the centuries.",
+				Inherent: true,
 			},
 			{
 				Use:      true,
 				Name:     "MartinLutherQuotes",
 				Title:    "Martin Luther Quotes",
 				Location: "quotes/martinLuther.json",
-				Citation: "https://gracequotes.org/author-quote/martin-luther/page/2/",
+				Citation: "https://gracequotes.org/author-quote/martin-luther/",
 				Creators: "Grace Quotes",
 				Info:     "‘Grace Quotes’ is a growing database containing over 10,000 great Christian quotes arranged over hundreds of topics. The material is from theologically sound, well-respected pastors, authors and Christian heroes from across the centuries.",
+				Inherent: true,
 			},
 			{
 				Use:      false,
@@ -461,6 +503,7 @@ func CreateConfig() error {
 				Citation: "https://www.goodreads.com/author/quotes/317613.Douglas_MacArthur",
 				Creators: "GoodReads.com",
 				Info:     "The right book in the right hands at the right time can change the world. Who We Are Goodreads is the world’s largest site for readers and book recommendations. Our mission is to help readers discover books they love and get more out of reading. Goodreads launched in January 2007.",
+				Inherent: true,
 			},
 			{
 				Use:      false,
@@ -470,6 +513,7 @@ func CreateConfig() error {
 				Citation: "https://www.wearethemighty.com/lists/general-george-patton-quotes/",
 				Creators: "We Are The Mighty",
 				Info:     "We Are The Mighty is a veteran-led digital publisher and Emmy Award-winning media agency servicing brands with video production, marketing, advertising, and consulting services to engage with the military community. In addition to our digital publisher, we also run the Military Influencer Conference, the largest in-person event servicing our military community. WATM is owned by Recurrent Ventures and is a GSA-approved vendor.",
+				Inherent: true,
 			},
 			{
 				Use:      false,
@@ -479,6 +523,7 @@ func CreateConfig() error {
 				Citation: "https://parade.com/1216401/jessicasager/mark-twain-quotes/",
 				Creators: "Parade",
 				Info:     "The Parade brand has been delighting, enlightening and inspiring readers since it was founded in 1941. Through our access to A-list celebrities, top experts and today’s most intriguing and influential personalities, our team provides information, solutions, perspectives and advice on trending topics in entertainment, pop culture and lifestyle. We give you reasons to feel good about your life and the world around you through the stories we tell.",
+				Inherent: true,
 			},
 			{
 				Use:      false,
@@ -488,6 +533,7 @@ func CreateConfig() error {
 				Citation: "https://www.willrogers.com/quotes",
 				Creators: "Will Rogers Memorial Museum",
 				Info:     "The Will Rogers Memorial Museum is a 19,052-square-foot museum in Claremore, Oklahoma that memorializes entertainer Will Rogers. The museum houses artifacts, memorabilia, photographs, and manuscripts pertaining to Rogers' life, and documentaries, speeches, and movies starring Rogers are shown in a theater. The museum is one of five attractions operated by the Will Rogers Memorial Museums, Inc., a non-profit organization.",
+				Inherent: true,
 			},
 			{
 				Use:      false,
@@ -497,6 +543,7 @@ func CreateConfig() error {
 				Citation: "https://github.com/JamesFT/Database-Quotes-JSON",
 				Creators: "James F Thompson (JamesFT)",
 				Info:     "#Database Quotes JSON ##JSON file with more than 5000+ famous quotes. Some example on how to work on this JSON quotes file",
+				Inherent: true,
 			},
 			{
 				Use:      false,
@@ -506,6 +553,7 @@ func CreateConfig() error {
 				Citation: "https://gist.github.com/nasrulhazim/54b659e43b1035215cd0ba1d4577ee80",
 				Creators: "Nasrul Hazim",
 				Info:     "The Parade brand has been delighting, enlightening and inspiring readers since it was founded in 1941. Through our access to A-list celebrities, top experts and today’s most intriguing and influential personalities, our team provides information, solutions, perspectives and advice on trending topics in entertainment, pop culture and lifestyle. We give you reasons to feel good about your life and the world around you through the stories we tell.",
+				Inherent: true,
 			},
 			{
 				Use:      false,
@@ -515,6 +563,7 @@ func CreateConfig() error {
 				Citation: "https://callofduty.fandom.com/wiki/Quoted_sayings_in_the_Call_of_Duty_series",
 				Creators: "Fandom",
 				Info:     "Our Mission -- We power fan experiences.  Our mission is to understand, inform, entertain, and celebrate fans by building the best entertainment and gaming communities, content, services, and experiences.",
+				Inherent: true,
 			},
 		},
 		PicHistories: []PicHistory{},

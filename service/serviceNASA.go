@@ -1,7 +1,7 @@
 package service
 
 import (
-	"MorphPrototype/config"
+	"Metamorphoun/config"
 	"fmt"
 	"image"
 	"math/rand"

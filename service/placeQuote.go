@@ -1,8 +1,8 @@
 package service
 
 import (
-	"MorphPrototype/config"
-	"MorphPrototype/morphLog"
+	"Metamorphoun/config"
+	"Metamorphoun/morphLog"
 	"fmt"
 	"image"
 	"image/color"

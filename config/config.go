@@ -11,41 +11,41 @@ import (
 
 // Define the structure of your configuration ...
 type Config struct {
-	ServerAddress                   string        `json:"server_address"`
-	ServerPort                      int           `json:"serverPort"`
-	SourceCurrentBackgroundName     string        `json:"sourceCurrentBackgroundName"`
-	SourceCurrentBackgroundFolder   string        `json:"sourceCurrentBackgroundFolder"`
-	OriginalCurrentBackgroundName   string        `json:"originalCurrentBackgroundName"`
-	OriginalCurrentBackgroundFolder string        `json:"originalCurrentBackgroundFolder"`
-	CurrentBackgroundName           string        `json:"currentBackgroundName"`
-	CurrentBackgroundFolder         string        `json:"currentBackgroundFolder"`
-	BackgroundChangingBlock         bool          `json:"backgroundChangingBlock"`
-	StartOnStartup                  bool          `json:"startOnStartup"`
-	ChangeWallpaperOnStartup        bool          `json:"changeWallpaperOnStartup"`
-	ChangeMinutes                   int32         `json:"changeMinutes"`
-	Images                          []Image       `json:"images"`
-	WallpaperImageSizing            string        `json:"wallpaperImageSizing"`
-	WallpaperFilterOriginal         bool          `json:"wallpaperFilterOriginal"`
-	WallpaperFilterBlurSoft         bool          `json:"wallpaperFilterBlurSoft"`
-	WallpaperFilterBlurHard         bool          `json:"wallpaperFilterBlurHard"`
-	WallpaperFilterPixelate         bool          `json:"wallpaperFilterPixelate"`
-	WallpaperFilterOilify           bool          `json:"wallpaperFilterOilify"`
-	WallpaperFilterWavy             bool          `json:"wallpaperFilterWavy"`
-	WallpaperFilterSpiral           bool          `json:"wallpaperFilterSpiral"`
-	WallpaperFilterMonochrome       bool          `json:"wallpaperFilterMonochrome"`
-	ShowTextOverlay                 bool          `json:"showTextOverlay"`
-	TextChangeMinutes               int           `json:"textChangeMinutes"`
-	TextLibraries                   []TextLibrary `json:"textLibraries"`
-	TextFontFile                    string        `json:"textFontFile"`
-	TextFontPath                    string        `json:"textFontPath"`
-	TextBoxLocation                 string        `json:"textBoxLocation"`
-	CurrentQuoteStatement           string        `json:"currentQuoteStatement"`
-	CurrentQuoteAuthor              string        `json:"currentQuoteAuthor"`
-	QuoteAppearanceRandom           bool          `json:"quoteAppearanceRandom"`
-	QuoteTextColor                  string        `json:"quoteTextColor"`
-	QuoteBackgroundColor            string        `json:"quoteBackgroundColor"`
-	QuoteBackgroundOpacity          string        `json:"quoteBackgroundOpacity"`
-	PicHistories                    []PicHistory  `json:"picHistories"`
+	ServerAddress                   string  `json:"server_address"`
+	ServerPort                      int     `json:"serverPort"`
+	SourceCurrentBackgroundName     string  `json:"sourceCurrentBackgroundName"`
+	SourceCurrentBackgroundFolder   string  `json:"sourceCurrentBackgroundFolder"`
+	OriginalCurrentBackgroundName   string  `json:"originalCurrentBackgroundName"`
+	OriginalCurrentBackgroundFolder string  `json:"originalCurrentBackgroundFolder"`
+	CurrentBackgroundName           string  `json:"currentBackgroundName"`
+	CurrentBackgroundFolder         string  `json:"currentBackgroundFolder"`
+	BackgroundChangingBlock         bool    `json:"backgroundChangingBlock"`
+	StartOnStartup                  bool    `json:"startOnStartup"`
+	ChangeWallpaperOnStartup        bool    `json:"changeWallpaperOnStartup"`
+	ChangeMinutes                   int32   `json:"changeMinutes"`
+	Images                          []Image `json:"images"`
+	WallpaperImageSizing            string  `json:"wallpaperImageSizing"`
+	WallpaperFilterOriginal         bool    `json:"wallpaperFilterOriginal"`
+	WallpaperFilterBlurSoft         bool    `json:"wallpaperFilterBlurSoft"`
+	WallpaperFilterBlurHard         bool    `json:"wallpaperFilterBlurHard"`
+	WallpaperFilterPixelate         bool    `json:"wallpaperFilterPixelate"`
+	WallpaperFilterOilify           bool    `json:"wallpaperFilterOilify"`
+	WallpaperFilterWavy             bool    `json:"wallpaperFilterWavy"`
+	//WallpaperFilterSpiral           bool          `json:"wallpaperFilterSpiral"`
+	WallpaperFilterMonochrome bool          `json:"wallpaperFilterMonochrome"`
+	ShowTextOverlay           bool          `json:"showTextOverlay"`
+	TextChangeMinutes         int           `json:"textChangeMinutes"`
+	TextLibraries             []TextLibrary `json:"textLibraries"`
+	TextFontFile              string        `json:"textFontFile"`
+	TextFontPath              string        `json:"textFontPath"`
+	TextBoxLocation           string        `json:"textBoxLocation"`
+	CurrentQuoteStatement     string        `json:"currentQuoteStatement"`
+	CurrentQuoteAuthor        string        `json:"currentQuoteAuthor"`
+	QuoteAppearanceRandom     bool          `json:"quoteAppearanceRandom"`
+	QuoteTextColor            string        `json:"quoteTextColor"`
+	QuoteBackgroundColor      string        `json:"quoteBackgroundColor"`
+	QuoteBackgroundOpacity    string        `json:"quoteBackgroundOpacity"`
+	PicHistories              []PicHistory  `json:"picHistories"`
 	// Add other configuration fields here
 }
 type Image struct {
@@ -198,8 +198,8 @@ func UpdateConfigField(propertyName string, newValue interface{}) error {
 		ConfigInstance.WallpaperFilterOilify = zutil.AsBool(fmt.Sprintf("%v", newValue))
 	case "wallpaperFilterWavy":
 		ConfigInstance.WallpaperFilterWavy = zutil.AsBool(fmt.Sprintf("%v", newValue))
-	case "wallpaperFilterSpiral":
-		ConfigInstance.WallpaperFilterSpiral = zutil.AsBool(fmt.Sprintf("%v", newValue))
+	// case "wallpaperFilterSpiral":
+	// 	ConfigInstance.WallpaperFilterSpiral = zutil.AsBool(fmt.Sprintf("%v", newValue))
 	case "wallpaperFilterMonochrome":
 		ConfigInstance.WallpaperFilterMonochrome = zutil.AsBool(fmt.Sprintf("%v", newValue))
 	default:
@@ -416,19 +416,19 @@ func CreateConfig() error {
 				Inherent:  true,
 			},
 		},
-		ShowTextOverlay:           false,
-		TextChangeMinutes:         5,
-		TextFontPath:              "C:\\Windows\\Fonts\\",
-		TextFontFile:              "DejaVuSans-Bold.ttf",
-		TextBoxLocation:           "TopRight",
-		WallpaperImageSizing:      "",
-		WallpaperFilterOriginal:   true,
-		WallpaperFilterBlurSoft:   false,
-		WallpaperFilterBlurHard:   false,
-		WallpaperFilterPixelate:   false,
-		WallpaperFilterOilify:     false,
-		WallpaperFilterWavy:       false,
-		WallpaperFilterSpiral:     false,
+		ShowTextOverlay:         false,
+		TextChangeMinutes:       5,
+		TextFontPath:            "C:\\Windows\\Fonts\\",
+		TextFontFile:            "DejaVuSans-Bold.ttf",
+		TextBoxLocation:         "TopRight",
+		WallpaperImageSizing:    "",
+		WallpaperFilterOriginal: true,
+		WallpaperFilterBlurSoft: false,
+		WallpaperFilterBlurHard: false,
+		WallpaperFilterPixelate: false,
+		WallpaperFilterOilify:   false,
+		WallpaperFilterWavy:     false,
+		//WallpaperFilterSpiral:     false,
 		WallpaperFilterMonochrome: false,
 		QuoteAppearanceRandom:     false,
 		QuoteTextColor:            "#FFFFFF",

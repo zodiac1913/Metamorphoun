@@ -95,7 +95,7 @@ export default class comms{
             "sourceCurrentBackgroundName,sourceCurrentBackgroundFolder," +
             "originalCurrentBackgroundFolder,currentBackgroundName,currentBackgroundFolder" +
             ",backgroundChangingBlock,textLibraries,currentQuoteStatement" + 
-            ",currentQuoteAuthor".split(',');
+            ",currentQuoteAuthor,picHistories".split(',');
         for (const [key, value] of Object.entries(traffic.config)) {
             //console.log(`${key}: ${value}`);
             if(!dontProcessFields.includes(key)){

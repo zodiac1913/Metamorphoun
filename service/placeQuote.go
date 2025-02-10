@@ -3,6 +3,7 @@ package service
 import (
 	"Metamorphoun/config"
 	"Metamorphoun/morphLog"
+	"Metamorphoun/zutil"
 	"fmt"
 	"image"
 	"image/color"
@@ -103,32 +104,33 @@ func getFontInfo(currentPic config.PicHistory) (float64, string, bool, config.Pi
 		"SegoeIcons", "Marlett.ttf", "opens__", "segmdl2", "symbol.ttf", "webdings", "wingding",
 	}
 
+	// Get all font files in the specified path
+	fontFiles, err := getFontFiles(config.ConfigInstance.TextFontPath)
+	if err != nil {
+		fmt.Println("Error getting font files", http.StatusInternalServerError)
+		return 0, "", true, currentPic, err
+	}
+
+	// Filter out fonts that contain any of the excluded substrings
+	var validFontFiles []string
+	for _, fontFile := range fontFiles {
+		exclude := false
+		for _, substr := range excludedSubstrings {
+			if strings.Contains(strings.ToLower(fontFile), strings.ToLower(substr)) {
+				exclude = true
+				break
+			}
+		}
+		if !exclude {
+			validFontFiles = append(validFontFiles, fontFile)
+		}
+	}
+
+	if len(validFontFiles) == 0 {
+		return 0, "", true, currentPic, fmt.Errorf("no valid fonts found")
+	}
+
 	if config.ConfigInstance.TextFontFile == "random" {
-		// Get all font files in the specified path
-		fontFiles, err := getFontFiles(config.ConfigInstance.TextFontPath)
-		if err != nil {
-			fmt.Println("Error getting font files", http.StatusInternalServerError)
-			return 0, "", true, currentPic, err
-		}
-
-		// Filter out fonts that contain any of the excluded substrings
-		var validFontFiles []string
-		for _, fontFile := range fontFiles {
-			exclude := false
-			for _, substr := range excludedSubstrings {
-				if strings.Contains(strings.ToLower(fontFile), strings.ToLower(substr)) {
-					exclude = true
-					break
-				}
-			}
-			if !exclude {
-				validFontFiles = append(validFontFiles, fontFile)
-			}
-		}
-
-		if len(validFontFiles) == 0 {
-			return 0, "", true, currentPic, fmt.Errorf("no valid fonts found")
-		}
 
 		// Select a random valid font
 		fileRnd := rand.Intn(len(validFontFiles))
@@ -144,6 +146,13 @@ func getFontInfo(currentPic config.PicHistory) (float64, string, bool, config.Pi
 		}
 		morphLog.UpdateLogs(lEntry)
 		fmt.Println("new log entry:", lEntry)
+	} else {
+		if zutil.IsInRange(fontPath, validFontFiles) {
+			fontPath = filepath.Join(config.ConfigInstance.TextFontPath, config.ConfigInstance.TextFontFile)
+		} else {
+			fontPath = validFontFiles[0]
+		}
+
 	}
 	fmt.Println("Selected font:", fontPath)
 	currentPic.QuoteFont = fontPath
@@ -231,10 +240,17 @@ func getBackgroundColor(currentPic config.PicHistory) (uint8, uint8, uint8, bool
 }
 func getOpacityAndSetBoxBackground(currentPic config.PicHistory, dc *gg.Context, redColorBackground uint8, greenColorBackground uint8, blueColorBackground uint8, textBlockX float64, textBlockY float64, textBoxWidth float64, textBoxHeight float64) (bool, config.PicHistory, error) {
 	opacity, errO := strconv.ParseUint(config.ConfigInstance.QuoteBackgroundOpacity, 10, 8)
+	if opacity < 110 {
+		opacity = uint64(110)
+	}
 	if errO != nil {
 		fmt.Println("Error parsing opacity:", errO)
 		return true, currentPic, nil
 	}
+	if config.ConfigInstance.QuoteAppearanceRandom {
+		opacity = 110 + uint64(rand.Intn(144))
+	}
+	config.ConfigInstance.QuoteBackgroundOpacity = zutil.AsString(opacity)
 	currentPic.QuoteOpacity = opacity
 
 	//fmt.Println("opacity", opacity)

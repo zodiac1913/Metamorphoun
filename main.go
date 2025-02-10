@@ -37,6 +37,11 @@ func main() {
 	if err != nil {
 		fmt.Println("Error loading config:", err)
 		config.CreateConfig()
+		configData, err = config.LoadConfig()
+		if err != nil {
+			fmt.Println("Error loading config complete failure:", err)
+			panic("Bad")
+		}
 	}
 	cfg := config.GetConfig()
 	config.SetupSystemFolders()

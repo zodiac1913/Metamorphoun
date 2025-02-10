@@ -115,3 +115,12 @@ func CopyFile(src, dst string) error {
 	_, err = io.Copy(destination, source)
 	return err
 }
+
+func IsInRange(value string, rangeOfStrings []string) bool {
+	for _, str := range rangeOfStrings {
+		if value == str {
+			return true
+		}
+	}
+	return false
+}

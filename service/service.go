@@ -96,6 +96,13 @@ func ChangeView() error {
 	if shouldReturn {
 		return err
 	}
+	if img == nil {
+		//Try next time
+		fmt.Println("[ERROR][ERROR][ERROR][ERROR][ERROR][ERROR][ERROR][ERROR][ERROR][ERROR][ERROR]")
+		fmt.Println(imgItem.Name + " has NO files! Turn it off or add files")
+		fmt.Println("[ERROR][ERROR][ERROR][ERROR][ERROR][ERROR][ERROR][ERROR][ERROR][ERROR][ERROR]")
+		return nil
+	}
 	sourceExt := filepath.Ext(url)
 
 	currentPic.OriginName = url // Get screen size

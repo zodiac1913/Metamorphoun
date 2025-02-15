@@ -42,6 +42,7 @@ type Config struct {
 	CurrentQuoteStatement     string        `json:"currentQuoteStatement"`
 	CurrentQuoteAuthor        string        `json:"currentQuoteAuthor"`
 	QuoteAppearanceRandom     bool          `json:"quoteAppearanceRandom"`
+	QuoteFontRandom           bool          `json:"quoteFontRandom"`
 	QuoteTextColor            string        `json:"quoteTextColor"`
 	QuoteBackgroundColor      string        `json:"quoteBackgroundColor"`
 	QuoteBackgroundOpacity    string        `json:"quoteBackgroundOpacity"`
@@ -74,7 +75,7 @@ type PicHistory struct {
 	SaveName              string `json:"saveName"`
 	ImageItem             Image  `json:"imageItem"`
 	Filter                string `json:"filter"`
-	Sizing                string `json:"Sizing"`
+	Sizing                string `json:"sizing"`
 	QuoteStatement        string `json:"quoteStatement"`
 	QuoteAuthor           string `json:"quoteAuthor"`
 	QuoteFont             string `json:"quoteFont"`
@@ -178,6 +179,9 @@ func UpdateConfigField(propertyName string, newValue interface{}) error {
 	case "quoteAppearanceRandom":
 		boolValue := zutil.AsBool(fmt.Sprintf("%v", newValue))
 		ConfigInstance.QuoteAppearanceRandom = boolValue
+	case "quoteFontRandom":
+		boolValue := zutil.AsBool(fmt.Sprintf("%v", newValue))
+		ConfigInstance.QuoteFontRandom = boolValue
 	case "quoteTextColor":
 		ConfigInstance.QuoteTextColor = newValue.(string)
 	case "quoteBackgroundColor":
@@ -431,6 +435,7 @@ func CreateConfig() error {
 		//WallpaperFilterSpiral:     false,
 		WallpaperFilterMonochrome: false,
 		QuoteAppearanceRandom:     false,
+		QuoteFontRandom:           false,
 		QuoteTextColor:            "#FFFFFF",
 		QuoteBackgroundColor:      "#000000",
 		QuoteBackgroundOpacity:    "110",
@@ -493,6 +498,16 @@ func CreateConfig() error {
 				Citation: "https://gracequotes.org/author-quote/martin-luther/",
 				Creators: "Grace Quotes",
 				Info:     "‘Grace Quotes’ is a growing database containing over 10,000 great Christian quotes arranged over hundreds of topics. The material is from theologically sound, well-respected pastors, authors and Christian heroes from across the centuries.",
+				Inherent: true,
+			},
+			{
+				Use:      true,
+				Name:     "ChristianInspirations",
+				Title:    "Christian Inspirations",
+				Location: "quotes/inspirations.json",
+				Citation: "????",
+				Creators: "Multiple",
+				Info:     "Multiple Sources",
 				Inherent: true,
 			},
 			{

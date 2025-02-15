@@ -228,19 +228,29 @@
 							<option value="bottomLeft" title="This will make the text box location on the bottom left of screen">Bottom Left</option>
 							<option value="bottomRight" title="This will make the text box location on the bottom left of screen">Bottom Right</option>
 						</select>
-	
 					</div>
 				</div>
 				Font:
-				<div id="fontChoice" class="container-fluid ms-4">
-					<label class="form-label" for="textFontFile">Font</label>
-					<!-- accept=".ttf,.otf,.woff,.woff2" -->
-					<select class="primaryInput" id="textFontFile" title="Pick your Font">
-						<option value="random" title="This will make the font random">Random</option>
-					</select>
-					<input class="primaryInput" type="hidden" id="textFontPath">
+				<div class="row">
+					<div id="fontChoice" class="container-fluid ms-4">
+						<div class="col-3">
+							<div class="form-check form-switch">
+								<input class="form-check-input primaryInput" type="checkbox"  role="switch" id="quoteFontRandom" 
+								 title="Check here to randomize the appearance of the quote box" aria-checked="false" value="false">
+								<label class="form-check-label" for="quoteFontRandom">Randomize</label>
+							</div>
+						</div>
+						<div class="col-3">
+							<label class="form-label" for="textFontFile">Font</label>
+							<!-- accept=".ttf,.otf,.woff,.woff2" -->
+							<select class="primaryInput" id="textFontFile" title="Pick your Font">
+								<option value="random" title="This will make the font random">Random</option>
+							</select>
+							<input class="primaryInput" type="hidden" id="textFontPath">
+						</div>
+					</div>
 				</div>
-				Sources:
+			Sources:
 				<div id="textLibraries" class="container-fluid ms-4 border-top border-Aquamarine border-2">
 				</div>
 			</p>

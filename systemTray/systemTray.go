@@ -5,6 +5,7 @@ import (
 	"Metamorphoun/icon"
 	"Metamorphoun/server"
 	"Metamorphoun/service"
+
 	"Metamorphoun/zutil"
 	"fmt"
 	"os"
@@ -52,6 +53,7 @@ func MakeSystemTray() {
 
 		mUrl := systray.AddMenuItem("Settings", "Configure your Metamorphoun")
 		mNextBG := systray.AddMenuItem("Next Background", "Change to next background image")
+		mLastBG := systray.AddMenuItem("Last Background", "Change to the last background image")
 		mShowCurrentPicture := systray.AddMenuItem("Current Info", "Show current picture information")
 		mQuit := systray.AddMenuItem("Quit", "Shutdown Metamorphoun")
 
@@ -98,7 +100,9 @@ func MakeSystemTray() {
 				zutil.CopyFile(currentPicFile, picToSave)
 				server.OpenFolder("explorer", favPicFolderWithoutQuote)
 			case <-mNextBG.ClickedCh:
-				service.ChangeView()
+				service.ChangeView("backgroundChange")
+			case <-mLastBG.ClickedCh:
+				service.CallMakeView(1)
 			case <-mShowCurrentPicture.ClickedCh:
 				currPicInfo := "http://" + config.ConfigInstance.ServerAddress + ":" + zutil.AsString(config.ConfigInstance.ServerPort) + "/picInfo.html"
 				server.OpenFolder("explorer", currPicInfo)

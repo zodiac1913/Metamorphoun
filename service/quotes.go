@@ -14,7 +14,8 @@ import (
 
 type QService struct {
 	interval time.Duration
-	fn       func() error
+	fn       func(string) error
+	param    string
 }
 
 type Quotes struct {
@@ -28,29 +29,40 @@ type Quote struct {
 }
 
 // Start starts the service.
-func (s *QService) Start() error {
-	ticker := time.NewTicker(s.interval)
+func (qs *QService) Start() error {
+	ticker := time.NewTicker(qs.interval)
 	defer ticker.Stop()
-
-	for range ticker.C {
-		if err := s.fn(); err != nil {
-			return fmt.Errorf("periodic run failed: %w", err)
+	for {
+		select {
+		case <-ticker.C:
+			if err := qs.fn(qs.param); err != nil {
+				return err
+			}
 		}
 	}
-
-	return nil
 }
 
 // NewService creates a new Service instance with an internafl function.
+//
+//	func StartChangeQuote(interval time.Duration) *QService {
+//		fmt.Println("Start Interval of", interval)
+//		return &QService{
+//			fn:       SetQuote,
+//			interval: interval,
+//		}
+//	}
+//
+// StartChangeQuote creates a new QService instance with an internal function.
 func StartChangeQuote(interval time.Duration) *QService {
 	fmt.Println("Start Interval of", interval)
 	return &QService{
 		fn:       SetQuote,
 		interval: interval,
+		//param:    param,
 	}
 }
 
-func SetQuote() error {
+func SetQuote(caller string) error {
 	// Load the background image
 	config.GetConfig()
 
@@ -111,6 +123,7 @@ func SetQuote() error {
 
 	//service.AddQuote()
 	//ChangeBackgroundRoutine()
-	ChangeView()
+	//this should be a ChangeQuote method to use the current pic to reset the quote without changing the pic
+	ChangeView("quoteUpdate")
 	return nil
 }

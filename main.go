@@ -66,7 +66,7 @@ func main() {
 
 	if cfg.ChangeWallpaperOnStartup {
 		//service.ChangeBackground()
-		service.ChangeView()
+		service.ChangeView("backgroundChange")
 	}
 
 	go func() {
@@ -75,9 +75,9 @@ func main() {
 		for {
 			select {
 			case <-timer.C:
-				service.ChangeView()
+				service.ChangeView("backgroundChange")
 			case <-updateSignal:
-				service.ChangeView()
+				service.ChangeView("backgroundChange")
 				timer.Reset(time.Duration(configData.ChangeMinutes) * time.Minute)
 			case <-ctx.Done():
 				return
@@ -90,7 +90,7 @@ func main() {
 	if cfg.ShowTextOverlay {
 		go func() {
 			serveQuotes := service.StartChangeQuote(time.Duration(configData.TextChangeMinutes) * time.Minute)
-			println("quotes started 0 and ", configData.ChangeMinutes, " min timer")
+			println("quotes started 0 and ", configData.TextChangeMinutes, " min timer")
 			// Start the service
 			if err := serveQuotes.Start(); err != nil {
 				println(err)

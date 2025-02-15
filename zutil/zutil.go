@@ -3,8 +3,10 @@ package zutil
 
 import (
 	"fmt"
+	"image"
 	"io"
 	"math"
+	"net/http"
 	"os"
 	"strconv"
 )
@@ -123,4 +125,21 @@ func IsInRange(value string, rangeOfStrings []string) bool {
 		}
 	}
 	return false
+}
+
+func LoadImageFromURL(url string) (image.Image, error) {
+	// Fetch the image from the URL
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch image from URL: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Decode the image
+	img, _, err := image.Decode(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode image: %w", err)
+	}
+
+	return img, nil
 }

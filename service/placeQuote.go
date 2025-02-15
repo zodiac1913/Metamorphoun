@@ -17,18 +17,28 @@ import (
 	"time"
 
 	"github.com/fogleman/gg"
-	"github.com/gonutz/w32"
+	"github.com/kbinani/screenshot"
 )
+
+type screenInfo struct {
+	Number int16 `json:"number"`
+	Width  int   `json:"width"`
+	Height int   `json:"height"`
+}
 
 func placeQuote(img image.Image, currentPic config.PicHistory) (image.Image, config.PicHistory, error) {
 
-	// Get screen size
-	screenWidth := w32.GetSystemMetrics(w32.SM_CXSCREEN)
-	screenHeight := w32.GetSystemMetrics(w32.SM_CYSCREEN)
+	// Get screen size w32 only BOOO!!
+	// screenWidth := w32.GetSystemMetrics(w32.SM_CXSCREEN)
+	// screenHeight := w32.GetSystemMetrics(w32.SM_CYSCREEN)
 
+	// Get the number of displays
+	screenInfo := getScreenInfo()[0]
+	screenWidth := screenInfo.Width
+	screenHeight := screenInfo.Height
 	//Make Sure a Quote is loaded
 	if config.ConfigInstance.CurrentQuoteStatement == "" && config.ConfigInstance.CurrentQuoteAuthor == "" {
-		SetQuote()
+		SetQuote("backgroundChange")
 	}
 	fmt.Println("Quote:", config.ConfigInstance.CurrentQuoteStatement)
 	fmt.Println("Author:", config.ConfigInstance.CurrentQuoteAuthor)
@@ -93,6 +103,24 @@ func placeQuote(img image.Image, currentPic config.PicHistory) (image.Image, con
 	return imgWithQuote, currentPic, nil
 }
 
+func getScreenInfo() []screenInfo {
+	var screenInfoRange []screenInfo
+	displayCount := screenshot.NumActiveDisplays()
+	fmt.Printf("Number of displays: %d\n", displayCount)
+	for i := 0; i < displayCount; i++ {
+		// Get the bounds of the display
+		bounds := screenshot.GetDisplayBounds(i)
+		width := bounds.Dx()  // Width of the display
+		height := bounds.Dy() // Height of the display
+		var screen screenInfo
+		screen.Number = int16(i)
+		screen.Width = width
+		screen.Height = height
+		screenInfoRange = append([]screenInfo{screen}, screenInfoRange...)
+		fmt.Printf("Display %d: width = %d, height = %d\n", i, width, height)
+	}
+	return screenInfoRange
+}
 func getFontInfo(currentPic config.PicHistory) (float64, string, bool, config.PicHistory, error) {
 	initialFontSize := 22.0
 	fontPath := filepath.Join(config.ConfigInstance.TextFontPath, config.ConfigInstance.TextFontFile)
@@ -130,7 +158,7 @@ func getFontInfo(currentPic config.PicHistory) (float64, string, bool, config.Pi
 		return 0, "", true, currentPic, fmt.Errorf("no valid fonts found")
 	}
 
-	if config.ConfigInstance.TextFontFile == "random" {
+	if config.ConfigInstance.QuoteFontRandom {
 
 		// Select a random valid font
 		fileRnd := rand.Intn(len(validFontFiles))
@@ -219,9 +247,9 @@ func locateBox(textBlockX float64, screenWidth int, textBlockY float64, screenHe
 func getBackgroundColor(currentPic config.PicHistory) (uint8, uint8, uint8, bool, config.PicHistory, error) {
 	redColorBackground, greenColorBackground, blueColorBackground := uint8(0), uint8(0), uint8(0)
 	if config.ConfigInstance.QuoteAppearanceRandom {
-		redColorBackground = uint8(rand.Intn(128))
-		greenColorBackground = uint8(rand.Intn(128))
-		blueColorBackground = uint8(rand.Intn(128))
+		redColorBackground = uint8(rand.Intn(72))
+		greenColorBackground = uint8(rand.Intn(64))
+		blueColorBackground = uint8(rand.Intn(64))
 	} else {
 		bgR, bgG, bgB, err := ConvertHexToRGB(config.ConfigInstance.QuoteBackgroundColor)
 		if err != nil {
@@ -235,7 +263,7 @@ func getBackgroundColor(currentPic config.PicHistory) (uint8, uint8, uint8, bool
 
 	currentPic.QuoteBackgroundColorR = redColorBackground
 	currentPic.QuoteBackgroundColorG = greenColorBackground
-	currentPic.QuoteBackgroundColorR = blueColorBackground
+	currentPic.QuoteBackgroundColorB = blueColorBackground
 	return redColorBackground, greenColorBackground, blueColorBackground, false, currentPic, nil
 }
 func getOpacityAndSetBoxBackground(currentPic config.PicHistory, dc *gg.Context, redColorBackground uint8, greenColorBackground uint8, blueColorBackground uint8, textBlockX float64, textBlockY float64, textBoxWidth float64, textBoxHeight float64) (bool, config.PicHistory, error) {

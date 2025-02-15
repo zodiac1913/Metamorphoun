@@ -2,6 +2,7 @@ package service
 
 import (
 	"Metamorphoun/config"
+	"Metamorphoun/zutil"
 	"fmt"
 	"image"
 	"image/color"
@@ -12,6 +13,7 @@ import (
 	"io/ioutil"
 	"log"
 	"math/rand"
+	"net/http"
 	"os"
 	"os/exec"
 	"os/user"
@@ -22,7 +24,6 @@ import (
 	"time"
 
 	"github.com/fogleman/gg"
-	"github.com/gonutz/w32"
 	"github.com/reujab/wallpaper"
 	"golang.org/x/image/draw"
 )
@@ -39,13 +40,14 @@ type Service struct {
 }
 
 // NewService creates a new Service instance with an internafl function.
-func StartChangeBackground(interval time.Duration) *Service {
-	fmt.Println("Start Interval of", interval)
-	return &Service{
-		fn:       ChangeView,
-		interval: interval,
-	}
-}
+// func StartChangeBackground(interval time.Duration) *Service {
+// 	fmt.Println("Start Interval of", interval)
+// 	return &Service{
+// 		fn:       ChangeView,
+// 		interval: interval,
+
+// 	}
+// }
 
 // Start starts the service.
 func (s *Service) Start() error {
@@ -67,55 +69,80 @@ func (s *Service) Start() error {
 }
 
 // The new way of doing this
-func ChangeView() error {
+func ChangeView(caller string) error {
+	fmt.Println(caller)
 	//Make the pic
 	var img image.Image
 	var url string
 	var err error
-	var shouldReturn bool
+	var currentPicsFolder string
 	cfg := config.GetConfig()
-	onImages, shouldReturn, err := getConfigImages(cfg)
-	if shouldReturn {
-		return err
-	}
-	randomIndex := rand.Intn(len(onImages))
-	imgItem := onImages[randomIndex]
-	//Start Configure Image History
 	currentPic := config.PicHistory{}
-	currentPic.PicNum = 0
-	currentPic.ImageItem = imgItem
-
+	var filteredImg image.Image
+	filterChoice := ""
+	sourceExt := ""
+	sizingChoice := ""
+	currentPicInPlace := config.ConfigInstance.PicHistories[0]
+	sourceExt = filepath.Ext(currentPicInPlace.SaveName)
 	//from here start saving data in
 	usr, err := user.Current()
 	if err != nil {
 		fmt.Println("failed to get user home directory:", err)
 	}
-	currentPicsFolder := filepath.Join(usr.HomeDir, ".Metamorphoun")
+	currentPicsFolder = filepath.Join(usr.HomeDir, ".Metamorphoun")
+	currentPic.SaveName = filepath.Join(currentPicsFolder, "pic0"+sourceExt)
 
-	img, url, shouldReturn, err = getPicFromRandomSource(imgItem, img, url, err)
-	if shouldReturn {
-		return err
+	if caller == "quoteUpdate" {
+		currentPic = currentPicInPlace
+		if strings.HasPrefix(currentPic.OriginName, "http") {
+			img, err = zutil.LoadImageFromURL(currentPic.OriginName)
+		} else {
+			img, err = loadImage(currentPic.SaveName)
+		}
+		if err != nil {
+			fmt.Println("failed to fetch image from URL: %w", err)
+		}
+		saveImg(img, filepath.Join(currentPicsFolder, "pic0"+sourceExt))
+		sizingChoice = currentPic.Sizing
+		filterChoice = currentPic.Filter
+	} else {
+		var shouldReturn bool
+		onImages, shouldReturn, err := getConfigImages(cfg)
+		if shouldReturn {
+			return err
+		}
+		randomIndex := rand.Intn(len(onImages))
+		imgItem := onImages[randomIndex]
+		//Start Configure Image History
+		currentPic.PicNum = 0
+		currentPic.ImageItem = imgItem
+
+		img, url, shouldReturn, err = getPicFromRandomSource(imgItem, img, url, err)
+		if shouldReturn {
+			return err
+		}
+		if img == nil {
+			//Try next time
+			fmt.Println("[ERROR][ERROR][ERROR][ERROR][ERROR][ERROR][ERROR][ERROR][ERROR][ERROR][ERROR]")
+			fmt.Println(imgItem.Name + " has NO files! Turn it off or add files")
+			fmt.Println("[ERROR][ERROR][ERROR][ERROR][ERROR][ERROR][ERROR][ERROR][ERROR][ERROR][ERROR]")
+			return nil
+		}
+		sourceExt = filepath.Ext(url)
+		if imgItem.Name == "UnSplash" {
+			sourceExt = ".jpg"
+		}
+		fmt.Println(sourceExt)
+		currentPic.OriginName = url // Get screen size
+		sizingChoice = config.ConfigInstance.WallpaperImageSizing
+		filterChoice = ""
 	}
-	if img == nil {
-		//Try next time
-		fmt.Println("[ERROR][ERROR][ERROR][ERROR][ERROR][ERROR][ERROR][ERROR][ERROR][ERROR][ERROR]")
-		fmt.Println(imgItem.Name + " has NO files! Turn it off or add files")
-		fmt.Println("[ERROR][ERROR][ERROR][ERROR][ERROR][ERROR][ERROR][ERROR][ERROR][ERROR][ERROR]")
-		return nil
-	}
-	sourceExt := filepath.Ext(url)
-
-	currentPic.OriginName = url // Get screen size
-	img, currentPic = handleScaling(img, currentPic, err)
-
-	var filteredImg image.Image
-	filterChoice := ""
-	filteredImg, filterChoice, err = applyFilter(img)
+	img, currentPic = handleScaling(img, currentPic, sizingChoice, err)
+	filteredImg, filterChoice, err = applyFilter(img, filterChoice)
 
 	// fileStep4 := filepath.Join(currentPicsFolder, "file4BFiltered.png")
 	// saveImg(filteredImg, fileStep4)
 
-	fontPath := ""
 	if config.ConfigInstance.ShowTextOverlay {
 		filteredImg, currentPic, err = placeQuote(filteredImg, currentPic)
 		if err != nil {
@@ -129,14 +156,15 @@ func ChangeView() error {
 
 	img = filteredImg
 	currentPic.Filter = filterChoice
-	currentPic.QuoteFont = fontPath
-	currentPic.SaveName = filepath.Join(currentPicsFolder, "pic0"+sourceExt)
 	currentPic.Sizing = config.ConfigInstance.WallpaperImageSizing
 	config.ConfigInstance.AddPicHistory(currentPic)
-
-	fileLoc := currentPic.SaveName
+	if sourceExt == "" {
+		sourceExt = ".png"
+	}
+	fileLoc := currentPic.SaveName + sourceExt
 
 	// Save the resulting image to the bufferPic path
+	fmt.Println(currentPic.OriginName)
 	saveImg(img, fileLoc)
 	//_ = imgType
 
@@ -163,10 +191,105 @@ func ChangeView() error {
 	return nil
 }
 
+func CallMakeView(pastImg int32) error {
+	cfg := config.GetConfig()
+	pic := cfg.PicHistories[pastImg]
+	MakeView(pic)
+	return nil
+}
+
+func MakeView(pic config.PicHistory) error {
+	//Make the pic
+	var img image.Image
+	var err error
+	//var currentPicsFolder string
+	//cfg := config.GetConfig()
+	currentPic := pic
+	var filteredImg image.Image
+	filterChoice := ""
+	sizingChoice := ""
+	if strings.HasPrefix(currentPic.OriginName, "http") {
+		resp, err := http.Get(currentPic.OriginName)
+		if err != nil {
+			return nil
+		}
+		defer resp.Body.Close()
+
+		// Decode the image
+		img, _, err = image.Decode(resp.Body)
+		if err != nil {
+			return err
+		}
+	} else { //local
+		img, err = loadImage(currentPic.OriginName)
+		if err != nil {
+			fmt.Println("failed to fetch image from URL: %w", err)
+			return err
+		}
+	}
+
+	//currentPicInPlace := config.ConfigInstance.PicHistories[0]
+	// currentPic.OriginName = pic.OriginName
+	// currentPic.SaveName = pic.SaveName
+	//var shouldReturn bool
+	//Start Configure Image History
+	currentPic.PicNum = 0
+	//currentPic.OriginName = url // Get screen size
+	sizingChoice = pic.Sizing
+	filterChoice = pic.Filter
+	img, currentPic = handleScaling(img, currentPic, sizingChoice, err)
+	filteredImg, filterChoice, err = applyFilter(img, filterChoice)
+	if config.ConfigInstance.ShowTextOverlay {
+		filteredImg, currentPic, err = placeQuote(filteredImg, currentPic)
+		if err != nil {
+			fmt.Println("Error determining adding font:", err)
+			return err
+		}
+		// fileStep5 := filepath.Join(currentPicsFolder, "file5BQuoted.png")
+		// saveImg(filteredImg, fileStep5)
+
+	}
+	img = filteredImg
+	//currentPic.Filter = filterChoice
+	//currentPic.Sizing = config.ConfigInstance.WallpaperImageSizing
+	config.ConfigInstance.AddPicHistory(currentPic)
+	fileLoc := currentPic.SaveName
+
+	// Save the resulting image to the bufferPic path
+	fmt.Println(currentPic.OriginName)
+	saveImg(img, fileLoc)
+	//_ = imgType
+
+	// Set the wallpaper
+	if runtime.GOOS == "windows" {
+		fmt.Println("Attempting to set wallpaper from path:", fileLoc)
+		if _, err := os.Stat(fileLoc); os.IsNotExist(err) {
+			fmt.Println("Error: Wallpaper file does not exist at path:", fileLoc)
+			return nil
+		}
+
+		err := wallpaper.SetFromFile(fileLoc)
+		if err != nil {
+			fmt.Println("Failed to set wallpaper:", err)
+		} else {
+			fmt.Println("Wallpaper set successfully!")
+		}
+	} else {
+		// Non-Windows code here
+		test := 888
+		fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>Not Windows", test)
+	}
+
+	return nil
+
+}
+
 // Choose the scaling choice and scale image
-func handleScaling(img image.Image, currentPic config.PicHistory, err error) (image.Image, config.PicHistory) {
-	screenWidth := w32.GetSystemMetrics(w32.SM_CXSCREEN)
-	screenHeight := w32.GetSystemMetrics(w32.SM_CYSCREEN)
+func handleScaling(img image.Image, currentPic config.PicHistory, choice string, err error) (image.Image, config.PicHistory) {
+
+	screenInfo := getScreenInfo()[0]
+	screenWidth := screenInfo.Width
+	screenHeight := screenInfo.Height
 
 	// Create a base image with the screen size
 	dc := gg.NewContext(screenWidth, screenHeight)
@@ -175,7 +298,7 @@ func handleScaling(img image.Image, currentPic config.PicHistory, err error) (im
 
 	// Scale the image if necessary
 	if screenHeight > imWidth || screenWidth > imHeight || screenHeight < imWidth || screenWidth < imHeight {
-		if config.ConfigInstance.WallpaperImageSizing == "" {
+		if choice == "backdrop" {
 			currentPic.Sizing = "backdrop"
 			img, err = centerOnSmokeyBackdrop(img, *dc)
 		} else {
@@ -226,8 +349,10 @@ func getConfigImages(cfg *config.Config) ([]config.Image, bool, error) {
 
 func centerOnSmokeyBackdrop(img image.Image, dc gg.Context) (image.Image, error) {
 	// Get screen size
-	screenWidth := w32.GetSystemMetrics(w32.SM_CXSCREEN)
-	screenHeight := w32.GetSystemMetrics(w32.SM_CYSCREEN)
+	screenInfo := getScreenInfo()[0]
+	screenWidth := screenInfo.Width
+	screenHeight := screenInfo.Height
+
 	// Load the smokey background image
 	backgroundPath := "static/pics/smokey.jpg" // Path to your smokey background image
 	bgImage, err := loadImage(backgroundPath)
@@ -263,8 +388,9 @@ func centerOnSmokeyBackdrop(img image.Image, dc gg.Context) (image.Image, error)
 
 func scaleToScreen(img image.Image, dc gg.Context) (image.Image, error) {
 	// Get screen size
-	screenWidth := w32.GetSystemMetrics(w32.SM_CXSCREEN)
-	screenHeight := w32.GetSystemMetrics(w32.SM_CYSCREEN)
+	screenInfo := getScreenInfo()[0]
+	screenWidth := screenInfo.Width
+	screenHeight := screenInfo.Height
 
 	// Get the dimensions of the image
 	imgWidth := img.Bounds().Dx()
@@ -298,14 +424,14 @@ func scaleToScreen(img image.Image, dc gg.Context) (image.Image, error) {
 	}
 
 	currentPicsFolder := filepath.Join(usr.HomeDir, ".Metamorphoun")
-
-	fileStep2 := filepath.Join(currentPicsFolder, "file2APostScaling.png")
-	saveImg(resizedImg, fileStep2)
+	fmt.Println(currentPicsFolder)
+	// fileStep2 := filepath.Join(currentPicsFolder, "file2APostScaling.png")
+	// saveImg(resizedImg, fileStep2)
 
 	return resizedImg, nil
 }
 
-func applyFilter(img image.Image) (image.Image, string, error) {
+func applyFilter(img image.Image, filterChoice string) (image.Image, string, error) {
 	filters := []string{}
 	if config.ConfigInstance.WallpaperFilterOriginal {
 		filters = append(filters, "original")
@@ -342,6 +468,9 @@ func applyFilter(img image.Image) (image.Image, string, error) {
 	//-------------------------------------------TESTING!!! FORCE FILTER
 	//imageFilter = "spiral"
 	var err error
+	if filterChoice != "" {
+		imageFilter = filterChoice
+	}
 	switch imageFilter {
 	case "blurSoft":
 		img, err = BlurIt(img, 2.5)
@@ -382,9 +511,9 @@ func applyFilter(img image.Image) (image.Image, string, error) {
 	}
 
 	currentPicsFolder := filepath.Join(usr.HomeDir, ".Metamorphoun")
-
-	fileStep2 := filepath.Join(currentPicsFolder, "file4AFiltered"+imageFilter+".png")
-	saveImg(img, fileStep2)
+	fmt.Println(currentPicsFolder)
+	// fileStep2 := filepath.Join(currentPicsFolder, "file4AFiltered"+imageFilter+".png")
+	// saveImg(img, fileStep2)
 
 	return img, imageFilter, nil
 

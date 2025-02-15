@@ -13,10 +13,10 @@
 	<link rel="icon" href="/favicon.ico" type="image/x-icon"> 
 </head>
 <body class="bg-dark">
-	<div id="app">
+	<div id="app" class="">
 
-        <div class="card">
-            <div class="card-header">
+        <div class="card purpleGradient">
+            <div class="card-header bg-DarkMagenta text-Gold">
                 <h5 class="card-title">Current Background Info</h5>
             </div>
             <div id="infoPic" class="card-body">
@@ -31,25 +31,57 @@
 <script type="module">
 	import comms from './scripts/comms.js'; 
 	import boom from './scripts/dynamite.js'; 
-    import {jsonToHtml} from './scripts/cc/ccUtilities.js'
+    import {jsonToHtml,startsWith} from './scripts/cc/ccUtilities.js'
 	window.comms=new comms({server: "http://127.0.0.1:3000"});
 	window.tnt=new boom();
 
     document.addEventListener("DOMContentLoaded", async ()=> {
         let config=await window.comms.getConfig();
         let currentPic=config.picHistories.find(ph=>ph.picNum===0);
-        let randomIIPicked={i:"ImageItemData",c:"bg-AliceBlue fw-bolder text-FireBrick w-50 mx-auto",b:[]}
+        let randomIIPicked={i:"ImageItemData",c:"bg-AliceBlue fw-bolder text-FireBrick w-75 mx-auto",b:[]}
         let flexRow1={i:"ImageItemDataFlexRow1",c:"d-flex justify-content-between mb-3",b:[]}
         flexRow1.b.push(
             {i:"op",c:"p-2 fw-bold",t:"Operation: ",b:[{i:"opVal",c:"text-Maroon float-end ms-2 fst-italic",t: currentPic.imageItem.operation}]},
+            {i:"ttl",c:"p-2 fw-bold",t:"Info: ",b:[{i:"titleVal",c:"text-Maroon float-end ms-2 fst-italic",t: currentPic.imageItem.title}]},
             {i:"loc",c:"p-2 fw-bold",t:"Location: ",b:[{i:"locVal","data-url":currentPic.imageItem.location,c:"text-Maroon float-end ms-2 fst-italic opencapable",t: currentPic.imageItem.location}]},
         )
-        let flexRow2={i:"ImageItemDataFlexRow2",c:"d-flex flex-row mb-3 bg-dark",b:[]}
         randomIIPicked.b.push(flexRow1);
+        let flexRow2={i:"ImageItemDataFlexRow2",c:"d-flex flex-row bg-dark",b:[]}
+        let picSourceLink={};
+        if(currentPic.originName.toLowerCase().startsWith("http")){
+            picSourceLink={n:"a",i:"opOriginName",href:currentPic.originName,target:"_blank","title":"Click to see picture",t:currentPic.originName}
+        }else{
+            picSourceLink={i:"opOriginName","data-url":currentPic.originName,c:"text-Lavender float-end ms-2 fst-italic opencapable",t: currentPic.originName}
+        }
         flexRow2.b.push(
-            {i:"source",c:"p-2 fw-bold",t:"Picture Source: ",b:[{i:"opVal","data-url":currentPic.originName,c:"text-Lavender float-end ms-2 fst-italic opencapable",t: currentPic.originName}]},
+            {i:"source",c:"p-2 fw-bold text-LightSalmon",t:"Picture Source: "
+                ,b:[picSourceLink]},
         )
         randomIIPicked.b.push(flexRow2);
+        let flexRow3={i:"ImageItemDataFlexRow2",c:"d-flex flex-row mb-3 bg-dark",b:[]}
+        let picSavedLink={};
+        if(currentPic.saveName.toLowerCase().startsWith("http")){
+            picSavedLink={n:"a",i:"saveNameVal",href:currentPic.saveName,target:"_blank","title":"Click to see picture",t:currentPic.saveName}
+        }else{
+            picSavedLink={i:"saveNameVal","data-url":currentPic.saveName,c:"text-Lavender float-end ms-2 fst-italic opencapable",t: currentPic.saveName}
+        }
+        flexRow3.b.push(
+            {i:"source",c:"p-2 fw-bold text-LightSalmon",t:"Picture Saved: "
+                ,b:[picSavedLink]},
+        )
+        randomIIPicked.b.push(flexRow3);
+
+        let flexRow4={i:"ImageItemDataFlexRow4",c:"d-flex justify-content-between bg-dark",b:[]}
+        flexRow4.b.push(
+            {i:"op",c:"p-2 fw-bold",t:"Sizing/Scaling: ",b:[{i:"sizingVal",c:"text-warning float-end ms-2 fst-italic",t: currentPic.sizing}]},
+            {i:"loc",c:"p-2 fw-bold",t:"Image Filter: ",b:[{i:"filterVal",c:"text-warning float-end ms-2 fst-italic",t: currentPic.filter}]},
+        )
+        randomIIPicked.b.push(flexRow4);
+
+
+
+
+
         document.querySelector("#infoPic").insertAdjacentHTML("beforeend",jsonToHtml(randomIIPicked))
 
         for(let oc of document.querySelectorAll(".opencapable")){

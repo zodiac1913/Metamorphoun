@@ -82,6 +82,9 @@ func ChangeView(caller string) error {
 	filterChoice := ""
 	sourceExt := ""
 	sizingChoice := ""
+	if len(config.ConfigInstance.PicHistories) < 1 {
+		config.ConfigInstance.PicHistories = append([]config.PicHistory{currentPic}, config.ConfigInstance.PicHistories...)
+	}
 	currentPicInPlace := config.ConfigInstance.PicHistories[0]
 	sourceExt = filepath.Ext(currentPicInPlace.SaveName)
 	//from here start saving data in
@@ -190,7 +193,6 @@ func ChangeView(caller string) error {
 
 	return nil
 }
-
 func CallMakeView(pastImg int32) error {
 	cfg := config.GetConfig()
 	pic := cfg.PicHistories[pastImg]

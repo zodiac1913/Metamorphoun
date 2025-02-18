@@ -2,6 +2,7 @@ package main
 
 import (
 	"Metamorphoun/config"
+	"Metamorphoun/linuxGui"
 	"Metamorphoun/server"
 	"Metamorphoun/service"
 	"Metamorphoun/systemTray"
@@ -9,6 +10,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os/exec"
+	"runtime"
 	"time"
 
 	"github.com/getlantern/systray"
@@ -100,18 +102,24 @@ func main() {
 
 	}
 
-	// System tray onExit function
-	onExit := func() {
-		now := time.Now()
-		ioutil.WriteFile(fmt.Sprintf(`on_exit_%d.txt`, now.UnixNano()), []byte(now.String()), 0644)
-		// Signal all goroutines to stop
-		cancel()
-	}
+	if runtime.GOOS == "windows" {
 
-	systray.Run(systemTray.MakeSystemTray, onExit)
-	// Start the service
-	// Prevent the main function from exiting
-	<-ctx.Done()
+		// System tray onExit function
+		onExit := func() {
+			now := time.Now()
+			ioutil.WriteFile(fmt.Sprintf(`on_exit_%d.txt`, now.UnixNano()), []byte(now.String()), 0644)
+			// Signal all goroutines to stop
+			cancel()
+		}
+
+		systray.Run(systemTray.MakeSystemTray, onExit)
+		// Start the service
+		// Prevent the main function from exiting
+		<-ctx.Done()
+	} else {
+		//Linux
+		linuxGui.MakeGui()
+	}
 
 }
 func openFolder(title string, path string) error {

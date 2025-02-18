@@ -10,6 +10,8 @@ import (
 	"os/exec"
 	"os/user"
 	"path/filepath"
+	"regexp"
+	"runtime"
 	"strings"
 
 	"Metamorphoun/config"
@@ -377,11 +379,42 @@ func openLocationApi(w http.ResponseWriter, r *http.Request) {
 
 	}
 }
+
+// func OpenFolder(title string, path string) error {
+// 	cmd := exec.Command(title, path) // Assign the command to the cmd variable
+// 	err := cmd.Run()                 // Run the command
+// 	if err != nil {
+// 		fmt.Println("Error opening folder:", err)
+// 		return err
+// 	}
+// 	return nil
+// }
+
 func OpenFolder(title string, path string) error {
-	cmd := exec.Command(title, path) // Assign the command to the cmd variable
-	err := cmd.Run()                 // Run the command
+	urlRegex := `^(http|https)://`
+	matched, err := regexp.MatchString(urlRegex, path)
 	if err != nil {
-		fmt.Println("Error opening folder:", err)
+		return err
+	}
+
+	var cmd *exec.Cmd
+	if matched {
+		if runtime.GOOS == "linux" {
+			cmd = exec.Command("xdg-open", path)
+		} else if runtime.GOOS == "windows" {
+			cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", path)
+		}
+	} else {
+		if runtime.GOOS == "linux" {
+			cmd = exec.Command("xdg-open", path)
+		} else if runtime.GOOS == "windows" {
+			cmd = exec.Command("explorer", path)
+		}
+	}
+
+	err = cmd.Run()
+	if err != nil {
+		fmt.Println("Error opening folder or URL:", err)
 		return err
 	}
 	return nil

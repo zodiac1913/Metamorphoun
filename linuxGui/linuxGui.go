@@ -1,6 +1,9 @@
 package linuxGui
 
 import (
+	"Metamorphoun/config"
+	"Metamorphoun/server"
+	"Metamorphoun/zutil"
 	"log"
 	"os"
 	"strconv"
@@ -31,8 +34,8 @@ func MakeGui() {
 	go func() {
 		w := new(app.Window)
 		w.Option(
-			app.Title("Counter"),
-			app.Size(unit.Dp(240), unit.Dp(70)),
+			app.Title("Metamorphoun"),
+			app.Size(unit.Dp(240), unit.Dp(170)),
 		)
 		if err := ui.Run(w); err != nil {
 			log.Println(err)
@@ -145,12 +148,13 @@ func (counter *Counter) Layout(th *material.Theme, gtx layout.Context) layout.Di
 		// and the button.
 		layout.Rigid(layout.Spacer{Height: defaultMargin}.Layout),
 		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-			// For every click on the button increment the count.
+			// For every click on the button, call the performAction function.
 			for counter.increase.Clicked(gtx) {
-				counter.Count++
+				urlSettings := "http://" + config.ConfigInstance.ServerAddress + ":" + zutil.AsString(config.ConfigInstance.ServerPort)
+				server.OpenFolder("explorer", urlSettings)
 			}
 			// Finally display the button.
-			return material.Button(th, &counter.increase, "Count").Layout(gtx)
+			return material.Button(th, &counter.increase, "Settings").Layout(gtx)
 		}),
 	)
 }

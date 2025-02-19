@@ -118,7 +118,9 @@ func main() {
 		<-ctx.Done()
 	} else {
 		//Linux
-		linuxGui.MakeGui()
+		go func() {
+			linuxGui.MakeGui()
+		}()
 	}
 
 }

@@ -187,8 +187,18 @@ func ChangeView(caller string) error {
 		}
 	} else {
 		// Non-Windows code here
-		test := 888
-		fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>Not Windows", test)
+		fmt.Println("Attempting to set wallpaper from path:", fileLoc)
+		if _, err := os.Stat(fileLoc); os.IsNotExist(err) {
+			fmt.Println("Error: Wallpaper file does not exist at path:", fileLoc)
+			return nil
+		}
+
+		err := wallpaper.SetFromFile(fileLoc)
+		if err != nil {
+			fmt.Println("Failed to set wallpaper:", err)
+		} else {
+			fmt.Println("Wallpaper set successfully!")
+		}
 	}
 
 	return nil
@@ -278,8 +288,18 @@ func MakeView(pic config.PicHistory) error {
 		}
 	} else {
 		// Non-Windows code here
-		test := 888
-		fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>Not Windows", test)
+		fmt.Println("Attempting to set wallpaper from path:", fileLoc)
+		if _, err := os.Stat(fileLoc); os.IsNotExist(err) {
+			fmt.Println("Error: Wallpaper file does not exist at path:", fileLoc)
+			return nil
+		}
+
+		err := wallpaper.SetFromFile(fileLoc)
+		if err != nil {
+			fmt.Println("Failed to set wallpaper:", err)
+		} else {
+			fmt.Println("Wallpaper set successfully!")
+		}
 	}
 
 	return nil

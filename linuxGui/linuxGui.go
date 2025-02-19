@@ -6,36 +6,29 @@ import (
 	"Metamorphoun/zutil"
 	"log"
 	"os"
-	"strconv"
 
-	"gioui.org/app"         // app contains Window handling.
-	"gioui.org/font/gofont" // gofont is used for loading the default font.
+	"gioui.org/app"
+	"gioui.org/font/gofont"
 	"gioui.org/io/event"
-	"gioui.org/io/key" // key is used for keyboard events.
-	"gioui.org/widget"
-
-	// system is used for system events (e.g. closing the window).
-	"gioui.org/layout" // layout is used for layouting widgets.
-	"gioui.org/op"     // op is used for recording different operations.
+	"gioui.org/io/key"
+	"gioui.org/layout"
+	"gioui.org/op"
 	"gioui.org/op/clip"
 	"gioui.org/text"
-	"gioui.org/unit" // unit is used to define pixel-independent sizes
-
-	// widget contains state handling for widgets.
-	"gioui.org/widget/material" // material contains material design widgets.
+	"gioui.org/unit"
+	"gioui.org/widget"
+	"gioui.org/widget/material"
 )
 
 func MakeGui() {
-	// The ui loop is separated from the application window creation
-	// such that it can be used for testing.
 	ui := NewUI()
 
 	// This creates a new application window and starts the UI.
 	go func() {
 		w := new(app.Window)
 		w.Option(
-			app.Title("Metamorphoun"),
-			app.Size(unit.Dp(240), unit.Dp(170)),
+			app.Title("Counter"),
+			app.Size(unit.Dp(240), unit.Dp(70)),
 		)
 		if err := ui.Run(w); err != nil {
 			log.Println(err)
@@ -48,20 +41,13 @@ func MakeGui() {
 	app.Main()
 }
 
-// defaultMargin is a margin applied in multiple places to give
-// widgets room to breathe.
-var defaultMargin = unit.Dp(10)
-
-// UI holds all of the application state.
 type UI struct {
-	// Theme is used to hold the fonts used throughout the application.
-	Theme *material.Theme
-
-	// Counter displays and keeps the state of the counter.
-	Counter Counter
+	Theme   *material.Theme
+	Button1 widget.Clickable
+	Button2 widget.Clickable
+	Window  *app.Window
 }
 
-// NewUI creates a new UI using the Go Fonts.
 func NewUI() *UI {
 	ui := &UI{}
 	ui.Theme = material.NewTheme()
@@ -69,7 +55,6 @@ func NewUI() *UI {
 	return ui
 }
 
-// Run handles window events and renders the application.
 func (ui *UI) Run(w *app.Window) error {
 	var ops op.Ops
 
@@ -114,47 +99,21 @@ func (ui *UI) Run(w *app.Window) error {
 	}
 }
 
-// Layout displays the main program layout.
 func (ui *UI) Layout(gtx layout.Context) layout.Dimensions {
-	// inset is used to add padding around the window border.
-	inset := layout.UniformInset(defaultMargin)
-	return inset.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		return ui.Counter.Layout(ui.Theme, gtx)
-	})
-}
-
-// Counter is a component that keeps track of it's state and
-// displays itself as a label and a button.
-type Counter struct {
-	// Count is the current value.
-	Count int
-
-	// increase is used to track button clicks.
-	increase widget.Clickable
-}
-
-// Layout lays out the counter and handles input.
-func (counter *Counter) Layout(th *material.Theme, gtx layout.Context) layout.Dimensions {
-	// Flex layout lays out widgets from left to right by default.
 	return layout.Flex{}.Layout(gtx,
-		// We use weight 1 for both text and count to make them the same size.
 		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-			// We center align the text to the area available.
-			return layout.Center.Layout(gtx,
-				// Body1 is the default text size for reading.
-				material.Body1(th, strconv.Itoa(counter.Count)).Layout)
-		}),
-		// We use an empty widget to add spacing between the text
-		// and the button.
-		layout.Rigid(layout.Spacer{Height: defaultMargin}.Layout),
-		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-			// For every click on the button, call the performAction function.
-			for counter.increase.Clicked(gtx) {
+			for ui.Button1.Clicked(gtx) {
 				urlSettings := "http://" + config.ConfigInstance.ServerAddress + ":" + zutil.AsString(config.ConfigInstance.ServerPort)
 				server.OpenFolder("explorer", urlSettings)
 			}
-			// Finally display the button.
-			return material.Button(th, &counter.increase, "Settings").Layout(gtx)
+			return material.Button(ui.Theme, &ui.Button1, "Settings").Layout(gtx)
+		}),
+		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+			for ui.Button2.Clicked(gtx) {
+				currPicInfo := "http://" + config.ConfigInstance.ServerAddress + ":" + zutil.AsString(config.ConfigInstance.ServerPort) + "/picInfo.html"
+				server.OpenFolder("explorer", currPicInfo)
+			}
+			return material.Button(ui.Theme, &ui.Button2, "Action").Layout(gtx)
 		}),
 	)
 }

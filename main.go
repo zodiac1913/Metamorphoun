@@ -124,6 +124,7 @@ func main() {
 	}
 
 }
+
 func openFolder(title string, path string) error {
 	var cmd *exec.Cmd
 	cmd = exec.Command(title, path)

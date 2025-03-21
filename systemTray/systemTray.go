@@ -44,8 +44,8 @@ func MakeSystemTray() {
 		//systray.AddMenuItem("Ignored", "Ignored")
 
 		favPicsMenu := systray.AddMenuItem("Favorite (Pics)", "Store Favorite Pictures")
-		mStoreWQ := favPicsMenu.AddSubMenuItem("Store With Quote", "Store this pic with the quote that is on it")
-		mStoreNQ := favPicsMenu.AddSubMenuItem("Store Without Quote", "Store this pic without the quote that is on it")
+		mFavStoreWQ := favPicsMenu.AddSubMenuItem("Store With Quote", "Store this pic with the quote that is on it")
+		mFavStoreNQ := favPicsMenu.AddSubMenuItem("Store Without Quote", "Store this pic without the quote that is on it")
 
 		//subMenuMiddle := subMenuTop.AddSubMenuItem("SubMenuMiddle", "SubMenu Test (middle)")
 		//subMenuBottom := subMenuMiddle.AddSubMenuItemCheckbox("SubMenuBottom - Toggle Panic!", "SubMenu Test (bottom) - Hide/Show Panic!", false)
@@ -89,20 +89,25 @@ func MakeSystemTray() {
 
 		for {
 			select {
-			case <-mStoreWQ.ClickedCh:
-				currentPicFile := filepath.Join(config.ConfigInstance.CurrentBackgroundFolder, config.ConfigInstance.CurrentBackgroundName)
-				picToSave := filepath.Join(favPicFolderWithQuote, config.ConfigInstance.SourceCurrentBackgroundName)
-				zutil.CopyFile(currentPicFile, picToSave)
+			case <-mFavStoreWQ.ClickedCh:
+				service.CallMakeView(0, true, true)
+				// fmt.Print("Current Image with Quote: ", currImgWQ)
+				// currentPicFile := filepath.Join(config.ConfigInstance.CurrentBackgroundFolder, config.ConfigInstance.CurrentBackgroundName)
+				// picToSave := filepath.Join(favPicFolderWithQuote, config.ConfigInstance.SourceCurrentBackgroundName)
+				// zutil.CopyFile(currentPicFile, picToSave)
 				server.OpenFolder("explorer", favPicFolderWithQuote)
-			case <-mStoreNQ.ClickedCh:
-				currentPicFile := filepath.Join(config.ConfigInstance.OriginalCurrentBackgroundFolder, config.ConfigInstance.OriginalCurrentBackgroundName)
-				picToSave := filepath.Join(favPicFolderWithoutQuote, config.ConfigInstance.SourceCurrentBackgroundName)
-				zutil.CopyFile(currentPicFile, picToSave)
+			case <-mFavStoreNQ.ClickedCh:
+				service.CallMakeView(0, true, false)
+				// currImgNQ:=config.ConfigInstance.PicHistories[0]
+				// fmt.Print("Current Image with Quote: ", currImgNQ)
+				// currentPicFile := filepath.Join(config.ConfigInstance.OriginalCurrentBackgroundFolder, config.ConfigInstance.OriginalCurrentBackgroundName)
+				// picToSave := filepath.Join(favPicFolderWithoutQuote, config.ConfigInstance.SourceCurrentBackgroundName)
+				// zutil.CopyFile(currentPicFile, picToSave)
 				server.OpenFolder("explorer", favPicFolderWithoutQuote)
 			case <-mNextBG.ClickedCh:
 				service.ChangeView("backgroundChange")
 			case <-mLastBG.ClickedCh:
-				service.CallMakeView(1)
+				service.CallMakeView(1, false, false)
 			case <-mShowCurrentPicture.ClickedCh:
 				currPicInfo := "http://" + config.ConfigInstance.ServerAddress + ":" + zutil.AsString(config.ConfigInstance.ServerPort) + "/picInfo.html"
 				server.OpenFolder("explorer", currPicInfo)

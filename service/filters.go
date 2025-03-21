@@ -113,26 +113,129 @@ func OilifyIt(img image.Image, radius int) (image.Image, error) { //img image.Im
 	return newImg, nil
 }
 
-func WavyMeltIt(img image.Image, intensity float64) (image.Image, error) {
-	// Load the original image
+// Get the average top color from the specified number of rows
+func getTopColor(img image.Image, numberOfRows int) color.Color {
+	bounds := img.Bounds()
+	width := bounds.Dx()
+	var totalRed, totalGreen, totalBlue, totalAlpha uint32
+	totalPixels := 0
+
+	for y := 0; y < numberOfRows; y++ {
+		if y >= bounds.Dy() {
+			break
+		}
+		for x := 0; x < width; x++ {
+			r, g, b, a := img.At(x, y).RGBA()
+			totalRed += r
+			totalGreen += g
+			totalBlue += b
+			totalAlpha += a
+			totalPixels++
+		}
+	}
+
+	if totalPixels == 0 {
+		return color.Black
+	}
+
+	avgRed := uint8(totalRed / uint32(totalPixels) / 256)
+	avgGreen := uint8(totalGreen / uint32(totalPixels) / 256)
+	avgBlue := uint8(totalBlue / uint32(totalPixels) / 256)
+	avgAlpha := uint8(totalAlpha / uint32(totalPixels) / 256)
+
+	avgRed = avgRed / 4
+	avgGreen = avgGreen / 4
+	avgBlue = avgBlue / 4
+	avgAlpha = avgAlpha / 4
+
+	return color.NRGBA{R: avgRed, G: avgGreen, B: avgBlue, A: avgAlpha}
+}
+
+// Apply Picasso filter to the image
+func Picasso(img image.Image, intensity float64) (image.Image, error) {
 	if intensity == 0 {
 		intensity = float64(rand.Intn(15) + 15)
-		fmt.Println("-------------------- melt intensity value=", intensity, "]]]]]]]]]]]")
+		fmt.Println("Melt intensity value =", intensity)
 	}
+
+	numberOfRowsToSample := 100
+	topColor := getTopColor(img, numberOfRowsToSample)
+
 	bounds := img.Bounds()
 	width, height := bounds.Dx(), bounds.Dy()
-	newImg := image.NewRGBA(bounds)
+
+	fmt.Printf("Image dimensions: width=%d, height=%d\n", width, height)
+	fmt.Printf("Top color sampled: %v\n", topColor)
+
+	// Create a background image filled with the top color
+	backgroundImg := image.NewNRGBA(bounds)
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
+			backgroundImg.Set(x, y, topColor)
+		}
+	}
+
+	// Create the melted image
+	meltedImg := image.NewNRGBA(bounds)
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
 			offsetY := int(float64(y) + intensity*math.Sin(float64(x)/50))
 			if offsetY >= 0 && offsetY < height {
-				newImg.Set(x, y, img.At(x, offsetY))
+				meltedImg.Set(x, y, img.At(x, offsetY))
 			} else {
-				newImg.Set(x, y, color.Transparent)
+				meltedImg.Set(x, y, color.Transparent)
 			}
 		}
 	}
-	return newImg, nil
+
+	// Overlay the melted image on top of the background image
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
+			pixelColor := meltedImg.At(x, y)
+			r, g, b, a := pixelColor.RGBA()
+			if a > 0 {
+				backgroundImg.Set(x, y, pixelColor)
+			}
+			_ = r
+			_ = g
+			_ = b
+			_ = a
+		}
+	}
+
+	// Paint a top rectangle with the topColor at 15% opacity
+	//opacity := 14
+	//topColorWithOpacity := color.NRGBA{R: topColor.(color.NRGBA).R, G: topColor.(color.NRGBA).G, B: topColor.(color.NRGBA).B, A: uint8(opacity)}
+	//backgroundImg = meltedImg
+	opacity := 4
+	topColorWithOpacity := color.NRGBA{R: topColor.(color.NRGBA).R, G: topColor.(color.NRGBA).G, B: topColor.(color.NRGBA).B, A: uint8(opacity)}
+	for y := 0; y < 60; y++ {
+		for x := 0; x < width; x++ {
+			backgroundImg.Set(x, y, topColorWithOpacity)
+		}
+	}
+	bottomOut := (int(intensity) + 60)
+	for y := 60; y < bottomOut; y++ {
+		for x := 0; x < width; x++ {
+			offsetY := int(float64(y) + intensity*math.Sin(float64(x)/50))
+			if offsetY >= 0 && offsetY < height {
+				backgroundImg.Set(x, y, img.At(x, offsetY))
+			} else {
+				backgroundImg.Set(x, y, color.Transparent)
+			}
+		}
+	}
+
+	// Add striations or cloud-like misty look (for simplicity, using random white dots)
+	// for y := 0; y < 60; y++ {
+	// 	for x := 0; x < width; x += 10 {
+	// 		if rand.Float64() < 0.1 { // Randomly place striations
+	// 			backgroundImg.Set(x, y, color.NRGBA{R: 255, G: 255, B: 255, A: uint8(opacity)})
+	// 		}
+	// 	}
+	// }
+
+	return backgroundImg, nil
 }
 
 //Spiral Start

@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"image/gif"
 	_ "image/gif"
 	_ "image/jpeg"
 	"image/png"
 	_ "image/png"
+	"io"
 	"io/ioutil"
 	"log"
 	"math/rand"
@@ -18,7 +20,6 @@ import (
 	"os/exec"
 	"os/user"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -76,6 +77,7 @@ func ChangeView(caller string) error {
 	var url string
 	var err error
 	var currentPicsFolder string
+	isFavWithQuote := false
 	cfg := config.GetConfig()
 	currentPic := config.PicHistory{}
 	var filteredImg image.Image
@@ -97,11 +99,18 @@ func ChangeView(caller string) error {
 
 	if caller == "quoteUpdate" {
 		currentPic = currentPicInPlace
+		if strings.Contains(currentPic.OriginName, "Favorites\\Pictures\\WithQuotes") {
+			isFavWithQuote = true
+		}
 		if strings.HasPrefix(currentPic.OriginName, "http") {
 			img, err = zutil.LoadImageFromURL(currentPic.OriginName)
 		} else {
-			img, err = loadImage(currentPic.SaveName)
+			img, err = loadImage(currentPic.OriginName)
 		}
+		if img == nil {
+			fmt.Println("Image is Empty 1 quote")
+		}
+
 		if err != nil {
 			fmt.Println("failed to fetch image from URL: %w", err)
 		}
@@ -121,6 +130,10 @@ func ChangeView(caller string) error {
 		currentPic.ImageItem = imgItem
 
 		img, url, shouldReturn, err = getPicFromRandomSource(imgItem, img, url, err)
+		if img == nil {
+			fmt.Println("Image is Empty 1 wallpaper")
+			return nil
+		}
 		if shouldReturn {
 			return err
 		}
@@ -137,75 +150,111 @@ func ChangeView(caller string) error {
 		}
 		fmt.Println(sourceExt)
 		currentPic.OriginName = url // Get screen size
+		if strings.Contains(currentPic.OriginName, "Favorites\\Pictures\\WithQuotes") {
+			isFavWithQuote = true
+		}
 		sizingChoice = config.ConfigInstance.WallpaperImageSizing
 		filterChoice = ""
 	}
 	img, currentPic = handleScaling(img, currentPic, sizingChoice, err)
-	filteredImg, filterChoice, err = applyFilter(img, filterChoice)
+	if img == nil {
+		fmt.Println("Image is Empty 2")
+	}
+
+	if isFavWithQuote {
+		filteredImg = img
+	} else {
+		filteredImg, filterChoice, err = applyFilter(img, filterChoice)
+	}
+	if filteredImg == nil {
+		fmt.Println("Image is Empty 3")
+	}
 
 	// fileStep4 := filepath.Join(currentPicsFolder, "file4BFiltered.png")
 	// saveImg(filteredImg, fileStep4)
+	// favPicFolderWithQuote := filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites", "Pictures", "WithQuotes")
+	// favPicFolderWithoutQuote := filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites", "Pictures", "WithOutQuotes")
+	// favWithQuotes := strings.Contains(currentPic.OriginName,"WithQuotes")
+	//favWithoutQuotes := strings.Contains(currentPic.OriginName, "WithOutQuotes")
+	if config.ConfigInstance.ShowTextOverlay && !isFavWithQuote {
 
-	if config.ConfigInstance.ShowTextOverlay {
-		filteredImg, currentPic, err = placeQuote(filteredImg, currentPic)
-		if err != nil {
-			fmt.Println("Error determining adding font:", err)
-			return err
+		if isFavWithQuote || currentPic.ImageItem.Name != "Favorites" {
+			filteredImg, currentPic, err = placeQuote(filteredImg, currentPic)
+			if err != nil {
+				fmt.Println("Error determining adding font:", err)
+				return err
+			}
+			if filteredImg == nil {
+				fmt.Println("Image is Empty 4")
+			}
+			// fileStep5 := filepath.Join(currentPicsFolder, "file5BQuoted.png")
+			// saveImg(filteredImg, fileStep5)
+
 		}
-		// fileStep5 := filepath.Join(currentPicsFolder, "file5BQuoted.png")
-		// saveImg(filteredImg, fileStep5)
-
 	}
-
 	img = filteredImg
+	if img == nil {
+		fmt.Println("Image is Empty 5")
+	}
 	currentPic.Filter = filterChoice
 	currentPic.Sizing = config.ConfigInstance.WallpaperImageSizing
 	config.ConfigInstance.AddPicHistory(currentPic)
 	if sourceExt == "" {
 		sourceExt = ".png"
 	}
-	fileLoc := currentPic.SaveName + sourceExt
+	fileLocBase := strings.Split(filepath.Base(currentPic.SaveName), ".")[0]
+	fileLocDir := filepath.Dir(currentPic.SaveName)
+	println(fileLocBase)
+	fileLoc := filepath.Join(fileLocDir, fileLocBase+sourceExt)
 
 	// Save the resulting image to the bufferPic path
 	fmt.Println(currentPic.OriginName)
+	if _, err := os.Stat(fileLoc); os.IsExist(err) {
+		os.Remove(fileLoc)
+	}
+	if img == nil {
+		fmt.Println("Image is Empty 6")
+	}
 	saveImg(img, fileLoc)
 	//_ = imgType
 
 	// Set the wallpaper
-	if runtime.GOOS == "windows" {
-		fmt.Println("Attempting to set wallpaper from path:", fileLoc)
-		if _, err := os.Stat(fileLoc); os.IsNotExist(err) {
-			fmt.Println("Error: Wallpaper file does not exist at path:", fileLoc)
-			return nil
-		}
-
-		err := wallpaper.SetFromFile(fileLoc)
-		if err != nil {
-			fmt.Println("Failed to set wallpaper:", err)
-		} else {
-			fmt.Println("Wallpaper set successfully!")
-		}
+	fmt.Println("Attempting to set wallpaper from path:", fileLoc)
+	fmt.Println("Caller:", caller)
+	err = wallpaper.SetFromFile(fileLoc)
+	if err != nil {
+		fmt.Println("Failed to set wallpaper:", err)
 	} else {
-		// Non-Windows code here
-		fmt.Println("Attempting to set wallpaper from path:", fileLoc)
-		if _, err := os.Stat(fileLoc); os.IsNotExist(err) {
-			fmt.Println("Error: Wallpaper file does not exist at path:", fileLoc)
-			return nil
-		}
-
-		err := wallpaper.SetFromFile(fileLoc)
-		if err != nil {
-			fmt.Println("Failed to set wallpaper:", err)
-		} else {
-			fmt.Println("Wallpaper set successfully!")
-		}
+		fmt.Println("Wallpaper set successfully!")
 	}
 
 	return nil
 }
-func CallMakeView(pastImg int32) error {
+
+func CallMakeView(pastImg int32, isFavorite bool, isFavoriteWithQuote bool) error {
 	cfg := config.GetConfig()
 	pic := cfg.PicHistories[pastImg]
+	if isFavorite {
+		quoteType := "WithOutQuotes"
+		if isFavoriteWithQuote {
+			quoteType = "WithQuotes"
+		}
+		usr, err := user.Current()
+		if err != nil {
+			fmt.Println("failed to get user home directory: %w", err)
+		}
+		favPicFolder := filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites", "Pictures", quoteType)
+		now := time.Now()
+		dt := now.Format("20060102_150405")
+		lastDotIndex := strings.LastIndex(pic.SaveName, ".")
+		ext := "png"
+		if lastDotIndex != -1 {
+			ext := pic.SaveName[lastDotIndex+1:]
+			fmt.Println(ext)
+		}
+		fileName := dt + "." + ext
+		pic.SaveName = filepath.Join(favPicFolder, fileName)
+	}
 	MakeView(pic)
 	return nil
 }
@@ -251,15 +300,17 @@ func MakeView(pic config.PicHistory) error {
 	filterChoice = pic.Filter
 	img, currentPic = handleScaling(img, currentPic, sizingChoice, err)
 	filteredImg, filterChoice, err = applyFilter(img, filterChoice)
-	if config.ConfigInstance.ShowTextOverlay {
-		filteredImg, currentPic, err = placeQuote(filteredImg, currentPic)
-		if err != nil {
-			fmt.Println("Error determining adding font:", err)
-			return err
-		}
-		// fileStep5 := filepath.Join(currentPicsFolder, "file5BQuoted.png")
-		// saveImg(filteredImg, fileStep5)
 
+	favWithoutQuotes := strings.Contains(currentPic.SaveName, "WithOutQuotes")
+	if config.ConfigInstance.ShowTextOverlay && !favWithoutQuotes {
+
+		if favWithoutQuotes || currentPic.ImageItem.Name != "Favorites" {
+			filteredImg, currentPic, err = placeQuote(filteredImg, currentPic)
+			if err != nil {
+				fmt.Println("Error determining adding font:", err)
+				return err
+			}
+		}
 	}
 	img = filteredImg
 	//currentPic.Filter = filterChoice
@@ -273,33 +324,17 @@ func MakeView(pic config.PicHistory) error {
 	//_ = imgType
 
 	// Set the wallpaper
-	if runtime.GOOS == "windows" {
-		fmt.Println("Attempting to set wallpaper from path:", fileLoc)
-		if _, err := os.Stat(fileLoc); os.IsNotExist(err) {
-			fmt.Println("Error: Wallpaper file does not exist at path:", fileLoc)
-			return nil
-		}
+	fmt.Println("Attempting to set wallpaper from path:", fileLoc)
+	if _, err := os.Stat(fileLoc); os.IsNotExist(err) {
+		fmt.Println("Error: Wallpaper file does not exist at path:", fileLoc)
+		return nil
+	}
 
-		err := wallpaper.SetFromFile(fileLoc)
-		if err != nil {
-			fmt.Println("Failed to set wallpaper:", err)
-		} else {
-			fmt.Println("Wallpaper set successfully!")
-		}
+	err = wallpaper.SetFromFile(fileLoc)
+	if err != nil {
+		fmt.Println("Failed to set wallpaper:", err)
 	} else {
-		// Non-Windows code here
-		fmt.Println("Attempting to set wallpaper from path:", fileLoc)
-		if _, err := os.Stat(fileLoc); os.IsNotExist(err) {
-			fmt.Println("Error: Wallpaper file does not exist at path:", fileLoc)
-			return nil
-		}
-
-		err := wallpaper.SetFromFile(fileLoc)
-		if err != nil {
-			fmt.Println("Failed to set wallpaper:", err)
-		} else {
-			fmt.Println("Wallpaper set successfully!")
-		}
+		fmt.Println("Wallpaper set successfully!")
 	}
 
 	return nil
@@ -503,7 +538,7 @@ func applyFilter(img image.Image, filterChoice string) (image.Image, string, err
 	case "oilify":
 		img, err = OilifyIt(img, 0)
 	case "wavy":
-		img, err = WavyMeltIt(img, 0)
+		img, err = Picasso(img, 0)
 	case "spiral":
 		// Define the quadrants to apply the subtle spiral effect to
 		quadrants := []string{"topLeft", "topRight", "bottomLeft", "bottomRight", "center"}
@@ -715,6 +750,19 @@ func OpenFolder(title string, path string) error {
 	err := cmd.Run()
 	if err != nil {
 		fmt.Println("Error opening folder:", err)
+	}
+	return nil
+}
+func PicEncode(w io.Writer, m image.Image) error {
+	err := png.Encode(w, m)
+	if err != nil {
+		fmt.Println("PngEncode Error")
+		fmt.Println(err)
+		err = gif.Encode(w, m, nil)
+		if err != nil {
+			fmt.Println("GifEncode Error")
+			fmt.Println(err)
+		}
 	}
 	return nil
 }

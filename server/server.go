@@ -497,7 +497,7 @@ func getAllFilePaths(root string) ([]string, error) {
 }
 
 func addImagesField(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("Made it to localFontApi\r\n")
+	fmt.Printf("Made it to addImagesField\r\n")
 
 	// Read the request body
 	jsonData, err := ioutil.ReadAll(r.Body)

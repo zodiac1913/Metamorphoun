@@ -2,6 +2,7 @@ package service
 
 import (
 	"Metamorphoun/config"
+	"Metamorphoun/morphLog"
 	"Metamorphoun/zutil"
 	"fmt"
 	"image"
@@ -109,6 +110,12 @@ func ChangeView(caller string) error {
 		}
 		if img == nil {
 			fmt.Println("Image is Empty 1 quote")
+			lEntry := morphLog.LogItem{TimeStamp: time.Now().Format("20060102 15:04:05"),
+				Message: "Selected Quote", Level: "ERROR", Library: "service.go ChangeView",
+				Operation: "Setting Quote", Origin: "Pic from " + currentPic.ImageItem.Title + " selected image origin: " +
+					currentPic.OriginName + " rendered nil.", LocalFile: ""}
+			morphLog.UpdateLogs(lEntry)
+			return nil
 		}
 
 		if err != nil {
@@ -508,11 +515,11 @@ func applyFilter(img image.Image, filterChoice string) (image.Image, string, err
 	if config.ConfigInstance.WallpaperFilterWavy {
 		filters = append(filters, "wavy")
 	}
-	// if config.ConfigInstance.WallpaperFilterSpiral {
-	// 	filters = append(filters, "spiral")
-	// }
 	if config.ConfigInstance.WallpaperFilterMonochrome {
 		filters = append(filters, "monochrome")
+	}
+	if config.ConfigInstance.WallpaperFilterVortex {
+		filters = append(filters, "vortex")
 	}
 	//if Original is on than weight it more
 	if config.ConfigInstance.WallpaperFilterOriginal {
@@ -539,18 +546,9 @@ func applyFilter(img image.Image, filterChoice string) (image.Image, string, err
 		img, err = OilifyIt(img, 0)
 	case "wavy":
 		img, err = Picasso(img, 0)
-	case "spiral":
-		// Define the quadrants to apply the subtle spiral effect to
+	case "vortex":
 		quadrants := []string{"topLeft", "topRight", "bottomLeft", "bottomRight", "center"}
-
-		// Set control parameters
-		pullDistance := 0.0 // Adjust the pull strength in pixels
-		maxAngle := 0.0     // Maximum angle of distortion in degrees
-		maxDistance := 0.0  // Maximum distance from the center point in pixels
-
-		// Apply the subtle spiral effect to the selected quadrants
-		img, err = applySpiralToQuadrants(img, quadrants, pullDistance, maxAngle, maxDistance)
-
+		img, err = applyVortexToQuadrants(img, quadrants) //, pullDistance, maxAngle, maxDistance
 	case "monochrome":
 		img, err = MonochromeIt(img)
 	default: //Original

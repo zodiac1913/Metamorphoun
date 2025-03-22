@@ -368,10 +368,10 @@ export default class comms{
         let fonts=await traffic.apiCall(traffic.server + "/localFontApi",jsonString)
         let fontsSelect=document.querySelector("#textFontFile");
         fontsSelect.innerHTML="";
-        let rndOption=document.createElement("option");
-        rndOption.value="random";
-        rndOption.innerText="random";
-        fontsSelect.appendChild(rndOption)
+        // let rndOption=document.createElement("option");
+        // rndOption.value="random";
+        // rndOption.innerText="random";
+        // fontsSelect.appendChild(rndOption)
         for(let font of fonts){
             let fontFile = font.split("\\").pop();
             let fontName = fontFile.split(".")[0];

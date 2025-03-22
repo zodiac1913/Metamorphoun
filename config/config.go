@@ -31,6 +31,7 @@ type Config struct {
 	WallpaperFilterPixelate         bool    `json:"wallpaperFilterPixelate"`
 	WallpaperFilterOilify           bool    `json:"wallpaperFilterOilify"`
 	WallpaperFilterWavy             bool    `json:"wallpaperFilterWavy"`
+	WallpaperFilterVortex           bool    `json:"wallpaperFilterVortex"`
 	//WallpaperFilterSpiral           bool          `json:"wallpaperFilterSpiral"`
 	WallpaperFilterMonochrome bool          `json:"wallpaperFilterMonochrome"`
 	ShowTextOverlay           bool          `json:"showTextOverlay"`
@@ -202,8 +203,8 @@ func UpdateConfigField(propertyName string, newValue interface{}) error {
 		ConfigInstance.WallpaperFilterOilify = zutil.AsBool(fmt.Sprintf("%v", newValue))
 	case "wallpaperFilterWavy":
 		ConfigInstance.WallpaperFilterWavy = zutil.AsBool(fmt.Sprintf("%v", newValue))
-	// case "wallpaperFilterSpiral":
-	// 	ConfigInstance.WallpaperFilterSpiral = zutil.AsBool(fmt.Sprintf("%v", newValue))
+	case "wallpaperFilterVortex":
+		ConfigInstance.WallpaperFilterVortex = zutil.AsBool(fmt.Sprintf("%v", newValue))
 	case "wallpaperFilterMonochrome":
 		ConfigInstance.WallpaperFilterMonochrome = zutil.AsBool(fmt.Sprintf("%v", newValue))
 	default:
@@ -420,19 +421,19 @@ func CreateConfig() error {
 				Inherent:  true,
 			},
 		},
-		ShowTextOverlay:         false,
-		TextChangeMinutes:       5,
-		TextFontPath:            "C:\\Windows\\Fonts\\",
-		TextFontFile:            "DejaVuSans-Bold.ttf",
-		TextBoxLocation:         "TopRight",
-		WallpaperImageSizing:    "",
-		WallpaperFilterOriginal: true,
-		WallpaperFilterBlurSoft: false,
-		WallpaperFilterBlurHard: false,
-		WallpaperFilterPixelate: false,
-		WallpaperFilterOilify:   false,
-		WallpaperFilterWavy:     false,
-		//WallpaperFilterSpiral:     false,
+		ShowTextOverlay:           false,
+		TextChangeMinutes:         5,
+		TextFontPath:              "C:\\Windows\\Fonts\\",
+		TextFontFile:              "DejaVuSans-Bold.ttf",
+		TextBoxLocation:           "TopRight",
+		WallpaperImageSizing:      "",
+		WallpaperFilterOriginal:   true,
+		WallpaperFilterBlurSoft:   false,
+		WallpaperFilterBlurHard:   false,
+		WallpaperFilterPixelate:   false,
+		WallpaperFilterOilify:     false,
+		WallpaperFilterWavy:       false,
+		WallpaperFilterVortex:     false,
 		WallpaperFilterMonochrome: false,
 		QuoteAppearanceRandom:     false,
 		QuoteFontRandom:           false,
@@ -506,6 +507,16 @@ func CreateConfig() error {
 				Title:    "Christian Inspirations",
 				Location: "quotes/inspirations.json",
 				Citation: "????",
+				Creators: "Multiple",
+				Info:     "Multiple Sources",
+				Inherent: true,
+			},
+			{
+				Use:      true,
+				Name:     "TalmudQuotes",
+				Title:    "Talmud Quotes",
+				Location: "quotes/21TalmudQuotes.json",
+				Citation: "https://www.chabad.org",
 				Creators: "Multiple",
 				Info:     "Multiple Sources",
 				Inherent: true,

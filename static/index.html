@@ -147,15 +147,6 @@
 												title="Change the picture to appear as a Picasso">Picasso</label>
 										</div>
 									</div>
-									<!-- <div class="col">
-										<div class="form-check form-switch">
-											<input class="form-check-input primaryInput" id="wallpaperFilterSpiral" 
-												type="checkbox" role="switch" aria-checked="false"
-												title="Change the picture to appear as wavy"/>
-											<label class="form-check-label" for="wallpaperFilterSpiral"
-												title="Change the picture to appear as wavy">Picasso</label>
-										</div>
-									</div>									 -->
 									<div class="col">
 										<div class="form-check form-switch">
 											<input class="form-check-input primaryInput" id="wallpaperFilterMonochrome" 
@@ -163,6 +154,15 @@
 												title="Change the picture to appear as grayscale"/>
 											<label class="form-check-label" for="wallpaperFilterMonochrome"
 												title="Change the picture to appear as grayscale">Monochrome</label>
+										</div>
+									</div>
+									<div class="col">
+										<div class="form-check form-switch">
+											<input class="form-check-input primaryInput" id="wallpaperFilterVortex" 
+												type="checkbox" role="switch" aria-checked="false"
+												title="Spins twists the vortex creates anew"/>
+											<label class="form-check-label" for="wallpaperFilterVortex"
+												title="Put your image through the vortex">The Vortex</label>
 										</div>
 									</div>
 								</div>
@@ -195,19 +195,19 @@
 								<label class="form-check-label" for="quoteAppearanceRandom">Randomize</label>
 							</div>
 						</div>
-						<div class="col-3">
+						<div class="col-3" id="quoteAppearanceTextColorEnvelope">
 							<div class="form-input">
 								<label class="form-label" for="quoteTextColor">Text Color</label>
 								<input class="form-input primaryInput" type="color" id="quoteTextColor" value="#ffffff" placeholder="Choose Color">
 							</div>
 						</div>
-						<div class="col-3">
+						<div class="col-3" id="quoteAppearanceBackgroundColorEnvelope">
 							<div class="form-input">
 								<label class="form-label" for="quoteBackgroundColor">Background Color</label>
 								<input class="form-input primaryInput" type="color" id="quoteBackgroundColor" value="#000000" placeholder="Choose Color">
 							</div>
 						</div>
-						<div class="col-3">
+						<div class="col-3" id="quoteAppearanceOpacityEnvelope">
 							<div class="form-input">
 								<label class="form-label" for="quoteBackgroundOpacity">Opacity: (clear)</label>
 								<input class="primaryInput" type="number" min="110" max="254" value="110" id="quoteBackgroundOpacity">
@@ -240,7 +240,7 @@
 								<label class="form-check-label" for="quoteFontRandom">Randomize</label>
 							</div>
 						</div>
-						<div class="col-3">
+						<div class="col-3" id="textFontFileEnvelope">
 							<label class="form-label" for="textFontFile">Font</label>
 							<!-- accept=".ttf,.otf,.woff,.woff2" -->
 							<select class="primaryInput" id="textFontFile" title="Pick your Font">
@@ -273,47 +273,8 @@
 	window.tnt=new boom();
 	document.addEventListener("DOMContentLoaded",async ()=>{
 		let config=await window.comms.fetchConfig();
-
-		//convert the bible
-		// let res=await fetch("http://127.0.0.1:3000/quotes/KJV.json");
-		// let resObj={
-		// 	ok: res.ok,
-		// 	url: res.url,
-		// 	text: res.statusText,
-		// 	sessionTimeout: false,
-		// 	redirected: res.redirected,
-		// 	status: res.status,
-		// 	bodyUsed: res.bodyUsed
-		// }
-		// let kjvJson=await res.json();
-
-		// //console.log(kjv);
-
-		// let kjv=[];
-
-		// for(let book of kjvJson.Books){
-		// 	for(let chap of book.Chapters){
-		// 		for(let verse of chap.Verses){			
-		// 			//console.log("Verse: " + verse.Text);
-		// 			//console.log("Author:" + book.Name + " " + chap.BookChapter + ":" + verse.VerseNumber);
-		// 			kjv.push({quote: verse.Text,author: book.Name + " " + chap.BookChapter + ":" + verse.VerseNumber})
-		// 		}
-		// 	}
-		// }
-
-
 		// console.log(JSON.stringify(kjv));
-
-
-		let inputz=Array.from(document.querySelectorAll(".primaryInput"));
-		for(let inpt of inputz){
-			//set current
-			inpt.value=config[inpt.id];
-			//set change functions
-			inpt.addEventListener("change",async (e)=>{
-				await window.comms.formFieldChanged(e);
-			});
-		}
+		await window.tnt.wireConfigProperties(config);	
 		await window.comms.getFonts();
 	})
 </script>

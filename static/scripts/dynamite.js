@@ -17,8 +17,50 @@ export default class dynamite{
         bang.removeLibraryButton= document.querySelector("#RemoveLibraryButton");
         bang.useLibraryButton= document.querySelector("#UseLibraryButton");
         bang.selectedImageLibrary=undefined;
+        bang.config=null;
         bang.traffic=new traffic();
     }
+
+    wireConfigProperties(config){
+        let bang=this;
+        bang.config=config;
+        let inputz=Array.from(document.querySelectorAll(".primaryInput"));
+        let quoteFontRandom=document.querySelector("#quoteFontRandom");
+        //onload
+        if(quoteFontRandom.checked){
+            document.querySelector("#textFontFileEnvelope").classList.add("d-none");
+            document.querySelector("#textFontFile").selectedIndex=0;
+        }else{
+            document.querySelector("#textFontFileEnvelope").classList.remove("d-none");
+        }
+        let quoteAppearanceRandom=document.querySelector("#quoteAppearanceRandom");
+        if(quoteAppearanceRandom.checked){
+            document.querySelector("#quoteAppearanceTextColorEnvelope").classList.add("d-none");
+            document.querySelector("#quoteAppearanceBackgroundColorEnvelope").classList.add("d-none");
+            document.querySelector("#quoteAppearanceOpacityEnvelope").classList.add("d-none");
+        }else{
+            document.querySelector("#quoteAppearanceTextColorEnvelope").classList.remove("d-none");
+            document.querySelector("#quoteAppearanceBackgroundColorEnvelope").classList.remove("d-none");
+            document.querySelector("#quoteAppearanceOpacityEnvelope").classList.remove("d-none");
+        }
+        //wired
+		for(let inpt of inputz){
+			//set current
+			inpt.value=config[inpt.id];
+			//set change functions
+			inpt.addEventListener("change",async (e)=>{
+				await window.comms.formFieldChanged(e);
+				if(e.target.id === "quoteFontRandom") bang.quoteFontRandomWiring(e);
+                if(e.target.id === "quoteAppearanceRandom") bang.quoteAppearanceRandomWiring(e);
+
+			});
+		}
+    }
+
+
+
+
+
 
     wireImageLibraryTools(){
         let bang=this;
@@ -269,6 +311,55 @@ export default class dynamite{
             document.getElementById('folderPath').textContent = `Selected folder: ${directoryHandle.name}`;
         } catch (err) {
             console.error('Error selecting folder:', err);
+        }
+    }
+
+
+
+
+
+    //******************************************************************************************
+    //                                  Config Properties wired functions
+    //******************************************************************************************
+    
+    /**
+     * this handles the hiding of fonts when on random or showing when not
+     * 
+     * @param {any} e 
+     * 
+     * @memberOf dynamite
+     */
+    quoteFontRandomWiring(e) {
+        let bang = this;
+        if (e.target.id === "quoteFontRandom") {
+            if (e.target.checked) {
+                document.querySelector("#textFontFile").selectedIndex = 0;
+                document.querySelector("#textFontFileEnvelope").classList.add("d-none");
+            } else {
+                document.querySelector("#textFontFileEnvelope").classList.remove("d-none");
+            }
+        }
+    }
+    
+    /**
+     * This handles the hiding of text color, background color and opacity when on random or showing when not
+     * 
+     * @param {any} e 
+     * 
+     * @memberOf dynamite
+     */
+    quoteAppearanceRandomWiring(e) {
+        let bang = this;
+        if (e.target.id === "quoteAppearanceRandom") {
+            if (e.target.checked) {
+                document.querySelector("#quoteAppearanceTextColorEnvelope").classList.add("d-none");
+                document.querySelector("#quoteAppearanceBackgroundColorEnvelope").classList.add("d-none");
+                document.querySelector("#quoteAppearanceOpacityEnvelope").classList.add("d-none");
+            } else {
+                document.querySelector("#quoteAppearanceTextColorEnvelope").classList.remove("d-none");
+                document.querySelector("#quoteAppearanceBackgroundColorEnvelope").classList.remove("d-none");
+                document.querySelector("#quoteAppearanceOpacityEnvelope").classList.remove("d-none");
+            }
         }
     }
 

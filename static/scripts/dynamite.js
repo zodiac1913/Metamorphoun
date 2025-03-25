@@ -95,9 +95,7 @@ export default class dynamite{
     wireAndConfigureImageLibraryToolButtons(){
         let bang=this;
         bang.addLibraryButton=document.querySelector("#AddLibraryButton");
-        bang.addLibraryButton.addEventListener("click", (e) => {
-            bang.popupAddLibrary();
-        })
+        bang.addLibraryButton.addEventListener("click", (e) => {bang.popupAddLibrary();})
 
         if(bang.selectedImageLibrary!==undefined) {
             bang.addLibraryButton.classList.add("d-none");
@@ -116,6 +114,12 @@ export default class dynamite{
                 let dataUp={"id": bang.selectedImageLibrary.id,"loc":loc};
                 let apicallRtn=await bang.traffic.apiCall(bang.traffic.server + "/openLocationApi",dataUp);
             })
+            // bang.editLibraryButton.addEventListener("click",async (e)=>{
+            //     let loc=bang.selectedImageLibrary.querySelector(".locationurl").dataset.url;
+            //     let dataUp={"id": bang.selectedImageLibrary.id,"loc":loc};
+            //     let apicallRtn=await bang.traffic.apiCall(bang.traffic.server + "/openLocationApi",dataUp);
+            // })
+            
         }
 
 
@@ -274,6 +278,161 @@ export default class dynamite{
         addImageLibrarySaveButton.addEventListener('click',async()=>{bang.saveAddLibraryForm();})
         dialog.showModal();
     }
+
+    async popupEditLibrary() {
+        let bang = this;
+        let appDiv = document.querySelector("#app");
+        appDiv.classList.add("d-none");
+
+    
+        // Check if the dialog already exists
+        let existingDialog = document.querySelector("#EditLibraryModal");
+        if (existingDialog) {
+            existingDialog.showModal();
+            return;
+        }
+    
+
+        let dialog = {n:"dialog",i:"EditLibraryModal",c:"w-50",b:[]}
+        let card = {i:"EditLibraryModalCard",c:"card bg-Bisque",b:[]}
+        //let cardHeader = 
+
+        // let dialog = document.createElement("dialog");
+        // dialog.id = "AddLibraryModal";
+        // dialog.className = "w-50";
+    
+        // let card = document.createElement("div");
+        // card.id = "AddLibraryModalCard";
+        // card.className = "card bg-Bisque";
+        // dialog.appendChild(card);
+    
+        let cardHeader = document.createElement("div");
+        cardHeader.className = "card-header";
+        cardHeader.innerHTML = "Edit Image Library";
+        card.appendChild(cardHeader);
+    
+        let cardBody = document.createElement("div");
+        cardBody.id="CardBodyEditLibrary"
+        cardBody.className = "card-body d-flex flex-column align-items-center";
+    
+        //FORM FIELDS
+        let useCheckbox = document.createElement("input");
+        useCheckbox.type = "checkbox";
+        useCheckbox.id = "UseLibraryCheckbox";
+        useCheckbox.className = "d-none";
+        cardBody.appendChild(useCheckbox);
+            
+        //NAME
+        let nameInputRow = document.createElement("div");
+        nameInputRow.className = "flex-row d-flex my-2 w-100";
+
+        let labelName = document.createElement("label");
+        labelName.htmlFor = "LibraryNameInput";
+        labelName.innerHTML = "Name:";
+        nameInputRow.appendChild(labelName);
+
+        let nameInput = document.createElement("input");
+        nameInput.type = "text";
+        nameInput.id = "LibraryNameInput";
+        nameInput.className = "form-control ms-2";
+        nameInput.placeholder = "Enter library name";
+        nameInput.required = true;
+        nameInputRow.appendChild(nameInput);
+        cardBody.appendChild(nameInputRow);
+    
+        //TITLE
+        let titleInputRow = document.createElement("div");
+        titleInputRow.className = "flex-row d-flex my-2 w-100";
+
+        let labelTitle = document.createElement("label");
+        labelTitle.htmlFor = "LibraryTitleInput";
+        labelTitle.innerHTML = "Title:";
+        titleInputRow.appendChild(labelTitle);
+
+        let titleInput = document.createElement("input");
+        titleInput.type = "text";
+        titleInput.id = "LibraryTitleInput";
+        titleInput.className = "form-control ms-2";
+        titleInput.placeholder = "Enter library title";
+        titleInput.required = true;
+        titleInputRow.appendChild(titleInput);
+        cardBody.appendChild(titleInputRow);
+
+        //LOCATION
+        let locationInputRow = document.createElement("div");
+        locationInputRow.className = "flex-row d-flex my-2 w-100";
+
+        let labelLocation = document.createElement("label");
+        labelLocation.htmlFor = "LibraryLocationInput";
+        labelLocation.innerHTML = "Location:";
+        locationInputRow.appendChild(labelLocation);
+
+        let locationInput = document.createElement("input");
+        locationInput.type = "text";//"file";
+        locationInput.id = "LibraryLocationInput";
+        locationInput.className = "form-control ms-2";
+        locationInput.placeholder = "Enter library location";
+        //locationInput.webkitdirectory=true;
+        //locationInput.directory=true;
+        locationInput.required = true;
+        locationInputRow.appendChild(locationInput);
+        let locationPopUp = document.createElement("a");
+        locationPopUp.href = "http://127.0.0.1:3000/openLocationApi";
+        locationPopUp.target = "_blank";
+        let imgIcon=document.createElement("img");
+        imgIcon.src="/pics/folder.png";
+        imgIcon.alt="Use this to open a folder and copy the folder path to paste in the input.  Sorry for the overzealous web security issues!"
+        imgIcon.height=32;
+        imgIcon.width-32;
+        locationPopUp.appendChild(imgIcon);
+        locationInputRow.appendChild(locationPopUp);
+        cardBody.appendChild(locationInputRow);
+
+
+
+        card.appendChild(cardBody);
+        dialog.appendChild(card);
+        let mdl = document.querySelector("#modal");
+        mdl.appendChild(dialog);
+        let cardBodyDiv=document.querySelector("#CardBodyEditLibrary");
+        //JML
+        let opInputRow={c:"flex-row d-flex my-2 w-100",b:[]};
+        let opLabel={n:"label",for:"LibraryOperationInput",t:"Operation:"}
+        let opInput={n:"input",i:"LibraryOperationInput",type:"text",value:"Folder", 
+            required:true,c: "form-control ms-2",readonly:true };
+        opInputRow.b.push(opLabel);
+        opInputRow.b.push(opInput);
+        let opInputRowHtml=jsonToHtml(opInputRow);
+        cardBodyDiv.insertAdjacentHTML('beforeend',opInputRowHtml);
+        
+        let inherentInputRow={c:"flex-row d-flex my-2 w-100",b:[]};
+        let inherentInput={n:"input",i:"LibraryInherentInput",type:"hidden",value:false };
+        inherentInputRow.b.push(inherentInput);
+        let inherentInputRowHtml=jsonToHtml(inherentInputRow);
+        cardBodyDiv.insertAdjacentHTML('beforeend',inherentInputRowHtml);
+
+        let buttonsDivRow={c:"d-flex justify-content-between my-2 w-100",b:[]};
+        let closeButton={n:"button",type:"button",
+            i:"EditImageLibraryCloseButton",
+            title:"Close form do NOT save data",t:"Close",
+            c:"btn btn-secondary text-warning mx-2"};
+        buttonsDivRow.b.push(closeButton);
+        let saveButton={n:"button",type:"button",
+            i:"EditImageLibrarySaveButton",
+            title:"Save Library",t:"Save",
+            c:"btn btn-success text-warning mx-2"};
+        buttonsDivRow.b.push(saveButton);
+        let buttonsDivRowHtml=jsonToHtml(buttonsDivRow);
+        cardBodyDiv.insertAdjacentHTML('beforeend',buttonsDivRowHtml);
+        cardBodyDiv.insertAdjacentHTML('beforeend',inherentInputRowHtml);
+        mdl.classList.remove("d-none");
+        let addImageLibraryCloseButton=document.querySelector("#EditImageLibraryCloseButton");
+        addImageLibraryCloseButton.addEventListener('click',async()=>{bang.closeAddLibraryForm();})
+        let addImageLibrarySaveButton=document.querySelector("#EditImageLibrarySaveButton");
+        addImageLibrarySaveButton.addEventListener('click',async()=>{bang.saveAddLibraryForm();})
+        dialog.showModal();
+    }
+
 
     async closeAddLibraryForm(){
         let bang=this;

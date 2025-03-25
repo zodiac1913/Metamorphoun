@@ -204,7 +204,13 @@ func applyVortexToQuadrants(img image.Image, quadrants []string) (image.Image, e
 	newImg := img
 
 	// Randomize the spiral effect level
-	spiralLevel := rand.Float64() * 0.2 // Adjust the range as needed
+	//spiralLevel := rand.Float64() * 0.2 // Adjust the range as needed
+	min := 0.0001 //0.0001 //<-BASE
+	max := 0.0044
+	spiralLevel := (min + rand.Float64()*(max-min))
+
+	fmt.Println("Applying vortex effect to quadrants:", quadrants)
+	fmt.Println("Spiral level:", spiralLevel)
 
 	for _, quadrant := range quadrants {
 		var centerX, centerY float64

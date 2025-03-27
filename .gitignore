@@ -1,3 +1,4 @@
 # Ignore exe
 *.exe
+*on_exit_[0-9]+\.txt
 Metamorphoun

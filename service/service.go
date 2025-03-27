@@ -266,6 +266,10 @@ func CallMakeView(pastImg int32, isFavorite bool, isFavoriteWithQuote bool) erro
 	return nil
 }
 
+// This is not good.  If its with quote it should just copy and rename the file to the WithQuotes dir.
+// if it is without quotes it does need to recreate the image without a quote.  that will be more difficult
+// but must be done correctly.  Finally this need a separate track I think for its third function
+// of rerendering a past image
 func MakeView(pic config.PicHistory) error {
 	//Make the pic
 	var img image.Image

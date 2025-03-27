@@ -185,7 +185,7 @@ func ChangeView(caller string) error {
 	//favWithoutQuotes := strings.Contains(currentPic.OriginName, "WithOutQuotes")
 	if config.ConfigInstance.ShowTextOverlay && !isFavWithQuote {
 
-		if isFavWithQuote || currentPic.ImageItem.Name != "Favorites" {
+		if !isFavWithQuote || currentPic.ImageItem.Name != "Favorites" {
 			filteredImg, currentPic, err = placeQuote(filteredImg, currentPic)
 			if err != nil {
 				fmt.Println("Error determining adding font:", err)

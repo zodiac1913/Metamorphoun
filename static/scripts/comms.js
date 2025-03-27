@@ -161,6 +161,7 @@ export default class comms{
             let rowDiv=document.createElement("div");
             rowDiv.id=configItem.name + "ImageItemRow";
             rowDiv.className="row libraryRow";
+            rowDiv.info=configItem;
             //Checkbox div
             let useDiv=document.createElement("div");
             useDiv.id=configItem.name + "ImageItemRowUseDiv";

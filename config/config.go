@@ -418,7 +418,7 @@ func CreateConfig() error {
 				Title:     "Wallpapers",
 				Location:  wallpaperDir,
 				Operation: "Folder",
-				Inherent:  true,
+				Inherent:  false,
 			},
 		},
 		ShowTextOverlay:           false,

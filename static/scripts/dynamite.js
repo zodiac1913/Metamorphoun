@@ -96,6 +96,8 @@ export default class dynamite{
         let bang=this;
         bang.addLibraryButton=document.querySelector("#AddLibraryButton");
         bang.addLibraryButton.addEventListener("click", (e) => {bang.popupAddLibrary();})
+        bang.editLibraryButton.addEventListener("click", (e) => {bang.popupEditLibrary();})
+
 
         if(bang.selectedImageLibrary!==undefined) {
             bang.addLibraryButton.classList.add("d-none");
@@ -281,8 +283,11 @@ export default class dynamite{
 
     async popupEditLibrary() {
         let bang = this;
+        let selected=document.querySelector(".imageSelected");
+        let data=selected.info;
         let appDiv = document.querySelector("#app");
         appDiv.classList.add("d-none");
+
 
     
         // Check if the dialog already exists
@@ -293,107 +298,63 @@ export default class dynamite{
         }
     
 
-        let dialog = {n:"dialog",i:"EditLibraryModal",c:"w-50",b:[]}
-        let card = {i:"EditLibraryModalCard",c:"card bg-Bisque",b:[]}
-        //let cardHeader = 
-
-        // let dialog = document.createElement("dialog");
-        // dialog.id = "AddLibraryModal";
-        // dialog.className = "w-50";
+        let dialog = {n:"dialog",i:"EditLibraryModal",c:"w-50",b:[]};
+        let card = {i:"EditLibraryModalCard",c:"card bg-Bisque",b:[]};
+        let cardHeader = {c:"card-header",t:"Edit Image Library",b:[]};
     
-        // let card = document.createElement("div");
-        // card.id = "AddLibraryModalCard";
-        // card.className = "card bg-Bisque";
-        // dialog.appendChild(card);
-    
-        let cardHeader = document.createElement("div");
-        cardHeader.className = "card-header";
-        cardHeader.innerHTML = "Edit Image Library";
-        card.appendChild(cardHeader);
-    
-        let cardBody = document.createElement("div");
-        cardBody.id="CardBodyEditLibrary"
-        cardBody.className = "card-body d-flex flex-column align-items-center";
+        let cardBody = {i:"CardBodyEditLibrary",c:"card-body d-flex flex-column align-items-center",b:[]};
     
         //FORM FIELDS
-        let useCheckbox = document.createElement("input");
-        useCheckbox.type = "checkbox";
-        useCheckbox.id = "UseLibraryCheckbox";
-        useCheckbox.className = "d-none";
-        cardBody.appendChild(useCheckbox);
+        //USE
+        let useCheckboxRow = {c:"flex-row d-flex my-2 w-100",b:[]}
+        let useCheckbox = {n:"input",i:"UseLibraryCheckbox",type:"checkbox"};
+        if(data.use) useCheckbox.checked=true;
+        let useCheckboxName = {n:"label",for:"LibraryNameInput",t:"Use"}
+        useCheckboxRow.b.push(useCheckbox,useCheckboxName);
+        cardBody.b.push(useCheckboxRow);
+
             
         //NAME
-        let nameInputRow = document.createElement("div");
-        nameInputRow.className = "flex-row d-flex my-2 w-100";
-
-        let labelName = document.createElement("label");
-        labelName.htmlFor = "LibraryNameInput";
-        labelName.innerHTML = "Name:";
-        nameInputRow.appendChild(labelName);
-
-        let nameInput = document.createElement("input");
-        nameInput.type = "text";
-        nameInput.id = "LibraryNameInput";
-        nameInput.className = "form-control ms-2";
-        nameInput.placeholder = "Enter library name";
-        nameInput.required = true;
-        nameInputRow.appendChild(nameInput);
-        cardBody.appendChild(nameInputRow);
+        let nameInputRow = {c:"flex-row d-flex my-2 w-100",b:[]}
+        let labelName = {n:"label",for:"LibraryNameInput",t:"Name"}
+        nameInputRow.b.push(labelName);
+        let nameInput = {n:"input",i:"LibraryNameInput",type:"text",c:"form-control ms-2"
+            ,placeholder:"Enter library name",required:true,value:data.name};
+        if(data.inherent) nameInput.readonly=true;
+        nameInputRow.b.push(nameInput);
+        cardBody.b.push(nameInputRow);
     
         //TITLE
-        let titleInputRow = document.createElement("div");
-        titleInputRow.className = "flex-row d-flex my-2 w-100";
-
-        let labelTitle = document.createElement("label");
-        labelTitle.htmlFor = "LibraryTitleInput";
-        labelTitle.innerHTML = "Title:";
-        titleInputRow.appendChild(labelTitle);
-
-        let titleInput = document.createElement("input");
-        titleInput.type = "text";
-        titleInput.id = "LibraryTitleInput";
-        titleInput.className = "form-control ms-2";
-        titleInput.placeholder = "Enter library title";
-        titleInput.required = true;
-        titleInputRow.appendChild(titleInput);
-        cardBody.appendChild(titleInputRow);
+        let titleInputRow = {c:"flex-row d-flex my-2 w-100",b:[]};
+        let labelTitle = {n:"label",for:"LibraryTitleInput",t:"Title:"}
+        let titleInput = {n:"input",i:"LibraryTitleInput",type:"text",c:"form-control ms-2"
+            ,placeholder:"Enter library title",required:true,value:data.title};
+        if(data.inherent) titleInput.readonly=true;
+        titleInputRow.b.push(labelTitle,titleInput);
+        cardBody.b.push(titleInputRow);
 
         //LOCATION
-        let locationInputRow = document.createElement("div");
-        locationInputRow.className = "flex-row d-flex my-2 w-100";
+        let locationInputRow = {c:"flex-row d-flex my-2 w-100",b:[]};
+        let labelLocation = {n:"label",for:"LibraryLocationInput",t:"Location:"}
+        let locationInput = {n:"input",i:"LibraryLocationInput",type:"text",c:"form-control ms-2"
+            ,placeholder:"Enter library location",required:true,value:data.location};
+        if(data.inherent) locationInput.readonly=true;
+        locationInputRow.b.push(labelLocation,locationInput);
 
-        let labelLocation = document.createElement("label");
-        labelLocation.htmlFor = "LibraryLocationInput";
-        labelLocation.innerHTML = "Location:";
-        locationInputRow.appendChild(labelLocation);
-
-        let locationInput = document.createElement("input");
-        locationInput.type = "text";//"file";
-        locationInput.id = "LibraryLocationInput";
-        locationInput.className = "form-control ms-2";
-        locationInput.placeholder = "Enter library location";
-        //locationInput.webkitdirectory=true;
-        //locationInput.directory=true;
-        locationInput.required = true;
-        locationInputRow.appendChild(locationInput);
-        let locationPopUp = document.createElement("a");
-        locationPopUp.href = "http://127.0.0.1:3000/openLocationApi";
-        locationPopUp.target = "_blank";
-        let imgIcon=document.createElement("img");
-        imgIcon.src="/pics/folder.png";
-        imgIcon.alt="Use this to open a folder and copy the folder path to paste in the input.  Sorry for the overzealous web security issues!"
-        imgIcon.height=32;
-        imgIcon.width-32;
-        locationPopUp.appendChild(imgIcon);
-        locationInputRow.appendChild(locationPopUp);
-        cardBody.appendChild(locationInputRow);
+        
+        let locationPopUp = {n:"a",href:"http://127.0.0.1:3000/openLocationApi",target:"_blank",b:[
+            {n:"img",src:"/pics/folder.png",alt:"Use this to open a folder and copy the folder path to paste in the input.  Sorry for the overzealous web security issues!",height:32,width:32}
+        ]};
+        locationInputRow.b.push(locationPopUp);
+        cardBody.b.push(locationInputRow);
 
 
 
-        card.appendChild(cardBody);
-        dialog.appendChild(card);
+        card.b.push(cardHeader,cardBody);
+        dialog.b.push(card);
+        let dialogHTM=jsonToHtml(dialog);
         let mdl = document.querySelector("#modal");
-        mdl.appendChild(dialog);
+        mdl.insertAdjacentHTML("afterbegin",dialogHTM);
         let cardBodyDiv=document.querySelector("#CardBodyEditLibrary");
         //JML
         let opInputRow={c:"flex-row d-flex my-2 w-100",b:[]};
@@ -426,10 +387,10 @@ export default class dynamite{
         cardBodyDiv.insertAdjacentHTML('beforeend',buttonsDivRowHtml);
         cardBodyDiv.insertAdjacentHTML('beforeend',inherentInputRowHtml);
         mdl.classList.remove("d-none");
-        let addImageLibraryCloseButton=document.querySelector("#EditImageLibraryCloseButton");
-        addImageLibraryCloseButton.addEventListener('click',async()=>{bang.closeAddLibraryForm();})
-        let addImageLibrarySaveButton=document.querySelector("#EditImageLibrarySaveButton");
-        addImageLibrarySaveButton.addEventListener('click',async()=>{bang.saveAddLibraryForm();})
+        let editImageLibraryCloseButton=document.querySelector("#EditImageLibraryCloseButton");
+        editImageLibraryCloseButton.addEventListener('click',async()=>{bang.closeEditLibraryForm();})
+        let editImageLibrarySaveButton=document.querySelector("#EditImageLibrarySaveButton");
+        editImageLibrarySaveButton.addEventListener('click',async()=>{bang.saveEditLibraryForm();})
         dialog.showModal();
     }
 
@@ -437,6 +398,15 @@ export default class dynamite{
     async closeAddLibraryForm(){
         let bang=this;
         let existingDialog = document.querySelector("#AddLibraryModal");
+        existingDialog.innerText="";
+        existingDialog.remove();
+        let appDiv = document.querySelector("#app");
+        appDiv.classList.remove("d-none");        
+    }
+
+    async closeEditLibraryForm(){
+        let bang=this;
+        let existingDialog = document.querySelector("#EditLibraryModal");
         existingDialog.innerText="";
         existingDialog.remove();
         let appDiv = document.querySelector("#app");
@@ -458,6 +428,23 @@ export default class dynamite{
         console.log(apicallRtn);
         bang.closeAddLibraryForm();
     }    
+
+    async saveEditLibraryForm(){
+        let bang=this;
+        let existingDialog = document.querySelector("#EditLibraryModal");
+        let useCheckbox = document.querySelector("#UseLibraryCheckbox").checked;
+        let nameInput = document.querySelector("#LibraryNameInput").value;
+        let titleInput = document.querySelector("#LibraryTitleInput").value;
+        let locationInput = document.querySelector("#LibraryLocationInput").value;
+        let opInput = document.querySelector("#LibraryOperationInput").value;
+        let inherentInput = document.querySelector("#LibraryInherentInput").value;
+        let jsonUp={"use":useCheckbox, "name": nameInput, "title": titleInput,
+            "location": locationInput, "operation": opInput}
+                                                                    //Gotta add this to server
+        let apicallRtn=await bang.traffic.apiCall(bang.traffic.server + "/editImagesField",jsonUp)
+        console.log(apicallRtn);
+        bang.closeEditLibraryForm();
+    }
 
     async getFolderUrl(e) {
         let bang = this;

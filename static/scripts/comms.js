@@ -4,6 +4,7 @@
 
 //----------------------------------------
 //comms.js handles communications and for now DOM manipulation related to that.
+import {jsonToHtml} from './cc/ccUtilities.js'
 export default class comms{
     constructor(cfg){
         let traffic=this;
@@ -12,6 +13,28 @@ export default class comms{
         traffic.server=cfg?.server||"http://127.0.0.1:3000";
         traffic.imagesDiv=document.querySelector("#ImagesDiv");
         traffic.textLibs=document.querySelector("#textLibraries");
+        window.pic={};
+        // set up a 1 minute timer to call on currentInfoApi to see if the
+        // pic history has updated
+         // Set up a 1-minute timer to call on currentInfoApi
+         setInterval(async () => {
+            try {
+                let response = await traffic.apiCall(traffic.server + "/currentInfoApi", "");
+                //console.log("Pic history update check:", response);
+                // Handle the response if needed
+                if (response && JSON.stringify(response)!==JSON.stringify(window.pic)) { // Check if the response is different from the current pic history
+                    console.log("Pic history has been updated.");
+                    window.pic=response;
+                    document.querySelector("#currentInfoLoading").remove();
+                    traffic.currentInfoUpdate();
+                    // Perform any additional actions if the history is updated
+                }
+            } catch (error) {
+                console.error("Error checking pic history update:", error);
+            }
+        }, 10000); // 60000ms = 1 minute
+
+
     }
 
     //====================================================================
@@ -53,7 +76,7 @@ export default class comms{
             return await response.json(); 
 
         } catch (error) {
-            console.error("API Call Error:", error);
+            console.log("API Call Error:", error);
             return { error: error.message }; 
         }
     }
@@ -392,18 +415,112 @@ export default class comms{
 
 
     async textLibraryChanged(event){
-    let traffic=this;
-    let input=event.target;
-    let id=input.dataset.name;
-    let val=input.checked;
-    let json={parameter: id, value: val};
-    let jsonString=json;
-    console.log(json);
-    console.log(jsonString);
-    let apicallRtn=await traffic.apiCall(traffic.server + "/textFieldChangeApi",jsonString)
-    return await traffic.fetchConfig();
+        let traffic=this;
+        let input=event.target;
+        let id=input.dataset.name;
+        let val=input.checked;
+        let json={parameter: id, value: val};
+        let jsonString=json;
+        console.log(json);
+        console.log(jsonString);
+        let apicallRtn=await traffic.apiCall(traffic.server + "/textFieldChangeApi",jsonString)
+        return await traffic.fetchConfig();
+    }
+
+
+    async currentInfoUpdate(){
+        let traffic=this;
+        const currentPic=window.pic; // this is the current picture object from the server
+        let randomIIPicked={i:"ImageItemData",c:"bg-AliceBlue fw-bolder text-FireBrick w-75 mx-auto",b:[]}
+        let flexRow1={i:"ImageItemDataFlexRow1",c:"d-flex justify-content-between mb-3",b:[]}
+        flexRow1.b.push(
+            {i:"op",c:"p-2 fw-bold",t:"Operation: ",b:[{i:"opVal",c:"text-Maroon float-end ms-2 fst-italic",t: currentPic.imageItem.operation}]},
+            {i:"ttl",c:"p-2 fw-bold",t:"Info: ",b:[{i:"titleVal",c:"text-Maroon float-end ms-2 fst-italic",t: currentPic.imageItem.title}]},
+            {i:"loc",c:"p-2 fw-bold",t:"Location: ",b:[{i:"locVal","data-url":currentPic.imageItem.location,c:"text-Maroon float-end ms-2 fst-italic opencapable",t: currentPic.imageItem.location}]},
+        )
+        let flexRow2={i:"ImageItemDataFlexRow2",c:"d-flex justify-content-between mb-3",b:[]}
+        flexRow2.b.push(
+            {i:"inherent",c:"p-2 fw-bold",t:"Is Inherent: ",ttl:"If inherent this can NOT be changed!",b:[{i:"inherentVal",c:"text-Maroon float-end ms-2 fst-italic",t: currentPic.imageItem.inherent.toString()}]},
+            {i:"name",c:"p-2 fw-bold",t:"Name: ",b:[{i:"nameVal",c:"text-Maroon float-end ms-2 fst-italic",t: currentPic.imageItem.name}]},
+            {i:"use",c:"p-2 fw-bold",t:"Use this: ",ttl:"If true this Library is in use",b:[{i:"useVal","data-url":currentPic.imageItem.location,c:"text-Maroon float-end ms-2 fst-italic opencapable",t: currentPic.imageItem.use}]},
+        )
+
+        randomIIPicked.b.push(flexRow1,flexRow2);
+        let flexRow3={i:"ImageItemDataFlexRow3",c:"d-flex flex-row bg-dark",b:[]}
+        let picSourceLink={};
+        if(currentPic.originName.toLowerCase().startsWith("http")){
+            picSourceLink={n:"a",i:"opOriginName",href:currentPic.originName,target:"_blank","title":"Click to see picture",t:currentPic.originName}
+        }else{
+            picSourceLink={i:"opOriginName","data-url":currentPic.originName,c:"text-Lavender float-end ms-2 fst-italic opencapable",t: currentPic.originName}
+        }
+        flexRow3.b.push(
+            {i:"source",c:"p-2 fw-bold text-LightSalmon",t:"Picture Source: "
+                ,b:[picSourceLink]},
+        )
+        randomIIPicked.b.push(flexRow3);
+        let flexRow4={i:"ImageItemDataFlexRow4",c:"d-flex flex-row mb-3 bg-dark",b:[]}
+        let picSavedLink={};
+        if(currentPic.saveName.toLowerCase().startsWith("http")){
+            picSavedLink={n:"a",i:"saveNameVal",href:currentPic.saveName,target:"_blank","title":"Click to see picture",t:currentPic.saveName}
+        }else{
+            picSavedLink={i:"saveNameVal","data-url":currentPic.saveName,c:"text-Lavender float-end ms-2 fst-italic opencapable",t: currentPic.saveName}
+        }
+        flexRow4.b.push(
+            {i:"source",c:"p-2 fw-bold text-LightSalmon",t:"Picture Saved: "
+                ,b:[picSavedLink]},
+        )
+        randomIIPicked.b.push(flexRow4);
+
+        let flexRow5={i:"ImageItemDataFlexRow5",c:"d-flex justify-content-between bg-dark",b:[]}
+        flexRow5.b.push(
+            {i:"op",c:"p-2 fw-bold",t:"Sizing/Scaling: ",b:[{i:"sizingVal",c:"text-warning float-end ms-2 fst-italic",t: currentPic.sizing}]},
+            {i:"loc",c:"p-2 fw-bold",t:"Image Filter: ",b:[{i:"filterVal",c:"text-warning float-end ms-2 fst-italic",t: currentPic.filter}]},
+        )
+        randomIIPicked.b.push(flexRow5);
+        //quoteFont
+        // let flexRowQuoteFont={i:"ImageItemDataFlexRowQuoteFont",c:"d-flex justify-content-between bg-CornflowerBlue",b:[]}
+        let fontFolder=currentPic.quoteFont.includes("/") 
+            ? currentPic.quoteFont.split("/").slice(0, -1).join("/") 
+            : currentPic.quoteFont.split("\\").slice(0, -1).join("\\"); // Extract the folder path if available
+        // flexRowQuoteFont.b.push(
+        //     {i:"fontfile",c:"p-2 fw-bold",t:"Font File: ",b:[{i:"fontFileVal","data-url":fontFolder,c:"text-warning float-end ms-2 fst-italic opencapable",t: currentPic.quoteFont}]},
+        // )
+        // randomIIPicked.b.push(flexRowQuoteFont);
+
+        let fontRow=
+            await traffic.currentInfoUpdateRow("QuoteFont","Font File:"
+                    ,currentPic.quoteFont,"bg-CornflowerBlue", fontFolder);
+        randomIIPicked.b.push(fontRow);
+
+
+        let picInfoEle=document.querySelector("#infoPic");
+        picInfoEle.innerHTML=""; // Clear previous content
+        picInfoEle.insertAdjacentHTML("beforeend",jsonToHtml(randomIIPicked))
+
+        for(let oc of document.querySelectorAll(".opencapable")){
+            oc.addEventListener("click",async (e)=>{
+                window.comms.locationClicked(e);
+            })
+        }
 
     }
+
+    async currentInfoUpdateRow(parameter,title,value,color,dataUrl){
+        let traffic=this;
+        let flexRowItem={i:"FlexRow" + parameter,c:"d-flex justify-content-between bg-" + color + "",b:[]}
+        let innerText={i:parameter+"Val",c:"text-warning float-end ms-2 fst-italic",t: value};     
+        if(dataUrl){ 
+            innerText["data-url"]=dataUrl; 
+            innerText.c+=" opencapable"; // Add the opencapable class if dataUrl is provided
+        }
+        let text={i:"fontfile",c:"p-2 fw-bold",t:title,b:[innerText]};
+        flexRowItem.b.push(text)
+        return flexRowItem;
+    }
+
+
+
+
     //====================================================================
     //                                              END   DOM Manipulators
     //====================================================================

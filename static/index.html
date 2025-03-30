@@ -21,11 +21,20 @@
 	</nav>
 	<!-- Tabs navs -->
 
-	<nav class="tabs">
+	<nav class="tabs" aria-label="Tabs Navigation">
 		<label class="nav" for="tab-1">General</label>
 		<label class="nav" for="tab-2">Wallpaper</label>
 		<label class="nav" for="tab-3">Quotes</label>
+		<label class="nav" for="tab-4">Current</label>
 	  </nav>
+	  <!-- When adding more tabs you MUST add the info in the site.css as well -->
+	  <!--
+	  :has(#tab-4:checked) [for="tab-4"]
+	  and
+	  .content:has([id="tab-4"]:checked)>section:nth-child(4) {
+ 		 display: flex;
+	  }
+	  -->
 	  <article class="content">
 		<section>
 			<p>
@@ -69,6 +78,9 @@
 									<button type="button" class="d-none btn btn-MidnightBlue text-GoldenRod mt-1 btn-reactive"
 									id="UseLibraryButton"
 									title="Mark to use" data-op="ToggleUse">Use</button>
+									<button type="button" class="d-none btn btn-secondary text-AliceBlue mt-1 btn-reactive"
+									id="CloseEditButton"
+									title="Close Image Library Editing" data-op="ToggleClose">Close</button>
 								</div>
 							</div>
 					</div>
@@ -242,7 +254,6 @@
 						</div>
 						<div class="col-3" id="textFontFileEnvelope">
 							<label class="form-label" for="textFontFile">Font</label>
-							<!-- accept=".ttf,.otf,.woff,.woff2" -->
 							<select class="primaryInput" id="textFontFile" title="Pick your Font">
 								<option value="random" title="This will make the font random">Random</option>
 							</select>
@@ -255,15 +266,25 @@
 				</div>
 			</p>
 		</section>
+		<section>
+			<!-- Content for Tab 4 -->
+			<div class="container-fluid ms-4">
+				<h2 id="currentInfoLoading">Current Info Loading...Please wait</h2>
+				<div id="infoPic" class="container-fluid">
+				</div>
+			</div>
+		</section>
+	
+
 		<input type="radio" name="tabs" id="tab-1" hidden checked />
 		<input type="radio" name="tabs" id="tab-2" hidden />
-		<input type="radio" name="tabs" id="tab-3" hidden />		
+		<input type="radio" name="tabs" id="tab-3" hidden />
+		<input type="radio" name="tabs" id="tab-4" hidden />
 	  </article>
 
 	</div>
-	<div id="modal" class="d-none">
-
-	</div>
+	<div id="modal" class="d-none popupmdl"></div>
+	
 
 
 <script type="module">

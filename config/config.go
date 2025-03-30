@@ -123,6 +123,16 @@ func SetConfig(newConfig *Config) error {
 	return SaveConfig(newConfig)
 }
 
+// create a function to load a config.ConfigInstance.Image by name
+func GetImageByName(name string) *Image {
+	for _, img := range ConfigInstance.Images {
+		if img.Name == name {
+			return &img
+		}
+	}
+	return nil // Return nil if no image with the given name is found
+}
+
 func UpdateConfigField(propertyName string, newValue interface{}) error {
 	//fmt.Println("UpdateConfigField:")
 	//fmt.Println(propertyName)
@@ -239,6 +249,21 @@ func AddImagesField(use bool, name string, title string,
 		Operation: operation,
 	})
 	return SaveConfig(ConfigInstance)
+}
+func EditImagesField(use bool, name string, title string,
+	location string, operation string) error {
+	ConfigInstance = GetConfig()
+	cfg := GetImageByName(name)
+	if cfg.Inherent {
+		fmt.Println("Cannot edit inherent image:", name)
+		return fmt.Errorf("cannot edit inherent image: %s", name)
+	} else {
+		cfg.Use = use
+		cfg.Title = title
+		cfg.Location = location
+		cfg.Operation = operation
+		return SaveConfig(ConfigInstance)
+	}
 }
 
 func UpdateQuotesField(quotesName string, newValue interface{}) error {
@@ -418,7 +443,7 @@ func CreateConfig() error {
 				Title:     "Wallpapers",
 				Location:  wallpaperDir,
 				Operation: "Folder",
-				Inherent:  false,
+				Inherent:  true,
 			},
 		},
 		ShowTextOverlay:           false,

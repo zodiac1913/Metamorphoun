@@ -34,6 +34,8 @@ func Serve(serverUrl string, serverPort int) bool {
 	http.HandleFunc("/openLocationApi", openLocationApi)
 	http.HandleFunc("/localFontApi", localFontApi)
 	http.HandleFunc("/addImagesField", addImagesField)
+	http.HandleFunc("/editImagesField", editImagesField)
+	http.HandleFunc("/currentInfoApi", currentInfoApi)
 
 	// Register static file server
 	fs := http.FileServer(http.Dir("./static"))
@@ -532,6 +534,85 @@ func addImagesField(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	// Write JSON data to response
 	_, err = w.Write(jsonData)
+	if err != nil {
+		fmt.Println("Failed to write response:", err)
+		http.Error(w, "Failed to write response", http.StatusInternalServerError)
+		return
+	}
+}
+func editImagesField(w http.ResponseWriter, r *http.Request) {
+	fmt.Printf("Made it to editImagesField\r\n")
+
+	// Read the request body
+	jsonData, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Error reading request body", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close() // Close the body to prevent resource leaks
+
+	fmt.Println("formApi-Received JSON:", string(jsonData))
+
+	useResult := gjson.GetBytes(jsonData, "use").Bool()
+	_ = useResult
+	nameResult := gjson.GetBytes(jsonData, "name").String()
+	// Check if the nameResult is empty
+	if nameResult == "" {
+		http.Error(w, "Name field cannot be empty", http.StatusBadRequest)
+		return
+	}
+	imageItem := config.GetImageByName(nameResult)
+	_ = imageItem
+	titleResult := gjson.GetBytes(jsonData, "title").String()
+	// locationResult := gjson.GetBytes(jsonData, "location").String()
+	// operationResult := gjson.GetBytes(jsonData, "operation").String()
+
+	_ = titleResult
+
+	//result := config.editImagesField(useResult, nameResult, titleResult, locationResult, operationResult)
+	//fmt.Println(result)
+
+	// Set Content-Type header
+	w.Header().Set("Content-Type", "application/json")
+	// Write JSON data to response
+	_, err = w.Write(jsonData)
+	if err != nil {
+		fmt.Println("Failed to write response:", err)
+		http.Error(w, "Failed to write response", http.StatusInternalServerError)
+		return
+	}
+
+	// Set Content-Type header
+	w.Header().Set("Content-Type", "application/json")
+	// Write JSON data to response
+	_, err = w.Write(jsonData)
+	if err != nil {
+		fmt.Println("Failed to write response:", err)
+		http.Error(w, "Failed to write response", http.StatusInternalServerError)
+		return
+	}
+}
+
+func currentInfoApi(w http.ResponseWriter, r *http.Request) {
+	// Read the JSON file
+	//usr, err := user.Current()
+	//if err != nil {
+	//fmt.Println("failed to get user home directory: %w", err)
+	//}
+	//configPath := filepath.Join(usr.HomeDir, ".Metamorphoun", "config.json")
+	// Read config file
+	var rtnJson = config.ConfigInstance.PicHistories[0]
+
+	// Set Content-Type header
+	w.Header().Set("Content-Type", "application/json")
+	// Write JSON data to response
+	jsonBytes, err := json.Marshal(rtnJson)
+	if err != nil {
+		fmt.Println("Failed to marshal JSON:", err)
+		http.Error(w, "Failed to marshal JSON", http.StatusInternalServerError)
+		return
+	}
+	_, err = w.Write(jsonBytes)
 	if err != nil {
 		fmt.Println("Failed to write response:", err)
 		http.Error(w, "Failed to write response", http.StatusInternalServerError)

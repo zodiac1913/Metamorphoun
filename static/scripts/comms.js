@@ -25,7 +25,8 @@ export default class comms{
                 if (response && JSON.stringify(response)!==JSON.stringify(window.pic)) { // Check if the response is different from the current pic history
                     console.log("Pic history has been updated.");
                     window.pic=response;
-                    document.querySelector("#currentInfoLoading").remove();
+                    let currInfoLoading=document.querySelector("#currentInfoLoading");
+                    if(currInfoLoading) currInfoLoading.remove();
                     traffic.currentInfoUpdate();
                     // Perform any additional actions if the history is updated
                 }

@@ -241,8 +241,8 @@ func ChangeView(caller string) error {
 func CallMakeView(pastImg int32, isFavorite bool, isFavoriteWithQuote bool) error {
 	cfg := config.GetConfig()
 	pic := cfg.PicHistories[pastImg]
+	quoteType := "WithOutQuotes"
 	if isFavorite {
-		quoteType := "WithOutQuotes"
 		if isFavoriteWithQuote {
 			quoteType = "WithQuotes"
 		}
@@ -262,6 +262,20 @@ func CallMakeView(pastImg int32, isFavorite bool, isFavoriteWithQuote bool) erro
 		fileName := dt + "." + ext
 		pic.SaveName = filepath.Join(favPicFolder, fileName)
 	}
+	if quoteType == "WithOutQuotes" {
+		pic.QuoteStatement = ""
+		pic.QuoteAuthor = ""
+		pic.QuoteFont = ""
+		pic.QuoteTextColorR = 0
+		pic.QuoteTextColorG = 0
+		pic.QuoteTextColorB = 0
+		pic.QuoteBackgroundColorR = 0
+		pic.QuoteBackgroundColorG = 0
+		pic.QuoteBackgroundColorB = 0
+		pic.QuoteOpacity = 0
+	}
+
+	//if(!isFavoriteWithQuote) pic.Quote
 	MakeView(pic)
 	return nil
 }

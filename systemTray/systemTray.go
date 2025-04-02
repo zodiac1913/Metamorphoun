@@ -54,7 +54,7 @@ func MakeSystemTray() {
 		mUrl := systray.AddMenuItem("Settings", "Configure your Metamorphoun")
 		mNextBG := systray.AddMenuItem("Next Background", "Change to next background image")
 		mLastBG := systray.AddMenuItem("Last Background", "Change to the last background image")
-		mShowCurrentPicture := systray.AddMenuItem("Current Info", "Show current picture information")
+		//mShowCurrentPicture := systray.AddMenuItem("Current Info", "Show current picture information")
 		mQuit := systray.AddMenuItem("Quit", "Shutdown Metamorphoun")
 
 		// Sets the icon of a menu item. Only available on Mac.
@@ -108,9 +108,9 @@ func MakeSystemTray() {
 				service.ChangeView("backgroundChange")
 			case <-mLastBG.ClickedCh:
 				service.CallMakeView(1, false, false)
-			case <-mShowCurrentPicture.ClickedCh:
-				currPicInfo := "http://" + config.ConfigInstance.ServerAddress + ":" + zutil.AsString(config.ConfigInstance.ServerPort) + "/picInfo.html"
-				server.OpenFolder("explorer", currPicInfo)
+			// case <-mShowCurrentPicture.ClickedCh:
+			// 	currPicInfo := "http://" + config.ConfigInstance.ServerAddress + ":" + zutil.AsString(config.ConfigInstance.ServerPort) + "/picInfo.html"
+			// 	server.OpenFolder("explorer", currPicInfo)
 
 			// case <-mChange.ClickedCh:
 			// 	mChange.SetTitle("I've Changed")

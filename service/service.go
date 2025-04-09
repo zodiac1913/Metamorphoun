@@ -241,42 +241,48 @@ func ChangeView(caller string) error {
 func CallMakeView(pastImg int32, isFavorite bool, isFavoriteWithQuote bool) error {
 	cfg := config.GetConfig()
 	pic := cfg.PicHistories[pastImg]
-	quoteType := "WithOutQuotes"
+	picType := ""
 	if isFavorite {
-		if isFavoriteWithQuote {
-			quoteType = "WithQuotes"
-		}
-		usr, err := user.Current()
-		if err != nil {
-			fmt.Println("failed to get user home directory: %w", err)
-		}
-		favPicFolder := filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites", "Pictures", quoteType)
-		now := time.Now()
-		dt := now.Format("20060102_150405")
-		lastDotIndex := strings.LastIndex(pic.SaveName, ".")
-		ext := "png"
-		if lastDotIndex != -1 {
-			ext := pic.SaveName[lastDotIndex+1:]
-			fmt.Println(ext)
-		}
-		fileName := dt + "." + ext
-		pic.SaveName = filepath.Join(favPicFolder, fileName)
-	}
-	if quoteType == "WithOutQuotes" {
-		pic.QuoteStatement = ""
-		pic.QuoteAuthor = ""
-		pic.QuoteFont = ""
-		pic.QuoteTextColorR = 0
-		pic.QuoteTextColorG = 0
-		pic.QuoteTextColorB = 0
-		pic.QuoteBackgroundColorR = 0
-		pic.QuoteBackgroundColorG = 0
-		pic.QuoteBackgroundColorB = 0
-		pic.QuoteOpacity = 0
-	}
+		quoteType := "WithOutQuotes"
+		if isFavorite {
+			if isFavoriteWithQuote {
+				quoteType = "WithQuotes"
+			}
+			usr, err := user.Current()
+			if err != nil {
+				fmt.Println("failed to get user home directory: %w", err)
+			}
+			favPicFolder := filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites", "Pictures", quoteType)
+			now := time.Now()
+			dt := now.Format("20060102_150405")
+			lastDotIndex := strings.LastIndex(pic.SaveName, ".")
+			ext := "png"
+			if lastDotIndex != -1 {
+				ext := pic.SaveName[lastDotIndex+1:]
+				fmt.Println(ext)
+			}
+			fileName := dt + "." + ext
+			pic.SaveName = filepath.Join(favPicFolder, fileName)
 
+		}
+		if quoteType == "WithOutQuotes" {
+			pic.QuoteStatement = ""
+			pic.QuoteAuthor = ""
+			pic.QuoteFont = ""
+			pic.QuoteTextColorR = 0
+			pic.QuoteTextColorG = 0
+			pic.QuoteTextColorB = 0
+			pic.QuoteBackgroundColorR = 0
+			pic.QuoteBackgroundColorG = 0
+			pic.QuoteBackgroundColorB = 0
+			pic.QuoteOpacity = 0
+			picType = "WithOutQuotes"
+		} else {
+			picType = "WithQuotes"
+		}
+	}
 	//if(!isFavoriteWithQuote) pic.Quote
-	MakeView(pic)
+	MakeView(pic, picType)
 	return nil
 }
 
@@ -284,12 +290,10 @@ func CallMakeView(pastImg int32, isFavorite bool, isFavoriteWithQuote bool) erro
 // if it is without quotes it does need to recreate the image without a quote.  that will be more difficult
 // but must be done correctly.  Finally this need a separate track I think for its third function
 // of rerendering a past image
-func MakeView(pic config.PicHistory) error {
+func MakeView(pic config.PicHistory, picType string) error {
 	//Make the pic
 	var img image.Image
 	var err error
-	//var currentPicsFolder string
-	//cfg := config.GetConfig()
 	currentPic := pic
 	var filteredImg image.Image
 	filterChoice := ""
@@ -326,20 +330,20 @@ func MakeView(pic config.PicHistory) error {
 	img, currentPic = handleScaling(img, currentPic, sizingChoice, err)
 	filteredImg, filterChoice, err = applyFilter(img, filterChoice)
 
-	favWithoutQuotes := strings.Contains(currentPic.SaveName, "WithOutQuotes")
-	if config.ConfigInstance.ShowTextOverlay && !favWithoutQuotes {
-
-		if favWithoutQuotes || currentPic.ImageItem.Name != "Favorites" {
-			filteredImg, currentPic, err = placeQuote(filteredImg, currentPic)
-			if err != nil {
-				fmt.Println("Error determining adding font:", err)
-				return err
-			}
+	if picType == "WithQuotes" {
+		filteredImg = img
+		filteredImg, currentPic, err = placeQuoteExact(filteredImg, currentPic)
+		if err != nil {
+			fmt.Println("Error determining adding font:", err)
+			return err
 		}
+
+	} else {
+		//No need to place quote
+		filteredImg = img
 	}
+
 	img = filteredImg
-	//currentPic.Filter = filterChoice
-	//currentPic.Sizing = config.ConfigInstance.WallpaperImageSizing
 	config.ConfigInstance.AddPicHistory(currentPic)
 	fileLoc := currentPic.SaveName
 

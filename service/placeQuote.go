@@ -58,7 +58,7 @@ func placeQuote(img image.Image, currentPic config.PicHistory) (image.Image, con
 	}
 
 	// Set maximum dimensions for the text box (60% of the quadrant)
-	authorText, wrappedQuoteText, quoteHeight, textBoxWidth, textBoxHeight, textBlockX, textBlockY := calculateBoxInfo(screenWidth, screenHeight, currentPic, dc)
+	authorText, wrappedQuoteText, quoteHeight, textBoxWidth, textBoxHeight, textBlockX, textBlockY, currentPic := calculateBoxInfo(screenWidth, screenHeight, currentPic, dc)
 
 	textBlockX, textBlockY = locateBox(textBlockX, screenWidth, textBlockY, screenHeight, textBoxWidth, textBoxHeight)
 
@@ -88,6 +88,81 @@ func placeQuote(img image.Image, currentPic config.PicHistory) (image.Image, con
 	// Calculate a line height buffer between the quote and the author
 	lineHeight := 48.0                                    // Replace with the actual height of a line of text
 	authorY := textBlockY + 30 + quoteHeight + lineHeight // Add a buffer between quote and author
+	dc.DrawString(authorText, textBlockX+10, authorY+30)
+	// Get the resulting image (THIS IS THE MAGIC OF THE NEW PIC CONTEXT.  Started with dc := gg.NewContextForImage(img) )
+	imgWithQuote := dc.Image()
+
+	// fileStep2 := filepath.Join(currentPicsFolder, "file5AQuoted.png")
+	// saveImg(imgWithQuote, fileStep2)
+
+	// Save the resulting image
+	//img = dc.Image() // SavePNG(outputPath)
+
+	// fileStep3 := filepath.Join(currentPicsFolder, "file5DcImage.png")
+	// saveImg(imgWithQuote, fileStep3)
+	return imgWithQuote, currentPic, nil
+}
+
+func placeQuoteExact(img image.Image, currentPic config.PicHistory) (image.Image, config.PicHistory, error) {
+
+	//OK SHit. I need all the created values of the text box not just the
+	// colors...size and position are needed
+
+	// Get the number of displays
+	//screenInfo := getScreenInfo()[0]
+	//screenWidth := screenInfo.Width
+	//screenHeight := screenInfo.Height
+
+	// Create a new context with the image dimensions
+	dc := gg.NewContextForImage(img)
+
+	// Set font size
+
+	initialFontSize := currentPic.QuoteFontSize
+	fontPath := currentPic.QuoteFont
+	if err := dc.LoadFontFace(fontPath, initialFontSize); err != nil {
+		fmt.Println("Error loading font:", err)
+		return img, currentPic, err
+	}
+
+	// "QuoteStatement": "If we really think that home is elsewhere and that this life is a “wandering to find home,” why should we not look forward to the arrival?",
+	// "QuoteAuthor": "C.S. Lewis",
+	// "QuoteFont": "C:\\Windows\\Fonts\\impact.ttf",
+	// "QuoteTextColorR": 255,
+	// "QuoteTextColorG": 247,
+	// "QuoteTextColorB": 255,
+	// "QuoteBackgroundColorR": 28,
+	// "QuoteBackgroundColorG": 39,
+	// "QuoteBackgroundColorB": 14,
+	// "QuoteOpacity": 140
+
+	// Set maximum dimensions for the text box (60% of the quadrant)
+	authorText := currentPic.QuoteAuthor
+	wrappedQuoteText := currentPic.QuoteStatement
+	//quoteHeight:=0
+	textBoxWidth := currentPic.QuoteTextBoxWidth
+	//textBoxHeight:= currentPic.QuoteTextBoxHeight
+	textBlockX := currentPic.QuoteTextBoxX
+	textBlockY := currentPic.QuoteTextBoxY
+
+	// Set transparent background for text block
+	//redColorBackground:= currentPic.QuoteBackgroundColorR
+	//greenColorBackground:= currentPic.QuoteBackgroundColorG
+	//blueColorBackground:= currentPic.QuoteBackgroundColorB
+
+	//Set text color
+	//redColorText:= currentPic.QuoteTextColorR
+	//greenColorText:= currentPic.QuoteTextColorG
+	//blueColorText:= currentPic.QuoteTextColorB
+
+	//Set Opacity
+	//opacity:= currentPic.QuoteOpacity
+
+	dc.DrawStringWrapped(wrappedQuoteText, textBlockX+10, textBlockY+30, 0, 0, textBoxWidth-20, 1.5, gg.AlignLeft)
+
+	// Calculate a line height buffer between the quote and the author
+	lineHeight := 48.0                                                               // Replace with the actual height of a line of text
+	authorY := currentPic.QuoteTextBoxY + 30 + currentPic.QuoteFontSize + lineHeight // Add a buffer between quote and author
 	dc.DrawString(authorText, textBlockX+10, authorY+30)
 	// Get the resulting image (THIS IS THE MAGIC OF THE NEW PIC CONTEXT.  Started with dc := gg.NewContextForImage(img) )
 	imgWithQuote := dc.Image()
@@ -189,7 +264,7 @@ func getFontInfo(currentPic config.PicHistory) (float64, string, bool, config.Pi
 	return initialFontSize, fontPath, false, currentPic, nil
 }
 
-func calculateBoxInfo(screenWidth int, screenHeight int, currentPic config.PicHistory, dc *gg.Context) (string, string, float64, float64, float64, float64, float64) {
+func calculateBoxInfo(screenWidth int, screenHeight int, currentPic config.PicHistory, dc *gg.Context) (string, string, float64, float64, float64, float64, float64, config.PicHistory) {
 	maxTextBoxWidth := float64(screenWidth) * 0.4   // 60% of half the screen width
 	maxTextBoxHeight := float64(screenHeight) * 0.9 // 60% of half the screen height
 
@@ -206,10 +281,13 @@ func calculateBoxInfo(screenWidth int, screenHeight int, currentPic config.PicHi
 	// Calculate the required width and height for the text box
 	textBoxWidth := math.Min(math.Max(quoteWidth, authorWidth)+40, maxTextBoxWidth) // Add some padding
 	textBoxHeight := math.Min(quoteHeight+authorHeight+60, maxTextBoxHeight)        // Add padding
-
+	currentPic.QuoteTextBoxWidth = textBoxWidth
+	currentPic.QuoteTextBoxHeight = textBoxHeight
+	currentPic.QuoteTextBoxX = textBoxWidth
+	currentPic.QuoteTextBoxY = textBoxHeight
 	// Define the position for the text block based on the selected quadrant
 	var textBlockX, textBlockY float64
-	return authorText, wrappedQuoteText, quoteHeight, textBoxWidth, textBoxHeight, textBlockX, textBlockY
+	return authorText, wrappedQuoteText, quoteHeight, textBoxWidth, textBoxHeight, textBlockX, textBlockY, currentPic
 }
 
 func locateBox(textBlockX float64, screenWidth int, textBlockY float64, screenHeight int, textBoxWidth float64, textBoxHeight float64) (float64, float64) {

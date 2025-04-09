@@ -14,28 +14,34 @@ export default class comms{
         traffic.imagesDiv=document.querySelector("#ImagesDiv");
         traffic.textLibs=document.querySelector("#textLibraries");
         window.pic={};
-        // set up a 1 minute timer to call on currentInfoApi to see if the
-        // pic history has updated
+        traffic.updatePicInfo();
+
+         // Perform any additional actions if the history is updated
          // Set up a 1-minute timer to call on currentInfoApi
          setInterval(async () => {
-            try {
-                let response = await traffic.apiCall(traffic.server + "/currentInfoApi", "");
-                //console.log("Pic history update check:", response);
-                // Handle the response if needed
-                if (response && JSON.stringify(response)!==JSON.stringify(window.pic)) { // Check if the response is different from the current pic history
-                    console.log("Pic history has been updated.");
-                    window.pic=response;
-                    let currInfoLoading=document.querySelector("#currentInfoLoading");
-                    if(currInfoLoading) currInfoLoading.remove();
-                    traffic.currentInfoUpdate();
-                    // Perform any additional actions if the history is updated
-                }
-            } catch (error) {
-                console.error("Error checking pic history update:", error);
-            }
+            await traffic.updatePicInfo();
         }, 10000); // 60000ms = 1 minute
 
 
+    }
+
+    async updatePicInfo() {
+        let traffic=this;
+        try {
+            let response = await traffic.apiCall(traffic.server + "/currentInfoApi", "");
+            //console.log("Pic history update check:", response);
+            // Handle the response if needed
+            if (response && JSON.stringify(response) !== JSON.stringify(window.pic)) { // Check if the response is different from the current pic history
+                console.log("Pic history has been updated.");
+                window.pic = response;
+                let currInfoLoading = document.querySelector("#currentInfoLoading");
+                if (currInfoLoading) currInfoLoading.remove();
+                traffic.currentInfoUpdate();
+                // Perform any additional actions if the history is updated
+            }
+        } catch (error) {
+            console.error("Error checking pic history update:", error);
+        }
     }
 
     //====================================================================
@@ -432,7 +438,7 @@ export default class comms{
     async currentInfoUpdate(){
         let traffic=this;
         const currentPic=window.pic; // this is the current picture object from the server
-        let randomIIPicked={i:"ImageItemData",c:"bg-AliceBlue fw-bolder text-FireBrick w-75 mx-auto",b:[]}
+        let randomIIPicked={i:"ImageItemData",c:"bg-AliceBlue fw-bolder text-FireBrick mx-5",b:[]}
         let flexRow1={i:"ImageItemDataFlexRow1",c:"d-flex justify-content-between mb-3",b:[]}
         flexRow1.b.push(
             {i:"op",c:"p-2 fw-bold",t:"Operation: ",b:[{i:"opVal",c:"text-Maroon float-end ms-2 fst-italic",t: currentPic.imageItem.operation}]},
@@ -455,7 +461,7 @@ export default class comms{
             picSourceLink={i:"opOriginName","data-url":currentPic.originName,c:"text-Lavender float-end ms-2 fst-italic opencapable",t: currentPic.originName}
         }
         flexRow3.b.push(
-            {i:"source",c:"p-2 fw-bold text-LightSalmon",t:"Picture Source: "
+            {i:"source",c:"d-flex p-2 fw-bold text-LightSalmon",t:"Picture Source: "
                 ,b:[picSourceLink]},
         )
         randomIIPicked.b.push(flexRow3);
@@ -467,7 +473,7 @@ export default class comms{
             picSavedLink={i:"saveNameVal","data-url":currentPic.saveName,c:"text-Lavender float-end ms-2 fst-italic opencapable",t: currentPic.saveName}
         }
         flexRow4.b.push(
-            {i:"source",c:"p-2 fw-bold text-LightSalmon",t:"Picture Saved: "
+            {i:"saved",c:"d-flex p-2 fw-bold text-LightSalmon",t:"Picture Saved: "
                 ,b:[picSavedLink]},
         )
         randomIIPicked.b.push(flexRow4);

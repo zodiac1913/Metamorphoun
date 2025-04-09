@@ -71,22 +71,27 @@ type TextLibrary struct {
 }
 
 type PicHistory struct {
-	PicNum                int16  `json:"picNum"`
-	OriginName            string `json:"originName"`
-	SaveName              string `json:"saveName"`
-	ImageItem             Image  `json:"imageItem"`
-	Filter                string `json:"filter"`
-	Sizing                string `json:"sizing"`
-	QuoteStatement        string `json:"quoteStatement"`
-	QuoteAuthor           string `json:"quoteAuthor"`
-	QuoteFont             string `json:"quoteFont"`
-	QuoteTextColorR       uint8  `json:"quoteTextColorR"`
-	QuoteTextColorG       uint8  `json:"quoteTextColorG"`
-	QuoteTextColorB       uint8  `json:"quoteTextColorB"`
-	QuoteBackgroundColorR uint8  `json:"quoteBackgroundColorR"`
-	QuoteBackgroundColorG uint8  `json:"quoteBackgroundColorG"`
-	QuoteBackgroundColorB uint8  `json:"quoteBackgroundColorB"`
-	QuoteOpacity          uint64 `json:"quoteOpacity"`
+	PicNum                int16   `json:"picNum"`
+	OriginName            string  `json:"originName"`
+	SaveName              string  `json:"saveName"`
+	ImageItem             Image   `json:"imageItem"`
+	Filter                string  `json:"filter"`
+	Sizing                string  `json:"sizing"`
+	QuoteStatement        string  `json:"quoteStatement"`
+	QuoteAuthor           string  `json:"quoteAuthor"`
+	QuoteFont             string  `json:"quoteFont"`
+	QuoteFontSize         float64 `json:"quoteFontSize"`
+	QuoteTextColorR       uint8   `json:"quoteTextColorR"`
+	QuoteTextColorG       uint8   `json:"quoteTextColorG"`
+	QuoteTextColorB       uint8   `json:"quoteTextColorB"`
+	QuoteBackgroundColorR uint8   `json:"quoteBackgroundColorR"`
+	QuoteBackgroundColorG uint8   `json:"quoteBackgroundColorG"`
+	QuoteBackgroundColorB uint8   `json:"quoteBackgroundColorB"`
+	QuoteOpacity          uint64  `json:"quoteOpacity"`
+	QuoteTextBoxWidth     float64 `json:"quoteTextBoxWidth"`
+	QuoteTextBoxHeight    float64 `json:"quoteTextBoxHeight"`
+	QuoteTextBoxX         float64 `json:"quoteTextBoxX"`
+	QuoteTextBoxY         float64 `json:"quoteTextBoxY"`
 }
 
 var ConfigInstance *Config

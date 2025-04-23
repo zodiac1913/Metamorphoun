@@ -1,35 +1,29 @@
 package service
 
 import (
+	"Metamorphoun/config"
 	"fmt"
 	"image"
 	"image/color"
 	"math"
-	"math/rand"
 
 	"github.com/disintegration/imaging"
 	"github.com/fogleman/gg"
 	"golang.org/x/image/draw"
 )
 
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// Older Filters for older code
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-func BlurIt(img image.Image, blurSigma float64) (image.Image, error) {
+func BlurItSet(currentPic config.PicHistory, img image.Image) (image.Image, error) {
 	// Apply a Gaussian blur
-	blurred := imaging.Blur(img, blurSigma) // The second parameter is the sigma of the Gaussian kernel
+	blurred := imaging.Blur(img, currentPic.FilterIntensity) // The second parameter is the sigma of the Gaussian kernel
 	return blurred, nil
 }
 
-func PixelateIt(img image.Image, pixelSize int) (image.Image, error) {
-	if pixelSize == 0 {
-		pixelSize = rand.Intn(16) + 4
-	}
+func PixelateItSet(currentPic config.PicHistory, img image.Image) (image.Image, error) {
 
+	pixelSize := int(currentPic.FilterIntensity)
 	bounds := img.Bounds()
 	width, height := bounds.Dx(), bounds.Dy()
 	newImg := image.NewRGBA(bounds)
-
 	for y := 0; y < height; y += pixelSize {
 		for x := 0; x < width; x += pixelSize {
 			var r, g, b, a uint32
@@ -64,28 +58,14 @@ func PixelateIt(img image.Image, pixelSize int) (image.Image, error) {
 			}
 		}
 	}
-
-	// usr, err := user.Current()
-	// if err != nil {
-	// 	fmt.Println("failed to get user home directory:", err)
-	// }
-
-	// currentPicsFolder := filepath.Join(usr.HomeDir, ".Metamorphoun")
-
-	// fileStep2 := filepath.Join(currentPicsFolder, "file6APixelateFiltered.png")
-	// saveImg(newImg, fileStep2)
-
 	return newImg, nil
 }
 
-func OilifyIt(img image.Image, radius int) (image.Image, error) { //img image.Image, radius int) image.Image {
-	if radius == 0 {
-		radius = rand.Intn(6) + 3
-	}
+func OilifyItSet(currentPic config.PicHistory, img image.Image) (image.Image, error) { //img image.Image, radius int) image.Image {
+	radius := int(currentPic.FilterIntensity)
 	bounds := img.Bounds()
 	width, height := bounds.Dx(), bounds.Dy()
 	newImg := image.NewRGBA(bounds)
-
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
 			hist := make(map[color.Color]int)
@@ -114,15 +94,11 @@ func OilifyIt(img image.Image, radius int) (image.Image, error) { //img image.Im
 	return newImg, nil
 }
 
-// -------------------------FINAL PICASSO---------------------------------------
-func Picasso(img image.Image, intensity float64) (image.Image, error) {
+func PicassoSet(currentPic config.PicHistory, img image.Image) (image.Image, error) {
 	screenInfo := getScreenInfo()[0]
 	screenWidth := screenInfo.Width
 	screenHeight := screenInfo.Height
-	if intensity == 0 {
-		intensity = float64(rand.Intn(15) + 15)
-		fmt.Printf("Melt intensity value = %.2f\n", intensity)
-	}
+	intensity := float64(currentPic.FilterIntensity)
 
 	bounds := img.Bounds()
 	width, height := bounds.Dx(), bounds.Dy()
@@ -158,20 +134,10 @@ func Picasso(img image.Image, intensity float64) (image.Image, error) {
 	// Step 4: Resize the image back to screen size
 	resizedImg := image.NewNRGBA(image.Rect(0, 0, screenWidth, screenHeight))
 	draw.BiLinear.Scale(resizedImg, resizedImg.Rect, clippedImg, clippedImg.Bounds(), draw.Over, nil)
-	// resizedImg := image.NewNRGBA(image.Rect(0, 0, screenWidth, screenHeight))
-	// for y := 0; y < screenHeight; y++ {
-	// 	for x := 0; x < screenWidth; x++ {
-	// 		// Map screen coordinates to clipped image coordinates
-	// 		srcX := x * clippedWidth / screenWidth
-	// 		srcY := y * clippedHeight / screenHeight
-	// 		resizedImg.Set(x, y, clippedImg.At(srcX, srcY))
-	// 	}
-	// }
-
 	return resizedImg, nil
 }
 
-func vortexEffect(img image.Image, level float64, centerX, centerY float64) image.Image {
+func vortexEffectSet(currentPic config.PicHistory, img image.Image, quadrant string, level float64, centerX, centerY float64) (config.PicHistory, image.Image) {
 	bounds := img.Bounds()
 	width, height := bounds.Dx(), bounds.Dy()
 	newImg := image.NewRGBA(bounds)
@@ -195,61 +161,41 @@ func vortexEffect(img image.Image, level float64, centerX, centerY float64) imag
 			}
 		}
 	}
-	saveImage(newImg, "spiralEffectEnd.jpg")
+	//picV := config.PicHistoryVortex{FilterIntensity: level, FilterX: centerX, FilterY: centerY}
+	picV := config.PicHistoryVortex{FilterQuadrant: quadrant, FilterIntensity: level, FilterX: centerX, FilterY: centerY}
+	currentPic.FilterVortices = append(currentPic.FilterVortices, []config.PicHistoryVortex{picV}...)
+	//saveImage(newImg, "spiralEffectEnd.jpg")
 
-	return newImg
+	return currentPic, newImg
 }
 
-func applyVortexToQuadrants(img image.Image, quadrants []string) (image.Image, error) {
-	//saveImage(img, "ToBeSpiraled.jpg")
-	bounds := img.Bounds()
-	width, height := bounds.Dx(), bounds.Dy()
+func applyVortexToQuadrantsSet(currentPic config.PicHistory, img image.Image) (image.Image, error) {
 	newImg := img
-
-	// Randomize the spiral effect level
-	//spiralLevel := rand.Float64() * 0.2 // Adjust the range as needed
-	min := 0.0001 //0.0001 //<-BASE
-	max := 0.0044
-	spiralLevel := (min + rand.Float64()*(max-min))
-
-	fmt.Println("Applying vortex effect to quadrants:", quadrants)
-	fmt.Println("Spiral level:", spiralLevel)
-
-	for _, quadrant := range quadrants {
+	fmt.Println("Applying vortex effect to quadrants:")
+	for _, quadrant := range currentPic.FilterVortices {
 		var centerX, centerY float64
+		spiralLevel := quadrant.FilterIntensity
+		fmt.Println("Spiral level:", spiralLevel)
 
-		switch quadrant {
+		fmt.Println("Quadrant:", quadrant.FilterQuadrant)
+
+		switch quadrant.FilterQuadrant {
 		case "topLeft":
-			centerX, centerY = float64(width)*0.25, float64(height)*0.25
+			centerX, centerY = quadrant.FilterX, quadrant.FilterY
 		case "topRight":
-			centerX, centerY = float64(width)*0.75, float64(height)*0.25
+			centerX, centerY = quadrant.FilterX, quadrant.FilterY
 		case "bottomLeft":
-			centerX, centerY = float64(width)*0.25, float64(height)*0.75
+			centerX, centerY = quadrant.FilterX, quadrant.FilterY
 		case "bottomRight":
-			centerX, centerY = float64(width)*0.75, float64(height)*0.75
+			centerX, centerY = quadrant.FilterX, quadrant.FilterY
 		case "center":
-			centerX, centerY = float64(width)*0.5, float64(height)*0.5
+			centerX, centerY = quadrant.FilterX, quadrant.FilterY
 		}
-
 		// Apply the spiral effect to the quadrant
-		newImg = vortexEffect(newImg, spiralLevel, centerX, centerY)
+		currentPic, newImg = vortexEffectSet(currentPic, newImg, quadrant.FilterQuadrant, spiralLevel, centerX, centerY)
 	}
 	//saveImage(newImg, "applySpiralToQuadrantsEnd.jpg")
 	return newImg, nil
 }
 
-func MonochromeIt(img image.Image) (image.Image, error) {
-	// Create a new grayscale image
-	bounds := img.Bounds()
-	grayImg := image.NewGray(bounds)
-
-	// Convert each pixel to grayscale
-	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
-		for x := bounds.Min.X; x < bounds.Max.X; x++ {
-			r, g, b, _ := img.At(x, y).RGBA()
-			grayValue := uint8((r*299 + g*587 + b*114) / 1000 >> 8) // Standard formula for luminance
-			grayImg.SetGray(x, y, color.Gray{Y: grayValue})
-		}
-	}
-	return grayImg, nil
-}
+//MonochromeIt is constant so it goes to the random(not so random function)

@@ -68,18 +68,23 @@ func main() {
 
 	if cfg.ChangeWallpaperOnStartup {
 		//service.ChangeBackground()
-		service.ChangeView("backgroundChange")
+		//service.ChangeView("backgroundChange")
+		pic := config.PicHistory{}
+		service.BackgroundGenerate("ChangeOnStartup", pic)
 	}
 
 	go func() {
 		timer := time.NewTicker(time.Duration(configData.ChangeMinutes) * time.Minute)
+		pic := config.PicHistory{}
 		defer timer.Stop()
 		for {
 			select {
 			case <-timer.C:
-				service.ChangeView("backgroundChange")
+				//service.ChangeView("backgroundChange")
+				service.BackgroundGenerate("ChangeOnStartup", pic)
 			case <-updateSignal:
-				service.ChangeView("backgroundChange")
+				//service.ChangeView("backgroundChange")
+				service.BackgroundGenerate("ChangeOnStartup", pic)
 				timer.Reset(time.Duration(configData.ChangeMinutes) * time.Minute)
 			case <-ctx.Done():
 				return
@@ -124,7 +129,6 @@ func main() {
 	}
 
 }
-
 func openFolder(title string, path string) error {
 	var cmd *exec.Cmd
 	cmd = exec.Command(title, path)

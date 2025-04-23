@@ -48,6 +48,7 @@ type Config struct {
 	QuoteBackgroundColor      string        `json:"quoteBackgroundColor"`
 	QuoteBackgroundOpacity    string        `json:"quoteBackgroundOpacity"`
 	PicHistories              []PicHistory  `json:"picHistories"`
+	PicUpdateCalled           bool          `json:"picUpdateCalled"`
 	// Add other configuration fields here
 }
 type Image struct {
@@ -71,27 +72,37 @@ type TextLibrary struct {
 }
 
 type PicHistory struct {
-	PicNum                int16   `json:"picNum"`
-	OriginName            string  `json:"originName"`
-	SaveName              string  `json:"saveName"`
-	ImageItem             Image   `json:"imageItem"`
-	Filter                string  `json:"filter"`
-	Sizing                string  `json:"sizing"`
-	QuoteStatement        string  `json:"quoteStatement"`
-	QuoteAuthor           string  `json:"quoteAuthor"`
-	QuoteFont             string  `json:"quoteFont"`
-	QuoteFontSize         float64 `json:"quoteFontSize"`
-	QuoteTextColorR       uint8   `json:"quoteTextColorR"`
-	QuoteTextColorG       uint8   `json:"quoteTextColorG"`
-	QuoteTextColorB       uint8   `json:"quoteTextColorB"`
-	QuoteBackgroundColorR uint8   `json:"quoteBackgroundColorR"`
-	QuoteBackgroundColorG uint8   `json:"quoteBackgroundColorG"`
-	QuoteBackgroundColorB uint8   `json:"quoteBackgroundColorB"`
-	QuoteOpacity          uint64  `json:"quoteOpacity"`
-	QuoteTextBoxWidth     float64 `json:"quoteTextBoxWidth"`
-	QuoteTextBoxHeight    float64 `json:"quoteTextBoxHeight"`
-	QuoteTextBoxX         float64 `json:"quoteTextBoxX"`
-	QuoteTextBoxY         float64 `json:"quoteTextBoxY"`
+	PicNum                int16              `json:"picNum"`
+	OriginName            string             `json:"originName"`
+	SaveName              string             `json:"saveName"`
+	ImageItem             Image              `json:"imageItem"`
+	Filter                string             `json:"filter"`
+	FilterVortices        []PicHistoryVortex `json:"filterVortices"`
+	FilterIntensity       float64            `json:"filterIntensity"`
+	FilterX               float64            `json:"filterX"`
+	FilterY               float64            `json:"filterY"`
+	Sizing                string             `json:"sizing"`
+	QuoteStatement        string             `json:"quoteStatement"`
+	QuoteAuthor           string             `json:"quoteAuthor"`
+	QuoteFont             string             `json:"quoteFont"`
+	QuoteFontSize         float64            `json:"quoteFontSize"`
+	QuoteTextColorR       uint8              `json:"quoteTextColorR"`
+	QuoteTextColorG       uint8              `json:"quoteTextColorG"`
+	QuoteTextColorB       uint8              `json:"quoteTextColorB"`
+	QuoteBackgroundColorR uint8              `json:"quoteBackgroundColorR"`
+	QuoteBackgroundColorG uint8              `json:"quoteBackgroundColorG"`
+	QuoteBackgroundColorB uint8              `json:"quoteBackgroundColorB"`
+	QuoteOpacity          uint64             `json:"quoteOpacity"`
+	QuoteTextBoxWidth     float64            `json:"quoteTextBoxWidth"`
+	QuoteTextBoxHeight    float64            `json:"quoteTextBoxHeight"`
+	QuoteTextBoxX         float64            `json:"quoteTextBoxX"`
+	QuoteTextBoxY         float64            `json:"quoteTextBoxY"`
+}
+type PicHistoryVortex struct {
+	FilterIntensity float64 `json:"filterIntensity"`
+	FilterQuadrant  string  `json:"filterQuadrant"`
+	FilterX         float64 `json:"filterX"`
+	FilterY         float64 `json:"filterY"`
 }
 
 var ConfigInstance *Config
@@ -660,7 +671,7 @@ func SetupSystemFolders() {
 	if err != nil {
 		fmt.Printf("failed to get user home directory: %w", err)
 	}
-	metamorphounDirs := []string{"Favorites", "WebPicPage", "Webpage", "Quotes", "MyPics", "Logs"}
+	metamorphounDirs := []string{"Favorites", "Logs"}
 	for _, fldr := range metamorphounDirs {
 		folderPath := filepath.Join(usr.HomeDir, ".Metamorphoun", fldr)
 
@@ -705,15 +716,15 @@ func SetupSystemFolders() {
 	//add favorites subfolders
 	wallpaperFavs := filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites")
 
-	err = os.MkdirAll(filepath.Join(filepath.Dir(wallpaperFavs), "Pictures", "WithQuotes"), 0700) // Adjust permissions as needed
+	err = os.MkdirAll(filepath.Join(wallpaperFavs, "Pictures", "WithQuotes"), 0700) // Adjust permissions as needed
 	if err != nil {
 		fmt.Println("failed to create config directory: %w", err)
 	}
-	err = os.MkdirAll(filepath.Join(filepath.Dir(wallpaperFavs), "Pictures", "WithOutQuotes"), 0700) // Adjust permissions as needed
+	err = os.MkdirAll(filepath.Join(wallpaperFavs, "Pictures", "WithOutQuotes"), 0700) // Adjust permissions as needed
 	if err != nil {
 		fmt.Println("failed to create config directory: %w", err)
 
-		err = os.MkdirAll(filepath.Join(filepath.Dir(wallpaperFavs), "Quotes"), 0700) // Adjust permissions as needed
+		err = os.MkdirAll(filepath.Join(wallpaperFavs, "Quotes"), 0700) // Adjust permissions as needed
 		if err != nil {
 			fmt.Println("failed to create config directory: %w", err)
 		}

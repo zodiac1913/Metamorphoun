@@ -12,35 +12,35 @@ import (
 	"time"
 )
 
-type QService struct {
-	interval time.Duration
-	fn       func(string) error
-	param    string
-}
+// type QService struct {
+// 	interval time.Duration
+// 	fn       func(string) error
+// 	param    string
+// }
 
-type Quotes struct {
-	Quotes []Quote `json:"quotes"`
-}
+// type Quotes struct {
+// 	Quotes []Quote `json:"quotes"`
+// }
 
-type Quote struct {
-	Statement string `json:"statement"`
-	Author    string `json:"author"`
-	//Year      int    `json:"Year"`
-}
+// type Quote struct {
+// 	Statement string `json:"statement"`
+// 	Author    string `json:"author"`
+// 	//Year      int    `json:"Year"`
+// }
 
 // Start starts the service.
-func (qs *QService) Start() error {
-	ticker := time.NewTicker(qs.interval)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ticker.C:
-			if err := qs.fn(qs.param); err != nil {
-				return err
-			}
-		}
-	}
-}
+// func (qs *QService) Start() error {
+// 	ticker := time.NewTicker(qs.interval)
+// 	defer ticker.Stop()
+// 	for {
+// 		select {
+// 		case <-ticker.C:
+// 			if err := qs.fn(qs.param); err != nil {
+// 				return err
+// 			}
+// 		}
+// 	}
+// }
 
 // NewService creates a new Service instance with an internafl function.
 //
@@ -53,14 +53,14 @@ func (qs *QService) Start() error {
 //	}
 //
 // StartChangeQuote creates a new QService instance with an internal function.
-func StartChangeQuote(interval time.Duration) *QService {
-	fmt.Println("Start Interval of", interval)
-	return &QService{
-		fn:       SetQuote,
-		interval: interval,
-		//param:    param,
-	}
-}
+// func StartChangeQuote(interval time.Duration) *QService {
+// 	fmt.Println("Start Interval of", interval)
+// 	return &QService{
+// 		fn:       UpdateQuote,
+// 		interval: interval,
+// 		//param:    param,
+// 	}
+// }
 
 func SetQuote(caller string) error {
 	// Load the background image

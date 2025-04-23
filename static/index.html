@@ -17,7 +17,7 @@
 	<div id="app">
 	<nav class="navbar navbar-dark bg-dark" data-bs-theme="dark">
 		<div class="container-fluid">
-			<a class="navbar-brand text-center" href="#">Metamorphoun</a>
+			<a class="navbar-brand mx-auto" href="#">Metamorphoun</a>
 	</nav>
 	<!-- Tabs navs -->
 
@@ -26,6 +26,7 @@
 		<label class="nav" for="tab-2">Wallpaper</label>
 		<label class="nav" for="tab-3">Quotes</label>
 		<label class="nav" for="tab-4">Current</label>
+		<label class="nav" for="tab-5">Information</label>
 	  </nav>
 	  <!-- When adding more tabs you MUST add the info in the site.css as well -->
 	  <!--
@@ -274,12 +275,39 @@
 				</div>
 			</div>
 		</section>
+		<section>
+			<!-- Content for Tab 5 -->
+			<div class="container-fluid text-LemonChiffon w-75" style="background-color: #220022;">
+				<h2 id="information">Information/Support</h2>
+				<div id="info" class="container-fluid text-Aquamarine">
+					<p>Metamorphoun is a wallpaper changer that can change your wallpaper using pre-configured 
+						web sites or local picture folders.  It can also display quotes of built-in selections or you can 
+						add your own using a json format like this:</p>
+						<pre>
+						[
+							{"statement":"Elections are a good deal like marriages,
+							 there`s no accounting for anyone`s taste.","author": "Will Rogers"},
+							{"statement":"Once a man wants to hold a Public Office, he is 
+							absolutely no good for honest work.","author": "Will Rogers"}
+						]
+						</pre>
+					<p>It defaults to a Christian Based Wallpaper Changer but it has enough configurations to suit anyone
+						(with some work).</p>
+					<p>It is based on the original work of <a href="https://github.com/peterlevi">Peter Levi</a> who wrote "Variety" 
+						in python for Linux.  Now I follow him in Golang. I would like to thank him for his work and inspiration.</p>
+				</div>
+				<div id="donate" class="text-Coral"> 
+					<p>If you like this project and would like to support it, please consider donating to help keep the project going.</p>
+					<a href="https:/paypal.me/zodiac1913" class="btn btn-primary">Donate via PatPal</a>
+			</div>
+		</section>
 	
 
 		<input type="radio" name="tabs" id="tab-1" hidden checked />
 		<input type="radio" name="tabs" id="tab-2" hidden />
 		<input type="radio" name="tabs" id="tab-3" hidden />
 		<input type="radio" name="tabs" id="tab-4" hidden />
+		<input type="radio" name="tabs" id="tab-5" hidden />
 	  </article>
 
 	</div>

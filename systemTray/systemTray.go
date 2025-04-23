@@ -5,6 +5,7 @@ import (
 	"Metamorphoun/icon"
 	"Metamorphoun/server"
 	"Metamorphoun/service"
+	"time"
 
 	"Metamorphoun/zutil"
 	"fmt"
@@ -24,6 +25,9 @@ func MakeSystemTray() {
 	if err != nil {
 		fmt.Println("failed to get user home directory:", err)
 	}
+	now := time.Now()
+	dt := now.Format("20060102_150405")
+	wallpaperMain := filepath.Join(usr.HomeDir, ".Metamorphoun")
 	makeFavFolders()
 	favPicFolderWithQuote := filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites", "Pictures", "WithQuotes")
 	favPicFolderWithoutQuote := filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites", "Pictures", "WithOutQuotes")
@@ -55,14 +59,14 @@ func MakeSystemTray() {
 		mNextBG := systray.AddMenuItem("Next Background", "Change to next background image")
 		mLastBG := systray.AddMenuItem("Last Background", "Change to the last background image")
 		//mShowCurrentPicture := systray.AddMenuItem("Current Info", "Show current picture information")
-		mQuit := systray.AddMenuItem("Quit", "Shutdown Metamorphoun")
+		systray.AddSeparator()
+		mQuitOrig := systray.AddMenuItem("Quit", "Quit the whole app")
 
 		// Sets the icon of a menu item. Only available on Mac.
 		//mQuit.SetIcon(icon.Data)
 
-		systray.AddSeparator()
-		mToggle := systray.AddMenuItem("Toggle", "Toggle the Quit button")
-		mQuitOrig := systray.AddMenuItem("Quit", "Quit the whole app")
+		//systray.AddSeparator()
+		//mToggle := systray.AddMenuItem("Toggle", "Toggle the Quit button")
 		go func() {
 			<-mQuitOrig.ClickedCh
 			fmt.Println("Requesting quit")
@@ -70,44 +74,44 @@ func MakeSystemTray() {
 			fmt.Println("Finished quitting")
 		}()
 
-		shown := true
-		toggle := func() {
-			if shown {
-				//subMenuBottom.Check()
-				//subMenuBottom2.Hide()
-				mQuitOrig.Hide()
-				//mEnabled.Hide()
-				shown = false
-			} else {
-				//subMenuBottom.Uncheck()
-				//subMenuBottom2.Show()
-				mQuitOrig.Show()
-				//mEnabled.Show()
-				shown = true
-			}
-		}
+		//shown := true
+		// toggle := func() {
+		// 	if shown {
+		// 		//subMenuBottom.Check()
+		// 		//subMenuBottom2.Hide()
+		// 		mQuitOrig.Hide()
+		// 		//mEnabled.Hide()
+		// 		shown = false
+		// 	} else {
+		// 		//subMenuBottom.Uncheck()
+		// 		//subMenuBottom2.Show()
+		// 		mQuitOrig.Show()
+		// 		//mEnabled.Show()
+		// 		shown = true
+		// 	}
+		// }
 
 		for {
 			select {
 			case <-mFavStoreWQ.ClickedCh:
-				service.CallMakeView(0, true, true)
-				// fmt.Print("Current Image with Quote: ", currImgWQ)
-				// currentPicFile := filepath.Join(config.ConfigInstance.CurrentBackgroundFolder, config.ConfigInstance.CurrentBackgroundName)
-				// picToSave := filepath.Join(favPicFolderWithQuote, config.ConfigInstance.SourceCurrentBackgroundName)
-				// zutil.CopyFile(currentPicFile, picToSave)
+				currImgWQ := config.ConfigInstance.PicHistories[0]
+				fmt.Print("Current Image with Quote: ", currImgWQ.OriginName)
+				wqExt := filepath.Ext(currImgWQ.OriginName)
+				if len(wqExt) > 5 {
+					wqExt = service.UnUnsplash(currImgWQ.OriginName)
+				}
+				currentPicFile := filepath.Join(wallpaperMain, "pic0"+wqExt)
+				picToSave := filepath.Join(favPicFolderWithQuote, dt+wqExt)
+				zutil.CopyFile(currentPicFile, picToSave)
 				server.OpenFolder("explorer", favPicFolderWithQuote)
 			case <-mFavStoreNQ.ClickedCh:
-				service.CallMakeView(0, true, false)
-				// currImgNQ:=config.ConfigInstance.PicHistories[0]
-				// fmt.Print("Current Image with Quote: ", currImgNQ)
-				// currentPicFile := filepath.Join(config.ConfigInstance.OriginalCurrentBackgroundFolder, config.ConfigInstance.OriginalCurrentBackgroundName)
-				// picToSave := filepath.Join(favPicFolderWithoutQuote, config.ConfigInstance.SourceCurrentBackgroundName)
-				// zutil.CopyFile(currentPicFile, picToSave)
+				service.RecallBackground("SystrayFavStoreNQ", 0)
+				time.Sleep(15 * time.Second)
 				server.OpenFolder("explorer", favPicFolderWithoutQuote)
 			case <-mNextBG.ClickedCh:
-				service.ChangeView("backgroundChange")
+				service.BackgroundGenerate("SystrayNextBackground", config.PicHistory{})
 			case <-mLastBG.ClickedCh:
-				service.CallMakeView(1, false, false)
+				service.RecallBackground("RecallBackground", 1)
 			// case <-mShowCurrentPicture.ClickedCh:
 			// 	currPicInfo := "http://" + config.ConfigInstance.ServerAddress + ":" + zutil.AsString(config.ConfigInstance.ServerPort) + "/picInfo.html"
 			// 	server.OpenFolder("explorer", currPicInfo)
@@ -129,16 +133,16 @@ func MakeSystemTray() {
 				//open.Run("https://www.getlantern.org")
 				urlSettings := "http://" + config.ConfigInstance.ServerAddress + ":" + zutil.AsString(config.ConfigInstance.ServerPort)
 				server.OpenFolder("explorer", urlSettings)
-			//case <-subMenuBottom2.ClickedCh:
-			//	panic("panic button pressed")
-			//case <-subMenuBottom.ClickedCh:
-			//	toggle()
-			case <-mToggle.ClickedCh:
-				toggle()
-			case <-mQuit.ClickedCh:
-				systray.Quit()
-				fmt.Println("Quit2 now...")
-				return
+				//case <-subMenuBottom2.ClickedCh:
+				//	panic("panic button pressed")
+				//case <-subMenuBottom.ClickedCh:
+				//	toggle()
+				//case <-mToggle.ClickedCh:
+				//	toggle()
+				//case <-mQuit.ClickedCh:
+				//	systray.Quit()
+				//	fmt.Println("Quit2 now...")
+				//	return
 			}
 		}
 	}()

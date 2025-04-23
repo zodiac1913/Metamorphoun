@@ -51,7 +51,15 @@ header {
 :has(#tab-1:checked) [for="tab-1"],
 :has(#tab-2:checked) [for="tab-2"],
 :has(#tab-3:checked) [for="tab-3"],
-:has(#tab-4:checked) [for="tab-4"] {
+:has(#tab-4:checked) [for="tab-4"]{
+  cursor: pointer;
+  background-color: rgb(255 255 255 / 80%);
+  transform: scale(1.1);
+  margin-top: -0.3rem;
+  padding-top: 0.75rem;
+  z-index: 30;
+}
+:has(#tab-3:checked) [for="tab-5"]{
   cursor: pointer;
   background-color: rgb(255 255 255 / 80%);
   transform: scale(1.1);
@@ -92,10 +100,8 @@ header {
 .content:has([id="tab-1"]:checked)>section:nth-child(1),
 .content:has([id="tab-2"]:checked)>section:nth-child(2),
 .content:has([id="tab-3"]:checked)>section:nth-child(3),
-.content:has([id="tab-4"]:checked)>section:nth-child(4) {
-  display: flex;
-}
-
+.content:has([id="tab-4"]:checked)>section:nth-child(4) {display: flex;}
+.content:has([id="tab-5"]:checked)>section:nth-child(5) {display: flex;}
 
 /*   Open state of the dialog  */
 dialog[open] {

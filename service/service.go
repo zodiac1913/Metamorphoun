@@ -70,6 +70,27 @@ func (s *Service) Start() error {
 	return nil
 }
 
+func removeAllPic0s() error {
+	//Delete all files in the picture folder with pic0*.*
+	usr, err := user.Current()
+	if err != nil {
+		fmt.Println("failed to get user home directory:", err)
+	}
+	wallpaperMain := filepath.Join(usr.HomeDir, ".Metamorphoun")
+	//wallpaperFavs := filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites")
+	pic0Files, err := filepath.Glob(filepath.Join(wallpaperMain, "pic0*.*"))
+	if err != nil {
+		fmt.Println("Error finding pic0 files:", err)
+	}
+	for _, file := range pic0Files {
+		err = os.Remove(file)
+		if err != nil {
+			fmt.Println("Error deleting pic0 file:", err)
+		}
+	}
+	return nil
+}
+
 // The new way of doing this
 func ChangeView(caller string) error {
 	fmt.Println(caller)
@@ -418,7 +439,7 @@ func getPicFromRandomSource(imgItem config.Image, img image.Image, url string, e
 	return img, url, false, nil
 }
 
-// get the imageItems for randomw selection
+// get the imageItems for random selection
 func getConfigImages(cfg *config.Config) ([]config.Image, bool, error) {
 	onImages := make([]config.Image, 0)
 	for _, obj := range cfg.Images {
@@ -598,6 +619,12 @@ func applyFilter(img image.Image, filterChoice string) (image.Image, string, err
 
 func saveImg(img image.Image, fileName string) {
 	// Save the resulting image to the bufferPic path
+	//Deal with unsplash bs
+	ext := filepath.Ext(fileName)
+	if len(ext) > 5 {
+		ext = UnUnsplash(ext)
+	}
+	fmt.Println("Image type:", ext)
 	outFile, err := os.Create(fileName)
 	if err != nil {
 		fmt.Println("Error creating output file:", err)
@@ -609,6 +636,31 @@ func saveImg(img image.Image, fileName string) {
 		fmt.Println("Error saving melted image:", err)
 	}
 
+}
+
+func UnUnsplash(url string) string {
+	// Split the string at "?" to separate the base URL and query parameters
+	parts := strings.SplitN(url, "?", 2)
+
+	if len(parts) < 2 {
+		fmt.Println("Query parameters not found")
+		return ".png"
+	}
+
+	queryString := parts[1]
+	params := strings.Split(queryString, "&")
+
+	for _, param := range params {
+		if strings.HasPrefix(param, "fm=") {
+			ext := strings.TrimPrefix(param, "fm=")
+			if ext != "" {
+				return "." + ext
+			}
+		}
+	}
+
+	fmt.Println("Parameter 'fm' not found")
+	return ".png"
 }
 
 func DeleteFilesInFolder(folderPath string) error {

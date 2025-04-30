@@ -2,8 +2,6 @@ package service
 
 import (
 	"Metamorphoun/config"
-	"Metamorphoun/morphLog"
-	"Metamorphoun/zutil"
 	"fmt"
 	"image"
 	"image/color"
@@ -15,8 +13,6 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	"math/rand"
-	"net/http"
 	"os"
 	"os/exec"
 	"os/user"
@@ -26,7 +22,6 @@ import (
 	"time"
 
 	"github.com/fogleman/gg"
-	"github.com/reujab/wallpaper"
 	"golang.org/x/image/draw"
 )
 
@@ -91,306 +86,6 @@ func removeAllPic0s() error {
 	return nil
 }
 
-// The new way of doing this
-func ChangeView(caller string) error {
-	fmt.Println(caller)
-	//Make the pic
-	var img image.Image
-	var url string
-	var err error
-	var currentPicsFolder string
-	isFavWithQuote := false
-	cfg := config.GetConfig()
-	currentPic := config.PicHistory{}
-	var filteredImg image.Image
-	filterChoice := ""
-	sourceExt := ""
-	sizingChoice := ""
-	if len(config.ConfigInstance.PicHistories) < 1 {
-		config.ConfigInstance.PicHistories = append([]config.PicHistory{currentPic}, config.ConfigInstance.PicHistories...)
-	}
-	currentPicInPlace := config.ConfigInstance.PicHistories[0]
-	sourceExt = filepath.Ext(currentPicInPlace.SaveName)
-	//from here start saving data in
-	usr, err := user.Current()
-	if err != nil {
-		fmt.Println("failed to get user home directory:", err)
-	}
-	currentPicsFolder = filepath.Join(usr.HomeDir, ".Metamorphoun")
-	currentPic.SaveName = filepath.Join(currentPicsFolder, "pic0"+sourceExt)
-
-	if caller == "quoteUpdate" {
-		currentPic = currentPicInPlace
-		if strings.Contains(currentPic.OriginName, "Favorites\\Pictures\\WithQuotes") {
-			isFavWithQuote = true
-		}
-		if strings.HasPrefix(currentPic.OriginName, "http") {
-			img, err = zutil.LoadImageFromURL(currentPic.OriginName)
-		} else {
-			img, err = loadImage(currentPic.OriginName)
-		}
-		if img == nil {
-			fmt.Println("Image is Empty 1 quote")
-			lEntry := morphLog.LogItem{TimeStamp: time.Now().Format("20060102 15:04:05"),
-				Message: "Selected Quote", Level: "ERROR", Library: "service.go ChangeView",
-				Operation: "Setting Quote", Origin: "Pic from " + currentPic.ImageItem.Title + " selected image origin: " +
-					currentPic.OriginName + " rendered nil.", LocalFile: ""}
-			morphLog.UpdateLogs(lEntry)
-			return nil
-		}
-
-		if err != nil {
-			fmt.Println("failed to fetch image from URL: %w", err)
-		}
-		saveImg(img, filepath.Join(currentPicsFolder, "pic0"+sourceExt))
-		sizingChoice = currentPic.Sizing
-		filterChoice = currentPic.Filter
-	} else {
-		var shouldReturn bool
-		onImages, shouldReturn, err := getConfigImages(cfg)
-		if shouldReturn {
-			return err
-		}
-		randomIndex := rand.Intn(len(onImages))
-		imgItem := onImages[randomIndex]
-		//Start Configure Image History
-		currentPic.PicNum = 0
-		currentPic.ImageItem = imgItem
-
-		img, url, shouldReturn, err = getPicFromRandomSource(imgItem, img, url, err)
-		if img == nil {
-			fmt.Println("Image is Empty 1 wallpaper")
-			return nil
-		}
-		if shouldReturn {
-			return err
-		}
-		if img == nil {
-			//Try next time
-			fmt.Println("[ERROR][ERROR][ERROR][ERROR][ERROR][ERROR][ERROR][ERROR][ERROR][ERROR][ERROR]")
-			fmt.Println(imgItem.Name + " has NO files! Turn it off or add files")
-			fmt.Println("[ERROR][ERROR][ERROR][ERROR][ERROR][ERROR][ERROR][ERROR][ERROR][ERROR][ERROR]")
-			return nil
-		}
-		sourceExt = filepath.Ext(url)
-		if imgItem.Name == "UnSplash" {
-			sourceExt = ".jpg"
-		}
-		fmt.Println(sourceExt)
-		currentPic.OriginName = url // Get screen size
-		if strings.Contains(currentPic.OriginName, "Favorites\\Pictures\\WithQuotes") {
-			isFavWithQuote = true
-		}
-		sizingChoice = config.ConfigInstance.WallpaperImageSizing
-		filterChoice = ""
-	}
-	img, currentPic = handleScaling(img, currentPic, sizingChoice, err)
-	if img == nil {
-		fmt.Println("Image is Empty 2")
-	}
-
-	if isFavWithQuote {
-		filteredImg = img
-	} else {
-		filteredImg, filterChoice, err = applyFilter(img, filterChoice)
-	}
-	if filteredImg == nil {
-		fmt.Println("Image is Empty 3")
-	}
-
-	// fileStep4 := filepath.Join(currentPicsFolder, "file4BFiltered.png")
-	// saveImg(filteredImg, fileStep4)
-	// favPicFolderWithQuote := filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites", "Pictures", "WithQuotes")
-	// favPicFolderWithoutQuote := filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites", "Pictures", "WithOutQuotes")
-	// favWithQuotes := strings.Contains(currentPic.OriginName,"WithQuotes")
-	//favWithoutQuotes := strings.Contains(currentPic.OriginName, "WithOutQuotes")
-	if config.ConfigInstance.ShowTextOverlay && !isFavWithQuote {
-
-		if !isFavWithQuote || currentPic.ImageItem.Name != "Favorites" {
-			filteredImg, currentPic, err = placeQuote(filteredImg, currentPic)
-			if err != nil {
-				fmt.Println("Error determining adding font:", err)
-				return err
-			}
-			if filteredImg == nil {
-				fmt.Println("Image is Empty 4")
-			}
-			// fileStep5 := filepath.Join(currentPicsFolder, "file5BQuoted.png")
-			// saveImg(filteredImg, fileStep5)
-
-		}
-	}
-	img = filteredImg
-	if img == nil {
-		fmt.Println("Image is Empty 5")
-	}
-	currentPic.Filter = filterChoice
-	currentPic.Sizing = config.ConfigInstance.WallpaperImageSizing
-	config.ConfigInstance.AddPicHistory(currentPic)
-	if sourceExt == "" {
-		sourceExt = ".png"
-	}
-	fileLocBase := strings.Split(filepath.Base(currentPic.SaveName), ".")[0]
-	fileLocDir := filepath.Dir(currentPic.SaveName)
-	println(fileLocBase)
-	fileLoc := filepath.Join(fileLocDir, fileLocBase+sourceExt)
-
-	// Save the resulting image to the bufferPic path
-	fmt.Println(currentPic.OriginName)
-	if _, err := os.Stat(fileLoc); os.IsExist(err) {
-		os.Remove(fileLoc)
-	}
-	if img == nil {
-		fmt.Println("Image is Empty 6")
-	}
-	saveImg(img, fileLoc)
-	//_ = imgType
-
-	// Set the wallpaper
-	fmt.Println("Attempting to set wallpaper from path:", fileLoc)
-	fmt.Println("Caller:", caller)
-	err = wallpaper.SetFromFile(fileLoc)
-	if err != nil {
-		fmt.Println("Failed to set wallpaper:", err)
-	} else {
-		fmt.Println("Wallpaper set successfully!")
-	}
-
-	return nil
-}
-
-func CallMakeView(pastImg int32, isFavorite bool, isFavoriteWithQuote bool) error {
-	cfg := config.GetConfig()
-	pic := cfg.PicHistories[pastImg]
-	picType := ""
-	if isFavorite {
-		quoteType := "WithOutQuotes"
-		if isFavorite {
-			if isFavoriteWithQuote {
-				quoteType = "WithQuotes"
-			}
-			usr, err := user.Current()
-			if err != nil {
-				fmt.Println("failed to get user home directory: %w", err)
-			}
-			favPicFolder := filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites", "Pictures", quoteType)
-			now := time.Now()
-			dt := now.Format("20060102_150405")
-			lastDotIndex := strings.LastIndex(pic.SaveName, ".")
-			ext := "png"
-			if lastDotIndex != -1 {
-				ext := pic.SaveName[lastDotIndex+1:]
-				fmt.Println(ext)
-			}
-			fileName := dt + "." + ext
-			pic.SaveName = filepath.Join(favPicFolder, fileName)
-
-		}
-		if quoteType == "WithOutQuotes" {
-			pic.QuoteStatement = ""
-			pic.QuoteAuthor = ""
-			pic.QuoteFont = ""
-			pic.QuoteTextColorR = 0
-			pic.QuoteTextColorG = 0
-			pic.QuoteTextColorB = 0
-			pic.QuoteBackgroundColorR = 0
-			pic.QuoteBackgroundColorG = 0
-			pic.QuoteBackgroundColorB = 0
-			pic.QuoteOpacity = 0
-			picType = "WithOutQuotes"
-		} else {
-			picType = "WithQuotes"
-		}
-	}
-	//if(!isFavoriteWithQuote) pic.Quote
-	MakeView(pic, picType)
-	return nil
-}
-
-// This is not good.  If its with quote it should just copy and rename the file to the WithQuotes dir.
-// if it is without quotes it does need to recreate the image without a quote.  that will be more difficult
-// but must be done correctly.  Finally this need a separate track I think for its third function
-// of rerendering a past image
-func MakeView(pic config.PicHistory, picType string) error {
-	//Make the pic
-	var img image.Image
-	var err error
-	currentPic := pic
-	var filteredImg image.Image
-	filterChoice := ""
-	sizingChoice := ""
-	if strings.HasPrefix(currentPic.OriginName, "http") {
-		resp, err := http.Get(currentPic.OriginName)
-		if err != nil {
-			return nil
-		}
-		defer resp.Body.Close()
-
-		// Decode the image
-		img, _, err = image.Decode(resp.Body)
-		if err != nil {
-			return err
-		}
-	} else { //local
-		img, err = loadImage(currentPic.OriginName)
-		if err != nil {
-			fmt.Println("failed to fetch image from URL: %w", err)
-			return err
-		}
-	}
-
-	//currentPicInPlace := config.ConfigInstance.PicHistories[0]
-	// currentPic.OriginName = pic.OriginName
-	// currentPic.SaveName = pic.SaveName
-	//var shouldReturn bool
-	//Start Configure Image History
-	currentPic.PicNum = 0
-	//currentPic.OriginName = url // Get screen size
-	sizingChoice = pic.Sizing
-	filterChoice = pic.Filter
-	img, currentPic = handleScaling(img, currentPic, sizingChoice, err)
-	filteredImg, filterChoice, err = applyFilter(img, filterChoice)
-
-	if picType == "WithQuotes" {
-		filteredImg = img
-		filteredImg, currentPic, err = placeQuoteExact(filteredImg, currentPic)
-		if err != nil {
-			fmt.Println("Error determining adding font:", err)
-			return err
-		}
-
-	} else {
-		//No need to place quote
-		filteredImg = img
-	}
-
-	img = filteredImg
-	config.ConfigInstance.AddPicHistory(currentPic)
-	fileLoc := currentPic.SaveName
-
-	// Save the resulting image to the bufferPic path
-	fmt.Println(currentPic.OriginName)
-	saveImg(img, fileLoc)
-	//_ = imgType
-
-	// Set the wallpaper
-	fmt.Println("Attempting to set wallpaper from path:", fileLoc)
-	if _, err := os.Stat(fileLoc); os.IsNotExist(err) {
-		fmt.Println("Error: Wallpaper file does not exist at path:", fileLoc)
-		return nil
-	}
-
-	err = wallpaper.SetFromFile(fileLoc)
-	if err != nil {
-		fmt.Println("Failed to set wallpaper:", err)
-	} else {
-		fmt.Println("Wallpaper set successfully!")
-	}
-
-	return nil
-
-}
-
 // Choose the scaling choice and scale image
 func handleScaling(img image.Image, currentPic config.PicHistory, choice string, err error) (image.Image, config.PicHistory) {
 
@@ -416,27 +111,6 @@ func handleScaling(img image.Image, currentPic config.PicHistory, choice string,
 	// Draw the scaled image onto the context
 	dc.DrawImage(img, 0, 0)
 	return img, currentPic
-}
-
-// Select a randome pic from the reandom source
-func getPicFromRandomSource(imgItem config.Image, img image.Image, url string, err error) (image.Image, string, bool, error) {
-	if imgItem.Name == "Bing" {
-		img, url, err = GetBackgroundBing(imgItem)
-	} else if imgItem.Name == "Flickr" {
-		img, url, err = GetBackgroundFlickr(imgItem)
-	} else if imgItem.Name == "NASA" {
-		img, url, err = GetBackgroundNASA(imgItem)
-	} else if imgItem.Name == "UnSplash" {
-		img, url, err = GetBackgroundUnSplash(imgItem)
-	} else {
-		//WallpapersLocal && Favorites
-		img, url, err = GetBackgroundFolder(imgItem)
-	}
-	if err != nil {
-		fmt.Println(err)
-		return nil, "", true, err
-	}
-	return img, url, false, nil
 }
 
 // get the imageItems for random selection
@@ -536,85 +210,6 @@ func scaleToScreen(img image.Image, dc gg.Context) (image.Image, error) {
 	// saveImg(resizedImg, fileStep2)
 
 	return resizedImg, nil
-}
-
-func applyFilter(img image.Image, filterChoice string) (image.Image, string, error) {
-	filters := []string{}
-	if config.ConfigInstance.WallpaperFilterOriginal {
-		filters = append(filters, "original")
-	}
-	if config.ConfigInstance.WallpaperFilterBlurSoft {
-		filters = append(filters, "blurSoft")
-	}
-	if config.ConfigInstance.WallpaperFilterBlurHard {
-		filters = append(filters, "blurHard")
-	}
-	if config.ConfigInstance.WallpaperFilterPixelate {
-		filters = append(filters, "pixelate")
-	}
-	if config.ConfigInstance.WallpaperFilterOriginal {
-		filters = append(filters, "oilify")
-	}
-	if config.ConfigInstance.WallpaperFilterWavy {
-		filters = append(filters, "wavy")
-	}
-	if config.ConfigInstance.WallpaperFilterMonochrome {
-		filters = append(filters, "monochrome")
-	}
-	if config.ConfigInstance.WallpaperFilterVortex {
-		filters = append(filters, "vortex")
-	}
-	//if Original is on than weight it more
-	if config.ConfigInstance.WallpaperFilterOriginal {
-		filters = append(filters, "original")
-		filters = append(filters, "original")
-	}
-
-	filtersRndNum := rand.Intn(len(filters))
-	imageFilter := filters[filtersRndNum]
-	//-------------------------------------------TESTING!!! FORCE FILTER
-	//imageFilter = "spiral"
-	var err error
-	if filterChoice != "" {
-		imageFilter = filterChoice
-	}
-	switch imageFilter {
-	case "blurSoft":
-		img, err = BlurIt(img, 2.5)
-	case "blurHard":
-		img, err = BlurIt(img, 7.5)
-	case "pixelate":
-		img, err = PixelateIt(img, 0)
-	case "oilify":
-		img, err = OilifyIt(img, 0)
-	case "wavy":
-		img, err = Picasso(img, 0)
-	case "vortex":
-		quadrants := []string{"topLeft", "topRight", "bottomLeft", "bottomRight", "center"}
-		img, err = applyVortexToQuadrants(img, quadrants) //, pullDistance, maxAngle, maxDistance
-	case "monochrome":
-		img, err = MonochromeIt(img)
-	default: //Original
-		err = nil
-		//Do Nothing
-	}
-	if err != nil {
-		fmt.Println("Error saving image:", err)
-		return img, imageFilter, err
-	}
-
-	usr, err := user.Current()
-	if err != nil {
-		fmt.Println("failed to get user home directory:", err)
-	}
-
-	currentPicsFolder := filepath.Join(usr.HomeDir, ".Metamorphoun")
-	fmt.Println(currentPicsFolder)
-	// fileStep2 := filepath.Join(currentPicsFolder, "file4AFiltered"+imageFilter+".png")
-	// saveImg(img, fileStep2)
-
-	return img, imageFilter, nil
-
 }
 
 func saveImg(img image.Image, fileName string) {
@@ -720,20 +315,6 @@ func ConvertHexToRGB(hex string) (uint8, uint8, uint8, error) {
 
 	return uint8(r), uint8(g), uint8(b), nil
 }
-func getImageType(filePath string) (string, error) {
-	file, err := os.Open(filePath)
-	if err != nil {
-		return "", err
-	}
-	defer file.Close()
-
-	_, format, err := image.DecodeConfig(file)
-	if err != nil {
-		return "", err
-	}
-
-	return format, nil
-}
 
 // getFontFiles returns a slice of all font file paths in the given directory
 func getFontFiles(dir string) ([]string, error) {
@@ -825,6 +406,7 @@ func OpenFolder(title string, path string) error {
 	}
 	return nil
 }
+
 func PicEncode(w io.Writer, m image.Image) error {
 	err := png.Encode(w, m)
 	if err != nil {
@@ -837,4 +419,20 @@ func PicEncode(w io.Writer, m image.Image) error {
 		}
 	}
 	return nil
+}
+func saveImage(img image.Image, fileName string) {
+	usr, err := user.Current()
+	if err != nil {
+		fmt.Println("failed to get user home directory:", err)
+	}
+	currentPicsFolder := filepath.Join(usr.HomeDir, ".Metamorphoun")
+
+	fileIn := filepath.Join(currentPicsFolder, fileName)
+	saveImg(img, fileIn)
+}
+
+type screenInfo struct {
+	Number int16 `json:"number"`
+	Width  int   `json:"width"`
+	Height int   `json:"height"`
 }

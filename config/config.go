@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"sync"
 )
 
 // Define the structure of your configuration ...
@@ -107,6 +108,12 @@ type PicHistoryVortex struct {
 
 var ConfigInstance *Config
 
+var (
+	loadedConfig *Config
+	loadOnce     sync.Once
+	loadError    error
+)
+
 func init() {
 	// Load the configuration
 	cfg, err := LoadConfig()
@@ -120,15 +127,26 @@ func init() {
 
 // GetConfig returns the current Config instance
 func GetConfig() *Config {
-	cfg, err := LoadConfig()
-	if err != nil {
-		fmt.Println("Error loading config:", err)
-		// Handle the error (e.g., create a default config)
-		cfg = &Config{ServerAddress: "default_address"} // Set default values
+	if loadedConfig == nil {
+		// Handle the case where loading failed, perhaps return a default or panic
+		fmt.Println("Warning: Config not loaded yet. Call LoadConfig first.")
+		return &Config{} // Return a default empty config to avoid nil pointer
 	}
-	ConfigInstance = cfg
-	return ConfigInstance
+	return loadedConfig
 }
+
+// OLD
+//
+//	func GetConfig() *Config {
+//		cfg, err := LoadConfig()
+//		if err != nil {
+//			fmt.Println("Error loading config:", err)
+//			// Handle the error (e.g., create a default config)
+//			cfg = &Config{ServerAddress: "default_address"} // Set default values
+//		}
+//		ConfigInstance = cfg
+//		return ConfigInstance
+//	}
 func GetConfigCopy() Config {
 	return *ConfigInstance
 }
@@ -317,65 +335,116 @@ func (cfg *Config) AddPicHistory(newPic PicHistory) error {
 
 // LoadConfig reads the configuration from the JSON file
 func LoadConfig() (*Config, error) {
-	// Get the user's home directory
-	usr, err := user.Current()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get user home directory: %w", err)
-	}
-	configPath := filepath.Join(usr.HomeDir, ".Metamorphoun", "config.json") // Adjust path as needed
+	loadOnce.Do(func() {
+		// Get the user's home directory
+		usr, err := user.Current()
+		if err != nil {
+			loadError = fmt.Errorf("failed to get user home directory: %w", err)
+			return
+		}
+		configPath := filepath.Join(usr.HomeDir, ".Metamorphoun", "config.json") // Adjust path as needed
 
-	// Read the config file
-	data, err := os.ReadFile(configPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read config file: %w", err)
-	}
+		// Read the config file
+		data, err := os.ReadFile(configPath)
+		if err != nil {
+			loadError = fmt.Errorf("failed to read config file: %w", err)
+			return
+		}
 
-	// Unmarshal the JSON data into the Config struct
-	var config Config
-	err = json.Unmarshal(data, &config)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
-	}
-
-	return &config, nil
+		// Unmarshal the JSON data into the Config struct
+		var config Config
+		err = json.Unmarshal(data, &config)
+		if err != nil {
+			loadError = fmt.Errorf("failed to unmarshal config: %w", err)
+			return
+		}
+		loadedConfig = &config
+	})
+	return loadedConfig, loadError
 }
 
+//OLD
+// func LoadConfig() (*Config, error) {
+// 	// Get the user's home directory
+// 	usr, err := user.Current()
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to get user home directory: %w", err)
+// 	}
+// 	configPath := filepath.Join(usr.HomeDir, ".Metamorphoun", "config.json") // Adjust path as needed
+
+// 	// Read the config file
+// 	data, err := os.ReadFile(configPath)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to read config file: %w", err)
+// 	}
+
+// 	// Unmarshal the JSON data into the Config struct
+// 	var config Config
+// 	err = json.Unmarshal(data, &config)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
+// 	}
+
+// 	return &config, nil
+// }
+
 // SaveConfig writes the configuration to the JSON file
-func SaveConfig(config *Config) error {
-	println("Saving Config!")
-	// Get the user's home directory
+// SaveConfig would likely need to write back to the file if you make changes.
+func SaveConfig(cfg *Config) error {
 	usr, err := user.Current()
 	if err != nil {
 		return fmt.Errorf("failed to get user home directory: %w", err)
 	}
 	configPath := filepath.Join(usr.HomeDir, ".Metamorphoun", "config.json")
 
-	// Create the config directory if it doesn't exist
-	err = os.MkdirAll(filepath.Dir(configPath), 0700) // Adjust permissions as needed
-	if err != nil {
-		return fmt.Errorf("failed to create config directory: %w", err)
-	}
-
-	// Marshal the config struct to JSON
-	data, err := json.MarshalIndent(config, "", "    ")
+	data, err := json.MarshalIndent(cfg, "", "    ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
 
-	// Write the JSON data to the file
-	err = os.WriteFile(configPath, data, 0600) // Adjust permissions as needed
+	err = os.WriteFile(configPath, data, 0644)
 	if err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
-	cfg, err := LoadConfig()
-	if err != nil {
-		fmt.Println("Error loading config:", err)
-		// Handle the error (e.g., create a default config)
-		cfg = &Config{ServerAddress: "default_address"} // Set default values
-	}
-	ConfigInstance = cfg
 	return nil
 }
+
+//OLD
+// func SaveConfig(config *Config) error {
+// 	println("Saving Config!")
+// 	// Get the user's home directory
+// 	usr, err := user.Current()
+// 	if err != nil {
+// 		return fmt.Errorf("failed to get user home directory: %w", err)
+// 	}
+// 	configPath := filepath.Join(usr.HomeDir, ".Metamorphoun", "config.json")
+
+// 	// Create the config directory if it doesn't exist
+// 	err = os.MkdirAll(filepath.Dir(configPath), 0700) // Adjust permissions as needed
+// 	if err != nil {
+// 		return fmt.Errorf("failed to create config directory: %w", err)
+// 	}
+
+// 	// Marshal the config struct to JSON
+// 	data, err := json.MarshalIndent(config, "", "    ")
+// 	if err != nil {
+// 		return fmt.Errorf("failed to marshal config: %w", err)
+// 	}
+
+// 	// Write the JSON data to the file
+// 	err = os.WriteFile(configPath, data, 0600) // Adjust permissions as needed
+// 	if err != nil {
+// 		return fmt.Errorf("failed to write config file: %w", err)
+// 	}
+// 	cfg, err := LoadConfig()
+// 	if err != nil {
+// 		fmt.Println("Error loading config:", err)
+// 		// Handle the error (e.g., create a default config)
+// 		cfg = &Config{ServerAddress: "default_address"} // Set default values
+// 	}
+// 	ConfigInstance = cfg
+// 	return nil
+// }
 
 // f writes the configuration to the JSON file
 func CreateConfig() error {
@@ -391,6 +460,7 @@ func CreateConfig() error {
 	fmt.Println(exeDir)
 	wallpaperDir := filepath.Join(usr.HomeDir, "Pictures")
 	wallpaperFavs := filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites")
+	wallpaperFS := filepath.Join(exeDir, "static", "images")
 	cfg := Config{
 		ServerAddress:                   "127.0.0.1",
 		ServerPort:                      3000,
@@ -406,7 +476,7 @@ func CreateConfig() error {
 		ChangeMinutes:                   15,
 		Images: []Image{
 			{
-				Use:       true,
+				Use:       false,
 				Name:      "Favorites",
 				Title:     "Favorites",
 				Location:  wallpaperFavs,
@@ -415,6 +485,14 @@ func CreateConfig() error {
 			},
 			{
 				Use:       true,
+				Name:      "PDChristianArt",
+				Title:     "Christian Images",
+				Location:  wallpaperFS,
+				Operation: "Folder",
+				Inherent:  true,
+			},
+			{
+				Use:       false,
 				Name:      "Bing",
 				Title:     "Bing Photo of the Day",
 				Location:  "https://bing.gifposter.com",
@@ -422,23 +500,15 @@ func CreateConfig() error {
 				Inherent:  true,
 			},
 			{
-				Use:       true,
+				Use:       false,
 				Name:      "Flickr",
 				Title:     "DR Flickr Photos",
 				Location:  "https://www.flickr.com/photos/202229109@N02",
 				Operation: "WebPicPage",
 				Inherent:  true,
 			},
-			// {
-			// 	Use:       true,
-			// 	Name:      "Flickr",
-			// 	Title:     "PL Flickr Photos",
-			// 	Location:  "https://www.flickr.com/photos/peter-levi/",
-			// 	Operation: "WebPicPage",
-			// 	Inherent:  true,
-			// },
 			{
-				Use:       true,
+				Use:       false,
 				Name:      "NASA",
 				Title:     "NASA's Astronomy Random Picture of the Day",
 				Location:  "https://apod.nasa.gov/apod/random_apod.html",
@@ -446,7 +516,7 @@ func CreateConfig() error {
 				Inherent:  true,
 			},
 			{
-				Use:       true,
+				Use:       false,
 				Name:      "UnSplash",
 				Title:     "Photos from Unsplash.com",
 				Location:  "https://unsplash.com",

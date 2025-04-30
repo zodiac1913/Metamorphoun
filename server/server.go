@@ -1,21 +1,25 @@
 package server
 
 import (
+	"Metamorphoun/config"
+	"Metamorphoun/zutil"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
+
+	//"net/http/pprof"
 	"os"
 	"os/exec"
 	"os/user"
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"strings"
+	"strings" // Import the pprof package explicitly
 
-	"Metamorphoun/config"
-	"Metamorphoun/zutil"
+	// Import the pprof package explicitly
+	//_ "net/http/pprof"
 
 	"github.com/tidwall/gjson"
 )
@@ -25,7 +29,8 @@ type Data struct {
 	Value string `json:"value"`
 }
 
-func Serve(serverUrl string, serverPort int) bool {
+func Serve(cfg config.Config) bool { //serverUrl string, serverPort int
+	//mux := http.NewServeMux()
 	// Register API handlers first
 	http.HandleFunc("/inputApi", formApi)
 	http.HandleFunc("/configApi", configApi)
@@ -37,11 +42,24 @@ func Serve(serverUrl string, serverPort int) bool {
 	http.HandleFunc("/editImagesField", editImagesField)
 	http.HandleFunc("/currentInfoApi", currentInfoApi)
 
+	// // Register pprof handlers on the custom mux
+	// mux.HandleFunc("/debug/pprof/", pprof.Index)
+	// mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	// mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	// mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	// mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+	// // For heap profile, you might want to use the 'heap' name explicitly
+	// mux.Handle("/debug/pprof/heap", pprof.Handler("heap"))
+
 	// Register static file server
 	fs := http.FileServer(http.Dir("./static"))
 	http.Handle("/", fs)
+	//mux.Handle("/", fs)
 
 	log.Print("Listening on :3000...")
+	log.Printf("Listening on %s:%d...", cfg.ServerAddress, cfg.ServerPort)
+	//serverAddress := fmt.Sprintf("%s:%d", cfg.ServerAddress, cfg.ServerPort)
+	//err := http.ListenAndServe(serverAddress, mux)
 	err := http.ListenAndServe(":3000", nil)
 	if err != nil {
 		fmt.Println(err)

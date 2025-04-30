@@ -7,6 +7,8 @@ import (
 	"Metamorphoun/service"
 	"Metamorphoun/systemTray"
 	"context"
+	"embed"
+	_ "embed"
 	"fmt"
 	"io/ioutil"
 	"os/exec"
@@ -18,13 +20,17 @@ import (
 
 var updateSignal chan struct{}
 
-func main() {
+//go:embed static/images/*
+var imagesFS embed.FS
 
+func main() {
+	//fmt.Println("Embedded files:", imagesFS)
 	//service.ChangeView()
 	//return
 	//Load config file
 	//Used to test fonts
 	// usr, err := user.Current()
+
 	// if err != nil {
 	// 	fmt.Println("failed to get user home directory: %w", err)
 	// }
@@ -45,13 +51,15 @@ func main() {
 			panic("Bad")
 		}
 	}
-	cfg := config.GetConfig()
+	cfg := configData // Now cfg points to the single loaded instance
+
 	config.SetupSystemFolders()
 	fmt.Println("Server Address:", cfg.ServerAddress)
 	println("Server (in main)")
-	println(configData.ServerAddress)
+	println(cfg.ServerAddress)
 	println("port")
-	println(configData.ServerPort)
+	println(cfg.ServerPort)
+
 	// Create a context with cancellation
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -60,32 +68,63 @@ func main() {
 
 	// Start the server in a separate goroutine
 	go func() {
-		if !server.Serve(configData.ServerAddress, configData.ServerPort) {
+		if !server.Serve(*cfg) { // Pass the config pointer
 			println("Server failed to start")
 		}
-	}() // Start background changing
+	}()
+	println("start background change from main")
+
+	// // Start the server in a separate goroutine
+	// go func() {
+	// 	if !server.Serve(configData.ServerAddress, configData.ServerPort) {
+	// 		println("Server failed to start")
+	// 	}
+	// }() // Start background changing
+	// println("start background change from main")
+
+	// if cfg.ChangeWallpaperOnStartup {
+	// 	//service.ChangeBackground()
+	// 	//service.ChangeView("backgroundChange")
+	// 	pic := config.PicHistory{}
+	// 	service.BackgroundGenerate("ChangeOnStartup", pic)
+	// }
 	println("start background change from main")
 
 	if cfg.ChangeWallpaperOnStartup {
-		//service.ChangeBackground()
-		//service.ChangeView("backgroundChange")
 		pic := config.PicHistory{}
 		service.BackgroundGenerate("ChangeOnStartup", pic)
 	}
 
+	// go func() {
+	// 	timer := time.NewTicker(time.Duration(configData.ChangeMinutes) * time.Minute)
+	// 	pic := config.PicHistory{}
+	// 	defer timer.Stop()
+	// 	for {
+	// 		select {
+	// 		case <-timer.C:
+	// 			//service.ChangeView("backgroundChange")
+	// 			service.BackgroundGenerate("ChangeOnStartup", pic)
+	// 		case <-updateSignal:
+	// 			//service.ChangeView("backgroundChange")
+	// 			service.BackgroundGenerate("ChangeOnStartup", pic)
+	// 			timer.Reset(time.Duration(configData.ChangeMinutes) * time.Minute)
+	// 		case <-ctx.Done():
+	// 			return
+	// 		}
+	// 	}
+	// }()
+
 	go func() {
-		timer := time.NewTicker(time.Duration(configData.ChangeMinutes) * time.Minute)
+		timer := time.NewTicker(time.Duration(cfg.ChangeMinutes) * time.Minute)
 		pic := config.PicHistory{}
 		defer timer.Stop()
 		for {
 			select {
 			case <-timer.C:
-				//service.ChangeView("backgroundChange")
 				service.BackgroundGenerate("ChangeOnStartup", pic)
 			case <-updateSignal:
-				//service.ChangeView("backgroundChange")
 				service.BackgroundGenerate("ChangeOnStartup", pic)
-				timer.Reset(time.Duration(configData.ChangeMinutes) * time.Minute)
+				timer.Reset(time.Duration(cfg.ChangeMinutes) * time.Minute)
 			case <-ctx.Done():
 				return
 			}
@@ -96,38 +135,59 @@ func main() {
 	//quotes.SetQuote()
 	if cfg.ShowTextOverlay {
 		go func() {
-			serveQuotes := service.StartChangeQuote(time.Duration(configData.TextChangeMinutes) * time.Minute)
-			println("quotes started 0 and ", configData.TextChangeMinutes, " min timer")
-			// Start the service
+			serveQuotes := service.StartChangeQuote(time.Duration(cfg.TextChangeMinutes) * time.Minute)
+			println("quotes started 0 and ", cfg.TextChangeMinutes, " min timer")
 			if err := serveQuotes.Start(); err != nil {
 				println(err)
 			}
-
 		}()
-
 	}
+	// if cfg.ShowTextOverlay {
+	// 	go func() {
+	// 		serveQuotes := service.StartChangeQuote(time.Duration(configData.TextChangeMinutes) * time.Minute)
+	// 		println("quotes started 0 and ", configData.TextChangeMinutes, " min timer")
+	// 		// Start the service
+	// 		if err := serveQuotes.Start(); err != nil {
+	// 			println(err)
+	// 		}
 
+	// 	}()
+
+	// }
+
+	// if runtime.GOOS == "windows" {
+
+	// 	// System tray onExit function
+	// 	onExit := func() {
+	// 		now := time.Now()
+	// 		ioutil.WriteFile(fmt.Sprintf(`on_exit_%d.txt`, now.UnixNano()), []byte(now.String()), 0644)
+	// 		// Signal all goroutines to stop
+	// 		cancel()
+	// 	}
+
+	// 	systray.Run(systemTray.MakeSystemTray, onExit)
+	// 	// Start the service
+	// 	// Prevent the main function from exiting
+	// 	<-ctx.Done()
+	// } else {
+	// 	//Linux
+	// 	go func() {
+	// 		linuxGui.MakeGui()
+	// 	}()
+	// }
 	if runtime.GOOS == "windows" {
-
-		// System tray onExit function
 		onExit := func() {
 			now := time.Now()
 			ioutil.WriteFile(fmt.Sprintf(`on_exit_%d.txt`, now.UnixNano()), []byte(now.String()), 0644)
-			// Signal all goroutines to stop
 			cancel()
 		}
-
 		systray.Run(systemTray.MakeSystemTray, onExit)
-		// Start the service
-		// Prevent the main function from exiting
 		<-ctx.Done()
 	} else {
-		//Linux
 		go func() {
 			linuxGui.MakeGui()
 		}()
 	}
-
 }
 func openFolder(title string, path string) error {
 	var cmd *exec.Cmd

@@ -7,8 +7,6 @@ import (
 	"Metamorphoun/service"
 	"Metamorphoun/systemTray"
 	"context"
-	"embed"
-	_ "embed"
 	"fmt"
 	"io/ioutil"
 	"os/exec"
@@ -20,11 +18,7 @@ import (
 
 var updateSignal chan struct{}
 
-//go:embed static/images/*
-var imagesFS embed.FS
-
 func main() {
-	//fmt.Println("Embedded files:", imagesFS)
 	//service.ChangeView()
 	//return
 	//Load config file

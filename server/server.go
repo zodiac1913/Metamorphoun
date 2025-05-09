@@ -2,9 +2,11 @@ package server
 
 import (
 	"Metamorphoun/config"
+	"Metamorphoun/shared"
 	"Metamorphoun/zutil"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -42,25 +44,36 @@ func Serve(cfg config.Config) bool { //serverUrl string, serverPort int
 	http.HandleFunc("/editImagesField", editImagesField)
 	http.HandleFunc("/currentInfoApi", currentInfoApi)
 
-	// // Register pprof handlers on the custom mux
+	// Register pprof handlers on the custom mux
 	// mux.HandleFunc("/debug/pprof/", pprof.Index)
 	// mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
 	// mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
 	// mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
 	// mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
-	// // For heap profile, you might want to use the 'heap' name explicitly
-	// mux.Handle("/debug/pprof/heap", pprof.Handler("heap"))
+	// For heap profile, you might want to use the 'heap' name explicitly
+	//mux.Handle("/debug/pprof/heap", pprof.Handler("heap"))
+
+	// Create a sub-FS rooted at "static" inside the embedded FS
+	staticFiles, err := fs.Sub(shared.StaticFiles, "static")
+	if err != nil {
+		log.Fatalf("Failed to create sub FS: %v", err)
+	}
+	fmt.Println("staticFiles:")
+	fmt.Println(staticFiles)
+
+	// Serve embedded static files
+	http.Handle("/", http.FileServer(http.FS(staticFiles)))
 
 	// Register static file server
-	fs := http.FileServer(http.Dir("./static"))
-	http.Handle("/", fs)
+	//fs := http.FileServer(http.Dir("./static"))
+	//http.Handle("/", fs)
 	//mux.Handle("/", fs)
 
 	log.Print("Listening on :3000...")
 	log.Printf("Listening on %s:%d...", cfg.ServerAddress, cfg.ServerPort)
 	//serverAddress := fmt.Sprintf("%s:%d", cfg.ServerAddress, cfg.ServerPort)
 	//err := http.ListenAndServe(serverAddress, mux)
-	err := http.ListenAndServe(":3000", nil)
+	err = http.ListenAndServe(":3000", nil)
 	if err != nil {
 		fmt.Println(err)
 		return false
@@ -84,26 +97,6 @@ func errorHandler(w http.ResponseWriter, r *http.Request) {
 	// Handle other errors (e.g., 500 Internal Server Error)
 	http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 }
-
-// func errorHandler(w http.ResponseWriter, r *http.Request) {
-// 	// Check if the request was handled by a registered handler
-// 	if r.URL.Path != "/" {
-// 		fmt.Println(r.Host + " Not Found")
-// 		http.NotFound(w, r)
-// 		return
-// 	}
-
-// 	// Check if the response status code has been set
-// 	if w.Header().Get("Content-Type") != "" {
-// 		fmt.Println("Response has already been started")
-// 		// Response has already been started
-// 		return
-// 	}
-
-// 	// Handle other errors (e.g., 500 Internal Server Error)
-// 	fmt.Println("500 Internal Server Error")
-// 	http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-// }
 
 func formApi(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("Made it to formapi\r\n")

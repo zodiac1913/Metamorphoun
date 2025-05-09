@@ -3,6 +3,7 @@ package service
 import (
 	"Metamorphoun/config"
 	"Metamorphoun/morphLog"
+	"Metamorphoun/shared"
 	"encoding/json"
 	"fmt"
 	"image"
@@ -283,6 +284,7 @@ func picTypeAndFilter(currentPic config.PicHistory, img image.Image, filterChoic
 
 func setRandomQuote(currentPic config.PicHistory, img image.Image) (config.PicHistory, image.Image, error) {
 	var err error
+	fmt.Println("running setRandomQuote")
 	// Get the number of displays
 	screenInfo := getScreenInfo()[0]
 	screenWidth := screenInfo.Width
@@ -357,7 +359,9 @@ func setRandomQuote(currentPic config.PicHistory, img image.Image) (config.PicHi
 	return currentPic, imgWithQuote, err
 
 }
+
 func GetQuote(currentPic config.PicHistory) (config.PicHistory, error) {
+
 	config.GetConfig()
 	cfg := config.GetConfig()
 	onQLs := make([]config.TextLibrary, 0)
@@ -371,22 +375,20 @@ func GetQuote(currentPic config.PicHistory) (config.PicHistory, error) {
 		return currentPic, nil
 	}
 
-	exePath, err := os.Executable()
-	//quoteLibraries := strings.Split("biblekjv.json,JamesFTquotes.json,markTwain.json,NasrulHazimQuotes.json,patton.json,willRogers.json,callOfDuty.json", ",")
-
 	randomIndex := rand.Intn(len(onQLs))
 	qLibrary := onQLs[randomIndex]
 
-	// Get the directory containing the executable
-	exeDir := filepath.Dir(exePath)
-	appFolder := filepath.Join(exeDir, "static")
-	appFile := filepath.Join(appFolder, qLibrary.Location)
-
-	// Read the config file
-	quotesRaw, err := os.ReadFile(appFile)
+	quotesRaw, err := shared.GetStaticFSQuotes(qLibrary.Location) //filepath.Join(appFolder, qLibrary.Location)
 	if err != nil {
-		fmt.Println("failed to read config file: %w", err)
+		fmt.Println("failed to get static file:", err)
+		return currentPic, err
 	}
+
+	// // Read the config file
+	// quotesRaw, err := os.ReadFile(appFile)
+	// if err != nil {
+	// 	fmt.Println("failed to read config file: %w", err)
+	// }
 
 	// Unmarshal the JSON data into a slice of Quotes
 	var quotes []Quote

@@ -9,7 +9,7 @@
             "request":"launch",
             "type": "go",
             "mode": "debug",
-            "program": "${workspaceFolder}/main.go",
+            "program": "${workspaceFolder}",
             "args": [],
             "stopAtEntry": false,
             "externalConsole": true

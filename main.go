@@ -1,3 +1,5 @@
+//main.go
+
 package main
 
 import (
@@ -19,6 +21,9 @@ import (
 var updateSignal chan struct{}
 
 func main() {
+	// Common logic
+	PrintPlatformMessage()
+
 	//service.ChangeView()
 	//return
 	//Load config file

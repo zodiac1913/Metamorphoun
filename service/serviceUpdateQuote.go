@@ -17,22 +17,12 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/fogleman/gg"
 	"github.com/kbinani/screenshot"
 	"github.com/reujab/wallpaper"
 )
-
-var (
-	kernel32 = syscall.NewLazyDLL("kernel32.dll")
-	procBeep = kernel32.NewProc("Beep")
-)
-
-func Beep(frequency, duration int) {
-	procBeep.Call(uintptr(frequency), uintptr(duration))
-}
 
 func UpdateQuote(caller string) error {
 	println("UpdateQuote called from", caller)

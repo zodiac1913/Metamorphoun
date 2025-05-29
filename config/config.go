@@ -8,10 +8,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
-	"strings"
 	"sync"
-
-	"golang.org/x/sys/windows/registry"
 )
 
 // Define the structure of your configuration ...
@@ -118,12 +115,6 @@ var (
 	loadError    error
 )
 
-// Add to startup registry
-const (
-	runKeyCurrentUser = `Software\Microsoft\Windows\CurrentVersion\Run`
-	appName           = "Metamorphoun"
-)
-
 func init() {
 	// Load the configuration
 	cfg, err := LoadConfig()
@@ -195,12 +186,12 @@ func UpdateConfigField(propertyName string, newValue interface{}) error {
 		ConfigInstance.StartOnStartup = boolValue
 		fmt.Println("StartOnStartup-SET")
 		if boolValue {
-			err := addToStartup()
+			err := AddToStartup()
 			if err != nil {
 				log.Println("Error adding to startup:", err)
 			}
 		} else {
-			err := removeFromStartup()
+			err := RemoveFromStartup()
 			if err != nil {
 				log.Println("Error adding to startup:", err)
 			}
@@ -280,53 +271,21 @@ func UpdateConfigField(propertyName string, newValue interface{}) error {
 	//fmt.Println(ConfigInstance)
 	return SaveConfig(ConfigInstance)
 }
-func addToStartup() error {
-	exePath, err := os.Executable()
+func AddToStartup() error {
+	err := AddToStartup()
 	if err != nil {
-		return fmt.Errorf("failed to get executable path: %w", err)
+		log.Println("Error adding to startup:", err)
+		return err
 	}
-
-	key, err := registry.OpenKey(registry.CURRENT_USER, runKeyCurrentUser, registry.WRITE)
-	if err != nil {
-		return fmt.Errorf("failed to open registry key: %w", err)
-	}
-	defer key.Close()
-
-	// Ensure the path doesn't have any surrounding quotes that could cause issues
-	exePath = strings.Trim(exePath, "\"")
-
-	err = key.SetStringValue(appName, fmt.Sprintf("\"%s\"", exePath))
-	if err != nil {
-		return fmt.Errorf("failed to set registry value: %w", err)
-	}
-
-	log.Printf("%s added to Windows startup for the current user.", appName)
 	return nil
 }
 
-func removeFromStartup() error {
-	key, err := registry.OpenKey(registry.CURRENT_USER, runKeyCurrentUser, registry.WRITE)
+func RemoveFromStartup() error {
+	err := RemoveFromStartup()
 	if err != nil {
-		// If the key doesn't exist, it's already removed or never added.
-		if err == registry.ErrNotExist {
-			log.Printf("%s startup entry not found for the current user.", appName)
-			return nil
-		}
-		return fmt.Errorf("failed to open registry key: %w", err)
+		log.Println("Error removing from startup:", err)
+		return err
 	}
-	defer key.Close()
-
-	err = key.DeleteValue(appName)
-	if err != nil {
-		// If the value doesn't exist, it's already removed.
-		if err == registry.ErrNotExist {
-			log.Printf("%s startup entry not found for the current user.", appName)
-			return nil
-		}
-		return fmt.Errorf("failed to delete registry value: %w", err)
-	}
-
-	log.Printf("%s removed from Windows startup for the current user.", appName)
 	return nil
 }
 

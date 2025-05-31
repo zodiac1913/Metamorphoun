@@ -8,6 +8,8 @@ import (
 	"strings"
 )
 
+// This accesses the files stored inside this app (static files)
+//
 //go:embed static/*
 var StaticFiles embed.FS
 

@@ -2,6 +2,7 @@ package service
 
 import (
 	"Metamorphoun/config"
+	"Metamorphoun/enum"
 	"Metamorphoun/morphLog"
 	"Metamorphoun/zutil"
 	"fmt"
@@ -12,7 +13,6 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
-	"os/user"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -32,8 +32,7 @@ func UpdateQuote(caller string) error {
 	}
 	currentPic := config.ConfigInstance.PicHistories[0]
 	var err error
-	usr, err := user.Current()
-	wallpaperMain := filepath.Join(usr.HomeDir, ".Metamorphoun")
+	wallpaperMain := GetFolderPath(enum.PathLoc.Config)
 	var img image.Image
 	if currentPic.OriginName == "" {
 		morphLog.UpdateLogs(morphLog.LogItem{
@@ -135,7 +134,6 @@ func UpdateQuote(caller string) error {
 	//Step 6: Save the image
 	removeAllPic0s()
 	_ = err
-	//wallpaperFavs := filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites")
 
 	sourceExt = filepath.Ext(currentPic.OriginName)
 	if sourceExt == "" {
@@ -143,9 +141,6 @@ func UpdateQuote(caller string) error {
 	}
 	currentPic.SaveName = filepath.Join(wallpaperMain, "pic0"+sourceExt)
 	config.ConfigInstance.PicHistories[0] = currentPic
-	// fileLocBase := strings.Split(filepath.Base(currentPic.SaveName), ".")[0]
-	// fileLocDir := filepath.Dir(currentPic.SaveName)
-	// println(fileLocBase)
 	fileLoc := currentPic.SaveName
 
 	// Save the resulting image to the bufferPic path

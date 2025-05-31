@@ -1,6 +1,7 @@
 package config
 
 import (
+	"Metamorphoun/enum"
 	"Metamorphoun/zutil"
 	"encoding/json"
 	"fmt"
@@ -11,8 +12,17 @@ import (
 	"sync"
 )
 
+const AppVersion = "2025.5.3"
+const PublishedOn = "2025-05-31"
+
+var GetFolderPath func(string) string
+
+type PathLocType string
+
 // Define the structure of your configuration ...
 type Config struct {
+	Version                         string  `json:"version"`
+	Published                       string  `json:"published"`
 	ServerAddress                   string  `json:"server_address"`
 	ServerPort                      int     `json:"serverPort"`
 	SourceCurrentBackgroundName     string  `json:"sourceCurrentBackgroundName"`
@@ -117,17 +127,12 @@ var (
 
 func init() {
 	// Load the configuration
-	cfg, err := LoadConfig()
-	if err != nil {
-		fmt.Println("Error loading config:", err)
-		// Handle the error (e.g., create a default config)
-		cfg = &Config{ServerAddress: "default_address"} // Set default values
-	}
-	ConfigInstance = cfg
 }
 
 // GetConfig returns the current Config instance
 func GetConfig() *Config {
+	ConfigInstance.Version = AppVersion
+	ConfigInstance.Published = PublishedOn
 	if loadedConfig == nil {
 		// Handle the case where loading failed, perhaps return a default or panic
 		fmt.Println("Warning: Config not loaded yet. Call LoadConfig first.")
@@ -366,12 +371,13 @@ func (cfg *Config) AddPicHistory(newPic PicHistory) error {
 func LoadConfig() (*Config, error) {
 	loadOnce.Do(func() {
 		// Get the user's home directory
-		usr, err := user.Current()
-		if err != nil {
-			loadError = fmt.Errorf("failed to get user home directory: %w", err)
-			return
-		}
-		configPath := filepath.Join(usr.HomeDir, ".Metamorphoun", "config.json") // Adjust path as needed
+		// usr, err := user.Current()
+		// if err != nil {
+		// 	loadError = fmt.Errorf("failed to get user home directory: %w", err)
+		// 	return
+		// }
+		//pathLoc :=
+		configPath := GetFolderPath(enum.PathLoc.ConfigFile)
 
 		// Read the config file
 		data, err := os.ReadFile(configPath)
@@ -392,45 +398,14 @@ func LoadConfig() (*Config, error) {
 	return loadedConfig, loadError
 }
 
-//OLD
-// func LoadConfig() (*Config, error) {
-// 	// Get the user's home directory
-// 	usr, err := user.Current()
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to get user home directory: %w", err)
-// 	}
-// 	configPath := filepath.Join(usr.HomeDir, ".Metamorphoun", "config.json") // Adjust path as needed
-
-// 	// Read the config file
-// 	data, err := os.ReadFile(configPath)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to read config file: %w", err)
-// 	}
-
-// 	// Unmarshal the JSON data into the Config struct
-// 	var config Config
-// 	err = json.Unmarshal(data, &config)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
-// 	}
-
-// 	return &config, nil
-// }
-
 // SaveConfig writes the configuration to the JSON file
 // SaveConfig would likely need to write back to the file if you make changes.
 func SaveConfig(cfg *Config) error {
-	usr, err := user.Current()
-	if err != nil {
-		return fmt.Errorf("failed to get user home directory: %w", err)
-	}
-	configPath := filepath.Join(usr.HomeDir, ".Metamorphoun", "config.json")
-
+	configPath := GetFolderPath(enum.PathLoc.ConfigFile)
 	data, err := json.MarshalIndent(cfg, "", "    ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
-
 	err = os.WriteFile(configPath, data, 0644)
 	if err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
@@ -438,59 +413,13 @@ func SaveConfig(cfg *Config) error {
 	return nil
 }
 
-//OLD
-// func SaveConfig(config *Config) error {
-// 	println("Saving Config!")
-// 	// Get the user's home directory
-// 	usr, err := user.Current()
-// 	if err != nil {
-// 		return fmt.Errorf("failed to get user home directory: %w", err)
-// 	}
-// 	configPath := filepath.Join(usr.HomeDir, ".Metamorphoun", "config.json")
-
-// 	// Create the config directory if it doesn't exist
-// 	err = os.MkdirAll(filepath.Dir(configPath), 0700) // Adjust permissions as needed
-// 	if err != nil {
-// 		return fmt.Errorf("failed to create config directory: %w", err)
-// 	}
-
-// 	// Marshal the config struct to JSON
-// 	data, err := json.MarshalIndent(config, "", "    ")
-// 	if err != nil {
-// 		return fmt.Errorf("failed to marshal config: %w", err)
-// 	}
-
-// 	// Write the JSON data to the file
-// 	err = os.WriteFile(configPath, data, 0600) // Adjust permissions as needed
-// 	if err != nil {
-// 		return fmt.Errorf("failed to write config file: %w", err)
-// 	}
-// 	cfg, err := LoadConfig()
-// 	if err != nil {
-// 		fmt.Println("Error loading config:", err)
-// 		// Handle the error (e.g., create a default config)
-// 		cfg = &Config{ServerAddress: "default_address"} // Set default values
-// 	}
-// 	ConfigInstance = cfg
-// 	return nil
-// }
-
-// f writes the configuration to the JSON file
 func CreateConfig() error {
-	usr, err := user.Current()
-	if err != nil {
-		return fmt.Errorf("failed to get user home directory: %w", err)
-	}
-	exePath, errEP := os.Executable()
-	if errEP != nil {
-		fmt.Println("Error:", errEP)
-	}
-	exeDir := filepath.Dir(exePath)
-	fmt.Println(exeDir)
-	wallpaperDir := filepath.Join(usr.HomeDir, "Pictures")
-	wallpaperFavs := filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites")
-	wallpaperFS := filepath.Join(exeDir, "static", "images")
+	wallpaperDir := GetFolderPath(enum.PathLoc.Pictures)
+	wallpaperFavs := GetFolderPath(enum.PathLoc.Favorites) //filep@th.Join(usr.HomeDir, ".Metamorphoun", "Favorites")
+	wallpaperFS := GetFolderPath(enum.PathLoc.Executable)  //filep@th.Join(exeDir, "static", "images")
 	cfg := Config{
+		Version:                         AppVersion,
+		Published:                       PublishedOn,
 		ServerAddress:                   "127.0.0.1",
 		ServerPort:                      3000,
 		SourceCurrentBackgroundName:     "",
@@ -737,14 +666,13 @@ func CreateConfig() error {
 
 	// Get the user's home directory
 	//println(usr.Username)
-	configPath := filepath.Join(usr.HomeDir, ".Metamorphoun", "config.json")
-
+	configPath := GetFolderPath(enum.PathLoc.ConfigFile)
 	// Create the config directory if it doesn't exist
-	err = os.MkdirAll(filepath.Dir(configPath), 0700) // Adjust permissions as needed
+	err := os.MkdirAll(GetFolderPath(enum.PathLoc.Config), 0700) // Adjust permissions as needed
 	if err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
-	err = os.MkdirAll(filepath.Dir(wallpaperFavs), 0700) // Adjust permissions as needed
+	err = os.MkdirAll(GetFolderPath(enum.PathLoc.Favorites), 0700) // Adjust permissions as needed
 	if err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
@@ -777,7 +705,6 @@ func SetupSystemFolders() {
 		_, err := os.Stat(folderPath)
 		if os.IsNotExist(err) {
 			fmt.Println("Folder does not exist.")
-			//fp := filepath.Dir(folderPath)
 			err = os.MkdirAll(folderPath, 0755) // Adjust permissions as needed
 			if err != nil {
 				fmt.Printf("failed to create config directory: %w", err)
@@ -829,24 +756,3 @@ func SetupSystemFolders() {
 		}
 	}
 }
-
-// // zutil.CopyFile copies a file from src to dst. If dst does not exist, it will be created.
-// func copyFile(src, dst string) error {
-// 	// Open the source file
-// 	source, err := os.Open(src)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	defer source.Close()
-// 	// Create the destination file
-// 	destination, err := os.Create(dst)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	defer destination.Close()
-// 	// Copy the contents from source to destination
-// 	_, err = io.Copy(destination, source)
-// 	return err
-// }
-
-//

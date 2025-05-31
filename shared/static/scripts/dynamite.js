@@ -27,6 +27,9 @@ export default class dynamite{
         bang.config=config;
         let inputz=Array.from(document.querySelectorAll(".primaryInput"));
         let quoteFontRandom=document.querySelector("#quoteFontRandom");
+        //version
+        document.querySelector("#version").innerText=config.version;
+        document.querySelector("#published").innerText=config.published;
         //onload
         if(quoteFontRandom.checked){
             document.querySelector("#textFontFileEnvelope").classList.add("d-none");

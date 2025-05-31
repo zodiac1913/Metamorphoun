@@ -1,6 +1,7 @@
 package service
 
 import (
+	"Metamorphoun/enum"
 	"fmt"
 	"image/color"
 	"io/ioutil"
@@ -13,7 +14,7 @@ import (
 )
 
 func RenderFontsSample(outputPath string) error {
-	fontDir := "C:\\Windows\\Fonts"
+	fontDir := GetFolderPath(enum.PathLoc.Fonts) //"C:\\Windows\\Fonts"
 	sampleText := "The quick brown fox jumps over the lazy dog"
 	fontSize := 14.0
 	lineHeight := 50

@@ -2,6 +2,7 @@ package service
 
 import (
 	"Metamorphoun/config"
+	"Metamorphoun/enum"
 	"Metamorphoun/morphLog"
 	"Metamorphoun/shared"
 	"encoding/json"
@@ -10,7 +11,6 @@ import (
 	"log"
 	"math/rand"
 	"os"
-	"os/user"
 	"path/filepath"
 	"strings"
 	"time"
@@ -86,9 +86,7 @@ func BackgroundGenerate(caller string, currentPic config.PicHistory) error {
 			}
 		}
 		//Step 6: Save the image
-		usr, err := user.Current()
-		wallpaperMain := filepath.Join(usr.HomeDir, ".Metamorphoun")
-		//wallpaperFavs := filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites")
+		wallpaperMain := GetFolderPath(enum.PathLoc.Config)
 
 		sourceExt = filepath.Ext(currentPic.OriginName)
 		if sourceExt == "" {
@@ -100,9 +98,6 @@ func BackgroundGenerate(caller string, currentPic config.PicHistory) error {
 		currentPic.SaveName = filepath.Join(wallpaperMain, "pic0"+sourceExt)
 		config.ConfigInstance.AddPicHistory(currentPic)
 
-		// fileLocBase := strings.Split(filepath.Base(currentPic.SaveName), ".")[0]
-		// fileLocDir := filepath.Dir(currentPic.SaveName)
-		// println(fileLocBase)
 		fileLoc := currentPic.SaveName
 		removeAllPic0s()
 		// Save the resulting image to the bufferPic path
@@ -267,17 +262,8 @@ func picTypeAndFilter(currentPic config.PicHistory, img image.Image, filterChoic
 		fmt.Println("Error saving image:", err)
 		return currentPic, img, err
 	}
-
-	usr, err := user.Current()
-	if err != nil {
-		fmt.Println("failed to get user home directory:", err)
-	}
-
-	currentPicsFolder := filepath.Join(usr.HomeDir, ".Metamorphoun")
+	currentPicsFolder := GetFolderPath(enum.PathLoc.Config)
 	fmt.Println(currentPicsFolder)
-	// fileStep2 := filepath.Join(currentPicsFolder, "file4AFiltered"+imageFilter+".png")
-	// saveImg(img, fileStep2)
-
 	return currentPic, img, nil
 
 }
@@ -347,15 +333,6 @@ func setRandomQuote(currentPic config.PicHistory, img image.Image) (config.PicHi
 	dc.DrawString(authorText, textBlockX+10, authorY+30)
 	// Get the resulting image (THIS IS THE MAGIC OF THE NEW PIC CONTEXT.  Started with dc := gg.NewContextForImage(img) )
 	imgWithQuote := dc.Image()
-
-	// fileStep2 := filepath.Join(currentPicsFolder, "file5AQuoted.png")
-	// saveImg(imgWithQuote, fileStep2)
-
-	// Save the resulting image
-	//img = dc.Image() // SavePNG(outputPath)
-
-	// fileStep3 := filepath.Join(currentPicsFolder, "file5DcImage.png")
-	// saveImg(imgWithQuote, fileStep3)
 	return currentPic, imgWithQuote, err
 
 }
@@ -378,7 +355,7 @@ func GetQuote(currentPic config.PicHistory) (config.PicHistory, error) {
 	randomIndex := rand.Intn(len(onQLs))
 	qLibrary := onQLs[randomIndex]
 
-	quotesRaw, err := shared.GetStaticFSQuotes(qLibrary.Location) //filepath.Join(appFolder, qLibrary.Location)
+	quotesRaw, err := shared.GetStaticFSQuotes(qLibrary.Location)
 	if err != nil {
 		fmt.Println("failed to get static file:", err)
 		return currentPic, err

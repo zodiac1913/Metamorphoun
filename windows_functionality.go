@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/user"
+	"path/filepath"
 	"strings"
 	"syscall"
 
@@ -79,4 +81,41 @@ func RemoveFromStartup() error {
 
 	log.Printf("%s removed from Windows startup for the current user.", appName)
 	return nil
+}
+func GetFolderPath(pathNeeded string) string {
+	usr, err := user.Current()
+	if err != nil {
+		fmt.Println("failed to get user home directory:", err)
+	}
+	favPicFolderWithQuote := filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites", "Pictures", "WithQuotes")
+	favPicFolderWithoutQuote := filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites", "Pictures", "WithOutQuotes")
+
+	if pathNeeded == "fonts" {
+		return filepath.Join("C:", "Windows", "Fonts")
+	} else if pathNeeded == "config" {
+		return filepath.Join(usr.HomeDir, ".Metamorphoun")
+	} else if pathNeeded == "favorites" {
+		return filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites")
+	} else if pathNeeded == "favwithquote" {
+		return favPicFolderWithQuote
+	} else if pathNeeded == "favwithoutquote" {
+		return favPicFolderWithoutQuote
+	} else if pathNeeded == "quotes" {
+		return filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites", "Quotes")
+	} else if pathNeeded == "configfile" {
+		return filepath.Join(usr.HomeDir, ".Metamorphoun", "config.json")
+	} else if pathNeeded == "pictures" {
+		return filepath.Join(usr.HomeDir, ".Metamorphoun", "Pictures")
+	} else if pathNeeded == "logs" {
+		return filepath.Join(usr.HomeDir, ".Metamorphoun", "Logs")
+	} else if pathNeeded == "executable" {
+		exePath, errEP := os.Executable()
+		if errEP != nil {
+			fmt.Println("Error:", errEP)
+		}
+		exeDir := filepath.Dir(exePath)
+		return exeDir
+	} else {
+		return filepath.Join("C:", "Programs", "ZodiSoft", "Metamorphoun")
+	}
 }

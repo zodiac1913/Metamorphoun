@@ -2,6 +2,7 @@ package systemTray
 
 import (
 	"Metamorphoun/config"
+	"Metamorphoun/enum"
 	"Metamorphoun/icon"
 	"Metamorphoun/server"
 	"Metamorphoun/service"
@@ -17,6 +18,10 @@ import (
 	//"github.com/getlantern/systray/example/icon"
 )
 
+var GetFolderPath func(string) string
+
+type PathLocType string
+
 func MakeSystemTray() {
 	systray.SetTemplateIcon(icon.Data, icon.Data)
 	systray.SetTitle("Background Fun")
@@ -27,7 +32,7 @@ func MakeSystemTray() {
 	}
 	now := time.Now()
 	dt := now.Format("20060102_150405")
-	wallpaperMain := filepath.Join(usr.HomeDir, ".Metamorphoun")
+	wallpaperMain := GetFolderPath(enum.PathLoc.Config)
 	makeFavFolders()
 	favPicFolderWithQuote := filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites", "Pictures", "WithQuotes")
 	favPicFolderWithoutQuote := filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites", "Pictures", "WithOutQuotes")

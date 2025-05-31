@@ -2,6 +2,7 @@ package service
 
 import (
 	"Metamorphoun/config"
+	"Metamorphoun/enum"
 	"fmt"
 	"image"
 	"image/color"
@@ -15,7 +16,6 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"os/user"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -29,6 +29,10 @@ const (
 	SPI_SETDESKWALLPAPER = 20
 	SPIF_UPDATEINIFILE   = 0x01
 )
+
+var GetFolderPath func(string) string
+
+type PathLocType string
 
 // Service represents a service that runs an internal function periodically.
 type Service struct {
@@ -67,11 +71,7 @@ func (s *Service) Start() error {
 
 func removeAllPic0s() error {
 	//Delete all files in the picture folder with pic0*.*
-	usr, err := user.Current()
-	if err != nil {
-		fmt.Println("failed to get user home directory:", err)
-	}
-	wallpaperMain := filepath.Join(usr.HomeDir, ".Metamorphoun")
+	wallpaperMain := GetFolderPath(enum.PathLoc.Config)
 	//wallpaperFavs := filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites")
 	pic0Files, err := filepath.Glob(filepath.Join(wallpaperMain, "pic0*.*"))
 	if err != nil {
@@ -199,16 +199,8 @@ func scaleToScreen(img image.Image, dc gg.Context) (image.Image, error) {
 	// Draw the resized image onto the context
 	dc.DrawImage(resizedImg, 0, 0)
 
-	usr, err := user.Current()
-	if err != nil {
-		fmt.Println("failed to get user home directory:", err)
-	}
-
-	currentPicsFolder := filepath.Join(usr.HomeDir, ".Metamorphoun")
+	currentPicsFolder := GetFolderPath(enum.PathLoc.Config)
 	fmt.Println(currentPicsFolder)
-	// fileStep2 := filepath.Join(currentPicsFolder, "file2APostScaling.png")
-	// saveImg(resizedImg, fileStep2)
-
 	return resizedImg, nil
 }
 
@@ -421,11 +413,7 @@ func PicEncode(w io.Writer, m image.Image) error {
 	return nil
 }
 func saveImage(img image.Image, fileName string) {
-	usr, err := user.Current()
-	if err != nil {
-		fmt.Println("failed to get user home directory:", err)
-	}
-	currentPicsFolder := filepath.Join(usr.HomeDir, ".Metamorphoun")
+	currentPicsFolder := GetFolderPath(enum.PathLoc.Config)
 
 	fileIn := filepath.Join(currentPicsFolder, fileName)
 	saveImg(img, fileIn)

@@ -66,16 +66,6 @@ func PixelateItNfo(currentPic config.PicHistory, img image.Image, pixelSize int)
 		}
 	}
 
-	// usr, err := user.Current()
-	// if err != nil {
-	// 	fmt.Println("failed to get user home directory:", err)
-	// }
-
-	// currentPicsFolder := filepath.Join(usr.HomeDir, ".Metamorphoun")
-
-	// fileStep2 := filepath.Join(currentPicsFolder, "file6APixelateFiltered.png")
-	// saveImg(newImg, fileStep2)
-
 	return currentPic, newImg, nil
 }
 

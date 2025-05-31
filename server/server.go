@@ -2,6 +2,7 @@ package server
 
 import (
 	"Metamorphoun/config"
+	"Metamorphoun/enum"
 	"Metamorphoun/shared"
 	"Metamorphoun/zutil"
 	"encoding/json"
@@ -292,12 +293,7 @@ func textFieldChangeApi(w http.ResponseWriter, r *http.Request) {
 }
 
 func configApi(w http.ResponseWriter, r *http.Request) {
-	// Read the JSON file
-	usr, err := user.Current()
-	if err != nil {
-		fmt.Println("failed to get user home directory: %w", err)
-	}
-	configPath := filepath.Join(usr.HomeDir, ".Metamorphoun", "config.json")
+	configPath := config.GetFolderPath(enum.PathLoc.ConfigFile)
 	// Read config file
 	jsonData, err := ioutil.ReadFile(configPath)
 	if err != nil {
@@ -606,12 +602,6 @@ func editImagesField(w http.ResponseWriter, r *http.Request) {
 
 func currentInfoApi(w http.ResponseWriter, r *http.Request) {
 	// Read the JSON file
-	//usr, err := user.Current()
-	//if err != nil {
-	//fmt.Println("failed to get user home directory: %w", err)
-	//}
-	//configPath := filepath.Join(usr.HomeDir, ".Metamorphoun", "config.json")
-	// Read config file
 	var rtnJson = config.ConfigInstance.PicHistories[0]
 
 	// Set Content-Type header

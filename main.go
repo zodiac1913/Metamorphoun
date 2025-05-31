@@ -5,6 +5,7 @@ package main
 import (
 	"Metamorphoun/config"
 	"Metamorphoun/linuxGui"
+	"Metamorphoun/morphLog"
 	"Metamorphoun/server"
 	"Metamorphoun/service"
 	"Metamorphoun/systemTray"
@@ -21,25 +22,11 @@ import (
 var updateSignal chan struct{}
 
 func main() {
-	// Common logic
-	PrintPlatformMessage()
-
-	//service.ChangeView()
-	//return
-	//Load config file
-	//Used to test fonts
-	// usr, err := user.Current()
-
-	// if err != nil {
-	// 	fmt.Println("failed to get user home directory: %w", err)
-	// }
-	// outputPath := filepath.Join(usr.HomeDir, ".Metamorphoun", "fonts_sample.png")
-	// errf := service.RenderFontsSample(outputPath)
-	// if errf != nil {
-	// 	fmt.Println("Error rendering fonts sample:", errf)
-	// } else {
-	// 	fmt.Println("Fonts sample image created successfully:", outputPath)
-	// }
+	//top!!!
+	config.GetFolderPath = getFolderPathImpl
+	morphLog.GetFolderPath = getFolderPathImpl
+	service.GetFolderPath = getFolderPathImpl
+	systemTray.GetFolderPath = getFolderPathImpl
 	configData, err := config.LoadConfig()
 	if err != nil {
 		fmt.Println("Error loading config:", err)
@@ -50,6 +37,16 @@ func main() {
 			panic("Bad")
 		}
 	}
+	config.ConfigInstance = configData
+	//top!!!
+	// Common logic
+	PrintPlatformMessage()
+
+	//service.ChangeView()
+	//return
+	//Load config file
+	//Used to test fonts
+
 	cfg := configData // Now cfg points to the single loaded instance
 
 	config.SetupSystemFolders()
@@ -192,4 +189,11 @@ func openFolder(title string, path string) error {
 	var cmd *exec.Cmd
 	cmd = exec.Command(title, path)
 	return cmd.Start()
+}
+
+//	func GetFolderPath(pathNeeded string) string {
+//		return GetFolderPath(pathNeeded)
+//	}
+func getFolderPathImpl(pathNeeded string) string {
+	return GetFolderPath(pathNeeded)
 }

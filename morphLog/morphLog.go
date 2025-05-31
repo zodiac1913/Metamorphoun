@@ -1,14 +1,18 @@
 package morphLog
 
 import (
+	"Metamorphoun/enum"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/user"
 	"path/filepath"
 	"time"
 )
+
+var GetFolderPath func(string) string
+
+type PathLocType string
 
 // LogItem struct definition
 type LogItem struct {
@@ -22,14 +26,8 @@ type LogItem struct {
 }
 
 func GetLogs(logType string) ([]LogItem, error) {
-	// Get the home directory of the current user
-	usr, err := user.Current()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get user home directory: %w", err)
-	}
-
 	// Construct the path to the JSON file
-	logFilePath := filepath.Join(usr.HomeDir, ".Metamorphoun", logType+".json")
+	logFilePath := filepath.Join(GetFolderPath(enum.PathLoc.Logs), logType+".json")
 
 	// Read and parse the log file
 	logItems, err := getLog(logFilePath)
@@ -41,14 +39,10 @@ func GetLogs(logType string) ([]LogItem, error) {
 }
 
 func UpdateLogs(entry LogItem) []LogItem {
-	// Get the home directory of the current user
-	usr, err := user.Current()
-	if err != nil {
-		fmt.Errorf("failed to get user home directory: %w", err)
-	}
-
 	// Construct the path to the JSON file
-	logFilePath := filepath.Join(usr.HomeDir, ".Metamorphoun", "Logs", fmt.Sprintf("log%s.json", time.Now().Format("20060102")))
+	fileName := fmt.Sprintf("log%s.json", time.Now().Format("20060102"))
+	folderLoc := GetFolderPath(enum.PathLoc.Logs)
+	logFilePath := filepath.Join(folderLoc, fileName)
 
 	// Read and parse the log file
 	logItems, err := getLog(logFilePath)

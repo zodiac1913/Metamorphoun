@@ -2,12 +2,12 @@ package service
 
 import (
 	"Metamorphoun/config"
+	"Metamorphoun/enum"
 	"Metamorphoun/morphLog"
 	"fmt"
 	"image"
 	"log"
 	"os"
-	"os/user"
 	"path/filepath"
 	"strings"
 	"time"
@@ -89,9 +89,7 @@ func BackgroundSet(caller string, currentPic config.PicHistory) error {
 	}
 	//Step 6: Save the image
 	removeAllPic0s()
-	usr, err := user.Current()
-	wallpaperMain := filepath.Join(usr.HomeDir, ".Metamorphoun")
-	//wallpaperFavs := filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites")
+	wallpaperMain := GetFolderPath(enum.PathLoc.Config)
 
 	sourceExt = filepath.Ext(currentPic.OriginName)
 	if sourceExt == "" {
@@ -104,16 +102,13 @@ func BackgroundSet(caller string, currentPic config.PicHistory) error {
 		now := time.Now()
 		dt := now.Format("20060102_150405")
 		fileName := filepath.Base(dt + sourceExt)
-		fileLoc := filepath.Join(wallpaperMain, "Favorites", "Pictures", "WithOutQuotes", fileName)
+		fileLoc := filepath.Join(GetFolderPath(enum.PathLoc.FavWithoutQuote), fileName)
 		saveImg(img, fileLoc)
 		config.ConfigInstance.PicHistories[0] = currentPic
 		return nil
 	} else {
 		currentPic.SaveName = filepath.Join(wallpaperMain, "pic0"+sourceExt)
 		config.ConfigInstance.PicHistories[0] = currentPic
-		// fileLocBase := strings.Split(filepath.Base(currentPic.SaveName), ".")[0]
-		// fileLocDir := filepath.Dir(currentPic.SaveName)
-		// println(fileLocBase)
 		fileLoc := currentPic.SaveName
 
 		// Save the resulting image to the bufferPic path
@@ -316,91 +311,8 @@ func filterCurrentPic(currentPic config.PicHistory, img image.Image) (image.Imag
 		return img, err
 	}
 
-	usr, err := user.Current()
-	if err != nil {
-		fmt.Println("failed to get user home directory:", err)
-	}
-
-	currentPicsFolder := filepath.Join(usr.HomeDir, ".Metamorphoun")
+	currentPicsFolder := GetFolderPath(enum.PathLoc.Config)
 	fmt.Println(currentPicsFolder)
 	return img, nil
 
 }
-
-// func setRandomQuote(currentPic config.PicHistory, img image.Image) (config.PicHistory, image.Image, error) {
-
-// 	// Get screen size w32 only BOOO!!
-// 	// screenWidth := w32.GetSystemMetrics(w32.SM_CXSCREEN)
-// 	// screenHeight := w32.GetSystemMetrics(w32.SM_CYSCREEN)
-
-// 	// Get the number of displays
-// 	screenInfo := getScreenInfo()[0]
-// 	screenWidth := screenInfo.Width
-// 	screenHeight := screenInfo.Height
-// 	//Make Sure a Quote is loaded
-// 	if config.ConfigInstance.CurrentQuoteStatement == "" && config.ConfigInstance.CurrentQuoteAuthor == "" {
-// 		SetQuote("backgroundChange")
-// 	}
-// 	fmt.Println("Quote:", config.ConfigInstance.CurrentQuoteStatement)
-// 	fmt.Println("Author:", config.ConfigInstance.CurrentQuoteAuthor)
-
-// 	// Create a new context with the image dimensions
-// 	dc := gg.NewContextForImage(img)
-
-// 	// Set initial font size
-// 	initialFontSize, fontPath, shouldReturn, currentPic, err := getFontInfo(currentPic)
-// 	if shouldReturn {
-// 		return currentPic, img, err
-// 	}
-// 	currentPic.QuoteFont = fontPath
-// 	if err := dc.LoadFontFace(fontPath, initialFontSize); err != nil {
-// 		fmt.Println("Error loading font:", err)
-// 		return currentPic, img, err
-// 	}
-
-// 	// Set maximum dimensions for the text box (60% of the quadrant)
-// 	authorText, wrappedQuoteText, quoteHeight, textBoxWidth, textBoxHeight, textBlockX, textBlockY, currentPic := calculateBoxInfo(screenWidth, screenHeight, currentPic, dc)
-
-// 	textBlockX, textBlockY = locateBox(textBlockX, screenWidth, textBlockY, screenHeight, textBoxWidth, textBoxHeight)
-
-// 	// Set transparent background for text block
-// 	//Make Background color
-// 	redColorBackground, greenColorBackground, blueColorBackground, shouldReturn, currentPic, err := getBackgroundColor(currentPic)
-// 	if shouldReturn {
-// 		return currentPic, img, err
-// 	}
-
-// 	shouldReturn, currPic, err := getOpacityAndSetBoxBackground(currentPic, dc, redColorBackground, greenColorBackground, blueColorBackground, textBlockX, textBlockY, textBoxWidth, textBoxHeight)
-// 	if shouldReturn {
-// 		return currentPic, img, err
-// 	}
-// 	currentPic = currPic
-// 	// Set text color and draw text
-// 	//Make Text color
-// 	shouldReturn, currPic2, err := getTextColor(redColorBackground, greenColorBackground, blueColorBackground, currentPic, dc)
-// 	if shouldReturn {
-// 		return currentPic, img, err
-// 	}
-// 	currentPic = currPic2
-// 	//dc.SetColor(color.White)
-
-// 	dc.DrawStringWrapped(wrappedQuoteText, textBlockX+10, textBlockY+30, 0, 0, textBoxWidth-20, 1.5, gg.AlignLeft)
-
-// 	// Calculate a line height buffer between the quote and the author
-// 	lineHeight := 48.0                                    // Replace with the actual height of a line of text
-// 	authorY := textBlockY + 30 + quoteHeight + lineHeight // Add a buffer between quote and author
-// 	dc.DrawString(authorText, textBlockX+10, authorY+30)
-// 	// Get the resulting image (THIS IS THE MAGIC OF THE NEW PIC CONTEXT.  Started with dc := gg.NewContextForImage(img) )
-// 	imgWithQuote := dc.Image()
-
-// 	// fileStep2 := filepath.Join(currentPicsFolder, "file5AQuoted.png")
-// 	// saveImg(imgWithQuote, fileStep2)
-
-// 	// Save the resulting image
-// 	//img = dc.Image() // SavePNG(outputPath)
-
-// 	// fileStep3 := filepath.Join(currentPicsFolder, "file5DcImage.png")
-// 	// saveImg(imgWithQuote, fileStep3)
-// 	return currentPic, imgWithQuote, err
-
-// }

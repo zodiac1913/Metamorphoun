@@ -140,7 +140,7 @@ func BackgroundSet(caller string, currentPic config.PicHistory) error {
 
 func SetQuoteBlock(currentPic config.PicHistory, img image.Image) (config.PicHistory, image.Image, error) {
 	config.GetConfig()
-	screenInfo := getScreenInfo()[0]
+	screenInfo := GetScreenInfo()[0]
 	screenWidth := screenInfo.Width
 	screenHeight := screenInfo.Height
 	_ = screenWidth
@@ -161,7 +161,7 @@ func SetQuoteBlock(currentPic config.PicHistory, img image.Image) (config.PicHis
 	dc := gg.NewContextForImage(img)
 
 	// Set initial font size
-	initialFontSize, fontPath, shouldReturn, currentPic, err := getFontInfo(currentPic)
+	initialFontSize, fontPath, shouldReturn, currentPic, err := GetFontInfo(currentPic)
 	if shouldReturn {
 		return currentPic, img, err
 	}
@@ -192,7 +192,7 @@ func SetQuoteBlock(currentPic config.PicHistory, img image.Image) (config.PicHis
 	_ = opacity
 	// Set text color and draw text
 	//Make Text color
-	shouldReturn, currPic2, err := getTextColor(redColorBackground, greenColorBackground, blueColorBackground, currentPic, dc)
+	shouldReturn, currPic2, err := GetTextColor(redColorBackground, greenColorBackground, blueColorBackground, currentPic, dc)
 	if shouldReturn {
 		return currentPic, img, err
 	}

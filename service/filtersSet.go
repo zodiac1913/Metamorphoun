@@ -95,7 +95,7 @@ func OilifyItSet(currentPic config.PicHistory, img image.Image) (image.Image, er
 }
 
 func PicassoSet(currentPic config.PicHistory, img image.Image) (image.Image, error) {
-	screenInfo := getScreenInfo()[0]
+	screenInfo := GetScreenInfo()[0]
 	screenWidth := screenInfo.Width
 	screenHeight := screenInfo.Height
 	intensity := float64(currentPic.FilterIntensity)

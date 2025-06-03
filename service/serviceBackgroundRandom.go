@@ -15,9 +15,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fogleman/gg"
 	"github.com/reujab/wallpaper"
 )
+
+var SetRandomQuote func(config.PicHistory, image.Image) (config.PicHistory, image.Image, error)
 
 func BackgroundGenerate(caller string, currentPic config.PicHistory) error {
 	println("BackgroundGenerate called from", caller)
@@ -78,7 +79,7 @@ func BackgroundGenerate(caller string, currentPic config.PicHistory) error {
 		//Step 5: Handle Quote
 		if config.ConfigInstance.ShowTextOverlay {
 			if specialCaseType != "WithQuotes" {
-				currentPic, img, err = setRandomQuote(currentPic, img)
+				currentPic, img, err = SetRandomQuote(currentPic, img)
 				if (err != nil) || img == nil {
 					fmt.Println("Error applying quote:")
 					return BackgroundGenerate(caller, currentPic)
@@ -268,74 +269,74 @@ func picTypeAndFilter(currentPic config.PicHistory, img image.Image, filterChoic
 
 }
 
-func setRandomQuote(currentPic config.PicHistory, img image.Image) (config.PicHistory, image.Image, error) {
-	var err error
-	fmt.Println("running setRandomQuote")
-	// Get the number of displays
-	screenInfo := getScreenInfo()[0]
-	screenWidth := screenInfo.Width
-	screenHeight := screenInfo.Height
-	//Make Sure a Quote is loaded
-	currentPic, err = GetQuote(currentPic)
-	if err != nil {
-		fmt.Println("Error getting quote:", err)
-		return currentPic, img, err
-	}
-	fmt.Println("Quote:", currentPic.QuoteStatement)
-	fmt.Println("Author:", currentPic.QuoteAuthor)
+// func setRandomQuote(currentPic config.PicHistory, img image.Image) (config.PicHistory, image.Image, error) {
+// 	var err error
+// 	fmt.Println("running setRandomQuote")
+// 	// Get the number of displays
+// 	screenInfo := getScreenInfo()[0]
+// 	screenWidth := screenInfo.Width
+// 	screenHeight := screenInfo.Height
+// 	//Make Sure a Quote is loaded
+// 	currentPic, err = GetQuote(currentPic)
+// 	if err != nil {
+// 		fmt.Println("Error getting quote:", err)
+// 		return currentPic, img, err
+// 	}
+// 	fmt.Println("Quote:", currentPic.QuoteStatement)
+// 	fmt.Println("Author:", currentPic.QuoteAuthor)
 
-	// Create a new context with the image dimensions
-	dc := gg.NewContextForImage(img)
+// 	// Create a new context with the image dimensions
+// 	dc := gg.NewContextForImage(img)
 
-	// Set initial font size
-	initialFontSize, fontPath, shouldReturn, currentPic, err := getFontInfo(currentPic)
-	if shouldReturn {
-		return currentPic, img, err
-	}
-	currentPic.QuoteFont = fontPath
-	currentPic.QuoteFontSize = initialFontSize
-	if err := dc.LoadFontFace(fontPath, initialFontSize); err != nil {
-		fmt.Println("Error loading font:", err)
-		return currentPic, img, err
-	}
+// 	// Set initial font size
+// 	initialFontSize, fontPath, shouldReturn, currentPic, err := getFontInfo(currentPic)
+// 	if shouldReturn {
+// 		return currentPic, img, err
+// 	}
+// 	currentPic.QuoteFont = fontPath
+// 	currentPic.QuoteFontSize = initialFontSize
+// 	if err := dc.LoadFontFace(fontPath, initialFontSize); err != nil {
+// 		fmt.Println("Error loading font:", err)
+// 		return currentPic, img, err
+// 	}
 
-	// Set maximum dimensions for the text box (60% of the quadrant)
-	authorText, wrappedQuoteText, quoteHeight, textBoxWidth, textBoxHeight, textBlockX, textBlockY, currentPic := calculateBoxInfo(screenWidth, screenHeight, currentPic, dc)
+// 	// Set maximum dimensions for the text box (60% of the quadrant)
+// 	authorText, wrappedQuoteText, quoteHeight, textBoxWidth, textBoxHeight, textBlockX, textBlockY, currentPic := calculateBoxInfo(screenWidth, screenHeight, currentPic, dc)
 
-	textBlockX, textBlockY = locateBox(textBlockX, screenWidth, textBlockY, screenHeight, textBoxWidth, textBoxHeight)
+// 	textBlockX, textBlockY = locateBox(textBlockX, screenWidth, textBlockY, screenHeight, textBoxWidth, textBoxHeight)
 
-	// Set transparent background for text block
-	//Make Background color
-	redColorBackground, greenColorBackground, blueColorBackground, shouldReturn, currentPic, err := getBackgroundColor(currentPic)
-	if shouldReturn {
-		return currentPic, img, err
-	}
+// 	// Set transparent background for text block
+// 	//Make Background color
+// 	redColorBackground, greenColorBackground, blueColorBackground, shouldReturn, currentPic, err := getBackgroundColor(currentPic)
+// 	if shouldReturn {
+// 		return currentPic, img, err
+// 	}
 
-	shouldReturn, currPic, err := getOpacityAndSetBoxBackground(currentPic, dc, redColorBackground, greenColorBackground, blueColorBackground, textBlockX, textBlockY, textBoxWidth, textBoxHeight)
-	if shouldReturn {
-		return currentPic, img, err
-	}
-	currentPic = currPic
-	// Set text color and draw text
-	//Make Text color
-	shouldReturn, currPic2, err := getTextColor(redColorBackground, greenColorBackground, blueColorBackground, currentPic, dc)
-	if shouldReturn {
-		return currentPic, img, err
-	}
-	currentPic = currPic2
-	//dc.SetColor(color.White)
+// 	shouldReturn, currPic, err := getOpacityAndSetBoxBackground(currentPic, dc, redColorBackground, greenColorBackground, blueColorBackground, textBlockX, textBlockY, textBoxWidth, textBoxHeight)
+// 	if shouldReturn {
+// 		return currentPic, img, err
+// 	}
+// 	currentPic = currPic
+// 	// Set text color and draw text
+// 	//Make Text color
+// 	shouldReturn, currPic2, err := getTextColor(redColorBackground, greenColorBackground, blueColorBackground, currentPic, dc)
+// 	if shouldReturn {
+// 		return currentPic, img, err
+// 	}
+// 	currentPic = currPic2
+// 	//dc.SetColor(color.White)
 
-	dc.DrawStringWrapped(wrappedQuoteText, textBlockX+10, textBlockY+30, 0, 0, textBoxWidth-20, 1.5, gg.AlignLeft)
+// 	dc.DrawStringWrapped(wrappedQuoteText, textBlockX+10, textBlockY+30, 0, 0, textBoxWidth-20, 1.5, gg.AlignLeft)
 
-	// Calculate a line height buffer between the quote and the author
-	lineHeight := 48.0                                    // Replace with the actual height of a line of text
-	authorY := textBlockY + 30 + quoteHeight + lineHeight // Add a buffer between quote and author
-	dc.DrawString(authorText, textBlockX+10, authorY+30)
-	// Get the resulting image (THIS IS THE MAGIC OF THE NEW PIC CONTEXT.  Started with dc := gg.NewContextForImage(img) )
-	imgWithQuote := dc.Image()
-	return currentPic, imgWithQuote, err
+// 	// Calculate a line height buffer between the quote and the author
+// 	lineHeight := 48.0                                    // Replace with the actual height of a line of text
+// 	authorY := textBlockY + 30 + quoteHeight + lineHeight // Add a buffer between quote and author
+// 	dc.DrawString(authorText, textBlockX+10, authorY+30)
+// 	// Get the resulting image (THIS IS THE MAGIC OF THE NEW PIC CONTEXT.  Started with dc := gg.NewContextForImage(img) )
+// 	imgWithQuote := dc.Image()
+// 	return currentPic, imgWithQuote, err
 
-}
+// }
 
 func GetQuote(currentPic config.PicHistory) (config.PicHistory, error) {
 

@@ -11,6 +11,7 @@ import (
 	"Metamorphoun/systemTray"
 	"context"
 	"fmt"
+	"image"
 	"io/ioutil"
 	"os/exec"
 	"runtime"
@@ -27,6 +28,7 @@ func main() {
 	morphLog.GetFolderPath = getFolderPathImpl
 	service.GetFolderPath = getFolderPathImpl
 	systemTray.GetFolderPath = getFolderPathImpl
+	service.SetRandomQuote = setRandomQuoteImpl
 	configData, err := config.LoadConfig()
 	if err != nil {
 		fmt.Println("Error loading config:", err)
@@ -196,4 +198,8 @@ func openFolder(title string, path string) error {
 //	}
 func getFolderPathImpl(pathNeeded string) string {
 	return GetFolderPath(pathNeeded)
+}
+
+func setRandomQuoteImpl(currentPic config.PicHistory, img image.Image) (config.PicHistory, image.Image, error) {
+	return SetRandomQuote(currentPic, img)
 }

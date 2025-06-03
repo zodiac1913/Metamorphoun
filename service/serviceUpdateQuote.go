@@ -116,7 +116,7 @@ func UpdateQuote(caller string) error {
 	//Step 5: Handle Quote
 	if config.ConfigInstance.ShowTextOverlay {
 		if specialCaseType != "WithQuotes" {
-			currentPic, img, err = setRandomQuote(currentPic, img)
+			currentPic, img, err = SetRandomQuote(currentPic, img)
 			if (err != nil) || img == nil {
 				_ = err
 				fmt.Println("Image is Empty 1 wallpaper firing random")
@@ -195,7 +195,7 @@ func BeepHighTwice() {
 		//time.Sleep(time.Millisecond * 100) // Small delay between beeps
 	}
 }
-func getScreenInfo() []screenInfo {
+func GetScreenInfo() []screenInfo {
 	var screenInfoRange []screenInfo
 	displayCount := screenshot.NumActiveDisplays()
 	fmt.Printf("Number of displays: %d\n", displayCount)
@@ -213,7 +213,7 @@ func getScreenInfo() []screenInfo {
 	}
 	return screenInfoRange
 }
-func getFontInfo(currentPic config.PicHistory) (float64, string, bool, config.PicHistory, error) {
+func GetFontInfo(currentPic config.PicHistory) (float64, string, bool, config.PicHistory, error) {
 	initialFontSize := 22.0
 	fontPath := filepath.Join(config.ConfigInstance.TextFontPath, config.ConfigInstance.TextFontFile)
 	// List of substrings to exclude
@@ -281,7 +281,7 @@ func getFontInfo(currentPic config.PicHistory) (float64, string, bool, config.Pi
 	return initialFontSize, fontPath, false, currentPic, nil
 }
 
-func calculateBoxInfo(screenWidth int, screenHeight int, currentPic config.PicHistory, dc *gg.Context) (string, string, float64, float64, float64, float64, float64, config.PicHistory) {
+func CalculateBoxInfo(screenWidth int, screenHeight int, currentPic config.PicHistory, dc *gg.Context) (string, string, float64, float64, float64, float64, float64, config.PicHistory) {
 	maxTextBoxWidth := float64(screenWidth) * 0.4   // 60% of half the screen width
 	maxTextBoxHeight := float64(screenHeight) * 0.9 // 60% of half the screen height
 
@@ -307,7 +307,7 @@ func calculateBoxInfo(screenWidth int, screenHeight int, currentPic config.PicHi
 	return authorText, wrappedQuoteText, quoteHeight, textBoxWidth, textBoxHeight, textBlockX, textBlockY, currentPic
 }
 
-func locateBox(textBlockX float64, screenWidth int, textBlockY float64, screenHeight int, textBoxWidth float64, textBoxHeight float64) (float64, float64) {
+func LocateBox(textBlockX float64, screenWidth int, textBlockY float64, screenHeight int, textBoxWidth float64, textBoxHeight float64) (float64, float64) {
 	textBoxLoc := config.ConfigInstance.TextBoxLocation
 	validLocs := []string{"topLeft", "topRight", "bottomLeft", "bottomRight", "center"}
 	if textBoxLoc == "random" {
@@ -339,7 +339,7 @@ func locateBox(textBlockX float64, screenWidth int, textBlockY float64, screenHe
 	return textBlockX, textBlockY
 }
 
-func getBackgroundColor(currentPic config.PicHistory) (uint8, uint8, uint8, bool, config.PicHistory, error) {
+func GetBackgroundColor(currentPic config.PicHistory) (uint8, uint8, uint8, bool, config.PicHistory, error) {
 	redColorBackground, greenColorBackground, blueColorBackground := uint8(0), uint8(0), uint8(0)
 	if config.ConfigInstance.QuoteAppearanceRandom {
 		redColorBackground = uint8(rand.Intn(72))
@@ -361,7 +361,7 @@ func getBackgroundColor(currentPic config.PicHistory) (uint8, uint8, uint8, bool
 	currentPic.QuoteBackgroundColorB = blueColorBackground
 	return redColorBackground, greenColorBackground, blueColorBackground, false, currentPic, nil
 }
-func getOpacityAndSetBoxBackground(currentPic config.PicHistory, dc *gg.Context, redColorBackground uint8, greenColorBackground uint8, blueColorBackground uint8, textBlockX float64, textBlockY float64, textBoxWidth float64, textBoxHeight float64) (bool, config.PicHistory, error) {
+func GetOpacityAndSetBoxBackground(currentPic config.PicHistory, dc *gg.Context, redColorBackground uint8, greenColorBackground uint8, blueColorBackground uint8, textBlockX float64, textBlockY float64, textBoxWidth float64, textBoxHeight float64) (bool, config.PicHistory, error) {
 	opacity, errO := strconv.ParseUint(config.ConfigInstance.QuoteBackgroundOpacity, 10, 8)
 	if opacity < 110 {
 		opacity = uint64(110)
@@ -383,7 +383,7 @@ func getOpacityAndSetBoxBackground(currentPic config.PicHistory, dc *gg.Context,
 	dc.Fill()
 	return false, currentPic, nil
 }
-func getTextColor(redColorBackground uint8, greenColorBackground uint8, blueColorBackground uint8, currentPic config.PicHistory, dc *gg.Context) (bool, config.PicHistory, error) {
+func GetTextColor(redColorBackground uint8, greenColorBackground uint8, blueColorBackground uint8, currentPic config.PicHistory, dc *gg.Context) (bool, config.PicHistory, error) {
 	redColorText, greenColorText, blueColorText := uint8(0), uint8(0), uint8(0)
 	if config.ConfigInstance.QuoteAppearanceRandom {
 		prominentBGColor := "red"

@@ -89,7 +89,7 @@ func removeAllPic0s() error {
 // Choose the scaling choice and scale image
 func handleScaling(img image.Image, currentPic config.PicHistory, choice string, err error) (image.Image, config.PicHistory) {
 
-	screenInfo := getScreenInfo()[0]
+	screenInfo := GetScreenInfo()[0]
 	screenWidth := screenInfo.Width
 	screenHeight := screenInfo.Height
 
@@ -130,7 +130,7 @@ func getConfigImages(cfg *config.Config) ([]config.Image, bool, error) {
 
 func centerOnSmokeyBackdrop(img image.Image, dc gg.Context) (image.Image, error) {
 	// Get screen size
-	screenInfo := getScreenInfo()[0]
+	screenInfo := GetScreenInfo()[0]
 	screenWidth := screenInfo.Width
 	screenHeight := screenInfo.Height
 
@@ -169,7 +169,7 @@ func centerOnSmokeyBackdrop(img image.Image, dc gg.Context) (image.Image, error)
 
 func scaleToScreen(img image.Image, dc gg.Context) (image.Image, error) {
 	// Get screen size
-	screenInfo := getScreenInfo()[0]
+	screenInfo := GetScreenInfo()[0]
 	screenWidth := screenInfo.Width
 	screenHeight := screenInfo.Height
 

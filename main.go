@@ -20,8 +20,17 @@ import (
 
 var updateSignal chan struct{}
 
+// var fontFldrs = []string{
+// 	"/usr/share/fonts",
+// 	"/usr/local/share/fonts",
+// 	"~/.local/share/fonts",
+// 	"~/.fonts",
+// 	"C:\\Windows\\Fonts",
+// }
+
 func main() {
 	//top!!!
+	//service.RenderFontsSample(fontFldrs)
 	config.GetFolderPath = getFolderPathImpl
 	morphLog.GetFolderPath = getFolderPathImpl
 	service.GetFolderPath = getFolderPathImpl

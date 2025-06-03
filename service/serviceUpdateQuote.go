@@ -222,6 +222,9 @@ func GetFontInfo(currentPic config.PicHistory) (float64, string, bool, config.Pi
 		"MiriamCLM-Bold.ttf", "MiriamCLM-Book.ttf", "NotoKufi", "NotoNaskh", "NotoSans", "NotoSansArabic",
 		"NotoSansArmenian", "NotoSansGeorgian", "NotoSansHebrew", "NotoSansLao", "NotoSerif",
 		"SegoeIcons", "Marlett.ttf", "opens__", "segmdl2", "symbol.ttf", "webdings", "wingding",
+		"Gubbi.ttf", "Navilu.ttf", "DroidSansFallbackFull.ttf", "Mukti.ttf", "Muktibold.ttf",
+		"padmaa-Medium-0.5.ttf", "Saab.ttf", "Kalapi.ttf", "utkal.ttf", "Pothana2000.ttf",
+		"vemana2000.ttf", "opens___.ttf",
 	}
 
 	// Get all font files in the specified path

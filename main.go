@@ -4,7 +4,6 @@ package main
 
 import (
 	"Metamorphoun/config"
-	"Metamorphoun/linuxGui"
 	"Metamorphoun/morphLog"
 	"Metamorphoun/server"
 	"Metamorphoun/service"
@@ -14,7 +13,6 @@ import (
 	"image"
 	"io/ioutil"
 	"os/exec"
-	"runtime"
 	"time"
 
 	"github.com/getlantern/systray"
@@ -22,8 +20,17 @@ import (
 
 var updateSignal chan struct{}
 
+// var fontFldrs = []string{
+// 	"/usr/share/fonts",
+// 	"/usr/local/share/fonts",
+// 	"~/.local/share/fonts",
+// 	"~/.fonts",
+// 	"C:\\Windows\\Fonts",
+// }
+
 func main() {
 	//top!!!
+	//service.RenderFontsSample(fontFldrs)
 	config.GetFolderPath = getFolderPathImpl
 	morphLog.GetFolderPath = getFolderPathImpl
 	service.GetFolderPath = getFolderPathImpl
@@ -173,19 +180,20 @@ func main() {
 	// 		linuxGui.MakeGui()
 	// 	}()
 	// }
-	if runtime.GOOS == "windows" {
-		onExit := func() {
-			now := time.Now()
-			ioutil.WriteFile(fmt.Sprintf(`on_exit_%d.txt`, now.UnixNano()), []byte(now.String()), 0644)
-			cancel()
-		}
-		systray.Run(systemTray.MakeSystemTray, onExit)
-		<-ctx.Done()
-	} else {
-		go func() {
-			linuxGui.MakeGui()
-		}()
+	//if runtime.GOOS == "windows" {
+	onExit := func() {
+		now := time.Now()
+		ioutil.WriteFile(fmt.Sprintf(`on_exit_%d.txt`, now.UnixNano()), []byte(now.String()), 0644)
+		cancel()
 	}
+	systray.Run(systemTray.MakeSystemTray, onExit)
+	<-ctx.Done()
+	//Perhaps check if the systray fails via err and then run the gui
+	//} else {
+	//	go func() {
+	//		linuxGui.MakeGui()
+	//	}()
+	//}
 }
 func openFolder(title string, path string) error {
 	var cmd *exec.Cmd

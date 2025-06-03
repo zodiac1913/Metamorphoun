@@ -215,7 +215,7 @@ func GetScreenInfo() []screenInfo {
 }
 func GetFontInfo(currentPic config.PicHistory) (float64, string, bool, config.PicHistory, error) {
 	initialFontSize := 22.0
-	fontPath := filepath.Join(config.ConfigInstance.TextFontPath, config.ConfigInstance.TextFontFile)
+	fontPath := GetFolderPath(enum.PathLoc.Fonts) //filepath.Join(config.ConfigInstance.TextFontPath, config.ConfigInstance.TextFontFile)
 	// List of substrings to exclude
 	excludedSubstrings := []string{
 		"AmiriQuran.ttf", "EmojiOneColor-SVGinOT.ttf", "KacstBook.ttf", "KacstOffice.ttf",
@@ -228,7 +228,8 @@ func GetFontInfo(currentPic config.PicHistory) (float64, string, bool, config.Pi
 	}
 
 	// Get all font files in the specified path
-	fontFiles, err := getFontFiles(config.ConfigInstance.TextFontPath)
+
+	fontFiles, err := getFontFiles(fontPath)
 	if err != nil {
 		fmt.Println("Error getting font files", http.StatusInternalServerError)
 		return 0, "", true, currentPic, err

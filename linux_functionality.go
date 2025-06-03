@@ -56,7 +56,7 @@ func GetFolderPath(pathNeeded string) string {
 	favPicFolderWithoutQuote := filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites", "Pictures", "WithOutQuotes")
 
 	if pathNeeded == "fonts" {
-		return filepath.Join("usr", "share", "fonts")
+		return filepath.Join("/usr", "share", "fonts")
 	} else if pathNeeded == "config" {
 		return filepath.Join(usr.HomeDir, ".Metamorphoun")
 	} else if pathNeeded == "favorites" {

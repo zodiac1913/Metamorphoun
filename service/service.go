@@ -315,17 +315,39 @@ func getFontFiles(dir string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	for _, file := range files {
-		if !file.IsDir() && (strings.HasSuffix(file.Name(), ".tts") || strings.HasSuffix(file.Name(), ".ttf") || strings.HasSuffix(file.Name(), ".otf")) {
-			if file.Name() != "random" {
-				fontFiles = append(fontFiles, filepath.Join(dir, file.Name()))
+		if !file.IsDir() && (strings.HasSuffix(file.Name(), ".ttf") || strings.HasSuffix(file.Name(), ".otf")) {
+			fontFiles = append(fontFiles, filepath.Join(dir, file.Name()))
+		} else if file.IsDir() {
+			subdir := filepath.Join(dir, file.Name())
+			subfiles, err := getFontFiles(subdir)
+			if err != nil {
+				return nil, err
 			}
+			fontFiles = append(fontFiles, subfiles...)
 		}
 	}
-
 	return fontFiles, nil
 }
+
+// func getFontFiles(dir string) ([]string, error) {
+// 	var fontFiles []string
+// 	files, err := ioutil.ReadDir(dir)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	for _, file := range files {
+// 		if !file.IsDir() && (strings.HasSuffix(file.Name(), ".tts") || strings.HasSuffix(file.Name(), ".ttf") || strings.HasSuffix(file.Name(), ".otf")) {
+// 			if file.Name() != "random" {
+// 				fontFiles = append(fontFiles, filepath.Join(dir, file.Name()))
+// 			}
+// 		}
+// 	}
+
+// 	return fontFiles, nil
+// }
+
 func wordWrap(text string, maxWidth float64, dc *gg.Context) string {
 	words := strings.Fields(text)
 	if len(words) == 0 {

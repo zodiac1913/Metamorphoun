@@ -224,7 +224,7 @@ func GetFontInfo(currentPic config.PicHistory) (float64, string, bool, config.Pi
 		"SegoeIcons", "Marlett.ttf", "opens__", "segmdl2", "symbol.ttf", "webdings", "wingding",
 		"Gubbi.ttf", "Navilu.ttf", "DroidSansFallbackFull.ttf", "Mukti.ttf", "Muktibold.ttf",
 		"padmaa-Medium-0.5.ttf", "Saab.ttf", "Kalapi.ttf", "utkal.ttf", "Pothana2000.ttf",
-		"vemana2000.ttf", "opens___.ttf",
+		"vemana2000.ttf", "opens___.ttf", "constanb",
 	}
 
 	// Get all font files in the specified path

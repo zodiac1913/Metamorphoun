@@ -22,7 +22,7 @@ func GetBackgroundFlickr(imgItem config.Image) (image.Image, string, error) {
 	}
 	//choose image to use
 	if len(wppArray) < 1 {
-		fmt.Println("Error: No img links found on page ", imgItem.Location, " for ", imgItem.Operation, " on ", wppErr.Error())
+		fmt.Println("Error: No img links found on page ", imgItem.Location, " for ", imgItem.Operation)
 		return nil, "", nil
 	}
 	wppRnd := rand.Intn(len(wppArray))
@@ -58,12 +58,38 @@ func loadFlickrImageFromURL(url string) (image.Image, error) {
 	return img, nil
 }
 
+func tryItAgain(url string) (*http.Response, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch URL: %w", err)
+	}
+	if resp.StatusCode == 404 {
+		resp, err = http.Get(url)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch URL again: %w", err)
+		}
+	}
+	return resp, nil
+}
+
 // Get urls from the page for pics
 func extractFlickrImageURLs(imgItem config.Image) ([]string, error) {
 	url := imgItem.Location
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch URL: %w", err)
+	}
+	tryAgain := 0
+	if resp.StatusCode == 404 {
+		resp, err = tryItAgain(url)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch URL after retry: %w", err)
+		}
+		tryAgain++
+		currentPic := config.ConfigInstance.PicHistories[0]
+		if tryAgain > 3 {
+			BackgroundGenerate("FlickrBad", currentPic)
+		}
 	}
 	defer resp.Body.Close()
 

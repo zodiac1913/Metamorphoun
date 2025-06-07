@@ -31,7 +31,7 @@ var updateSignal chan struct{}
 func main() {
 	//top!!!
 	//service.RenderFontsSample(fontFldrs)
-	service.ChangeLockScreen = changeLockScreenImpl
+	//service.ChangeLockScreen = changeLockScreenImpl
 	config.GetFolderPath = getFolderPathImpl
 	morphLog.GetFolderPath = getFolderPathImpl
 	service.GetFolderPath = getFolderPathImpl
@@ -214,6 +214,6 @@ func setRandomQuoteImpl(currentPic config.PicHistory, img image.Image) (config.P
 	return SetRandomQuote(currentPic, img)
 }
 
-func changeLockScreenImpl(pic config.PicHistory) error {
-	return ChangeLockScreen(pic)
-}
+// func changeLockScreenImpl(pic config.PicHistory) error {
+// 	return ChangeLockScreen(pic)
+// }

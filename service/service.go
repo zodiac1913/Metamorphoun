@@ -34,6 +34,8 @@ var GetFolderPath func(string) string
 
 type PathLocType string
 
+var ChangeLockScreen func(pic config.PicHistory) error
+
 // Service represents a service that runs an internal function periodically.
 type Service struct {
 	interval time.Duration

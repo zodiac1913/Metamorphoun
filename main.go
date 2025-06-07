@@ -31,6 +31,7 @@ var updateSignal chan struct{}
 func main() {
 	//top!!!
 	//service.RenderFontsSample(fontFldrs)
+	service.ChangeLockScreen = changeLockScreenImpl
 	config.GetFolderPath = getFolderPathImpl
 	morphLog.GetFolderPath = getFolderPathImpl
 	service.GetFolderPath = getFolderPathImpl
@@ -180,6 +181,7 @@ func main() {
 	// 		linuxGui.MakeGui()
 	// 	}()
 	// }
+	//	service.ChangeLockScreen(config.ConfigInstance.PicHistories[0]) // Initialize the ChangeLockScreen function
 	//if runtime.GOOS == "windows" {
 	onExit := func() {
 		now := time.Now()
@@ -210,4 +212,8 @@ func getFolderPathImpl(pathNeeded string) string {
 
 func setRandomQuoteImpl(currentPic config.PicHistory, img image.Image) (config.PicHistory, image.Image, error) {
 	return SetRandomQuote(currentPic, img)
+}
+
+func changeLockScreenImpl(pic config.PicHistory) error {
+	return ChangeLockScreen(pic)
 }

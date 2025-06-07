@@ -10,6 +10,7 @@ import (
 	"image"
 	"log"
 	"os"
+	"os/exec"
 	"os/user"
 	"path/filepath"
 	"strings"
@@ -190,4 +191,21 @@ func SetRandomQuote(currentPic config.PicHistory, img image.Image) (config.PicHi
 	imgWithQuote := dc.Image()
 	return currentPic, imgWithQuote, err
 
+}
+
+func ChangeLockScreen(pic config.PicHistory) error {
+	// Get the path to the lock screen image
+	lockScreenPath := pic.SaveName
+
+	// Use the Set-ItemProperty cmdlet in PowerShell to change the lock screen background
+	cmd := exec.Command("powershell", "-Command",
+		fmt.Sprintf(`Set-ItemProperty -Path "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\PersonalizationCSP" -Name "LockScreenImageFilename" -Value "%s";
+                        Set-ItemProperty -Path "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\PersonalizationCSP" -Name "LockScreenImageClipartEnabled" -Value 0`, lockScreenPath))
+
+	if err := cmd.Run(); err != nil {
+		log.Fatalf("Failed to change lock screen image: %v", err)
+	}
+
+	log.Println("Lock screen image changed successfully.")
+	return nil
 }

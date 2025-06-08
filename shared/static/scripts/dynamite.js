@@ -17,6 +17,7 @@ export default class dynamite{
         bang.removeLibraryButton= document.querySelector("#RemoveLibraryButton");
         bang.useLibraryButton= document.querySelector("#UseLibraryButton");
         bang.closeEditButton= document.querySelector("#CloseEditButton");
+        bang.quoteToolsButton=document.querySelector("#QuoteToolsButton");
         bang.selectedImageLibrary=undefined;
         bang.config=null;
         bang.traffic=new traffic();
@@ -47,6 +48,10 @@ export default class dynamite{
             document.querySelector("#quoteAppearanceBackgroundColorEnvelope").classList.remove("d-none");
             document.querySelector("#quoteAppearanceOpacityEnvelope").classList.remove("d-none");
         }
+        quoteToolsButton.addEventListener("click",async (e)=>{ 
+            let url = "quoteTools.html";
+            window.open(url);
+        });
         //wired
 		for(let inpt of inputz){
 			//set current

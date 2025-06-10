@@ -19,9 +19,13 @@ import (
 func RecallBackground(caller string, pastImg int32) error {
 	cfg := config.GetConfig()
 	pic := cfg.PicHistories[pastImg]
-	//if(!isFavoriteWithQuote) pic.Quote
-	BackgroundSet(caller, pic)
-	return nil
+	if caller == "SystrayFavStoreNQ" && strings.HasPrefix(pic.OriginName, GetFolderPath(enum.PathLoc.Favorites)) {
+		fmt.Println("This picture is already in your favorites without quotes, no need to save it again.")
+	} else {
+		//if(!isFavoriteWithQuote) pic.Quote
+		BackgroundSet(caller, pic)
+		return nil
+	}
 }
 
 func BackgroundSet(caller string, currentPic config.PicHistory) error {

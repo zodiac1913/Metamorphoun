@@ -6,6 +6,7 @@ import (
 	"Metamorphoun/icon"
 	"Metamorphoun/server"
 	"Metamorphoun/service"
+	"strings"
 	"time"
 
 	"Metamorphoun/zutil"
@@ -100,15 +101,19 @@ func MakeSystemTray() {
 			select {
 			case <-mFavStoreWQ.ClickedCh:
 				currImgWQ := config.ConfigInstance.PicHistories[0]
-				fmt.Print("Current Image with Quote: ", currImgWQ.OriginName)
-				wqExt := filepath.Ext(currImgWQ.OriginName)
-				if len(wqExt) > 5 {
-					wqExt = service.UnUnsplash(currImgWQ.OriginName)
+				if strings.HasPrefix(currImgWQ.OriginName, GetFolderPath(enum.PathLoc.Favorites)) {
+					fmt.Println("This picture is already in your favorites, no need to save it again.")
+				} else {
+					fmt.Print("Current Image with Quote: ", currImgWQ.OriginName)
+					wqExt := filepath.Ext(currImgWQ.OriginName)
+					if len(wqExt) > 5 {
+						wqExt = service.UnUnsplash(currImgWQ.OriginName)
+					}
+					currentPicFile := filepath.Join(wallpaperMain, "pic0"+wqExt)
+					picToSave := filepath.Join(favPicFolderWithQuote, dt+wqExt)
+					zutil.CopyFile(currentPicFile, picToSave)
+					server.OpenFolder("explorer", favPicFolderWithQuote)
 				}
-				currentPicFile := filepath.Join(wallpaperMain, "pic0"+wqExt)
-				picToSave := filepath.Join(favPicFolderWithQuote, dt+wqExt)
-				zutil.CopyFile(currentPicFile, picToSave)
-				server.OpenFolder("explorer", favPicFolderWithQuote)
 			case <-mFavStoreNQ.ClickedCh:
 				service.RecallBackground("SystrayFavStoreNQ", 0)
 				time.Sleep(15 * time.Second)

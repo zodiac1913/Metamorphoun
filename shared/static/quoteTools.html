@@ -16,40 +16,115 @@
 <body class="bg-BlanchedAlmond">
     <div class="container-fluid border-Navy border-2 shadow-lg p-3 mb-5 rounded">
         <div class="row border-1 border-DarkMagenta shadow shadow-DarkMagenta rounded">
-			<div class="col-6">
-				<h1 class="text-center">Import Quote Files</h1>
-			</div>
-			<div class="col-6">
-				<!-- Make a file upload -->
-				<form id="fileUploadForm" class="d-flex justify-content-end">
-					<label for="fileInput" class="form-label me-2" title="Upload a json quote file">Select file:</label>
-					<input type="file" id="fileInput" class="form-control me-2" accept=".txt,.csv,.json"/>
-					<button type="submit" class="btn btn-primary">Upload</button>
-			</div>
-		</div>
+            <div class="accordion mt-3" id="fileFormatAccordion">
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
+                            Example of a quote file
+                        </button>
+                    </h2>
+                    <div id="collapseOne" class="accordion-collapse collapse" data-bs-parent="#collapseOne">
+                        <div class="accordion-body">
+                            <p>Here is an example of a quote file in JSON format:</p>
+                                <pre>
+                                    <code class="language-json">
+                                    [ 
+                                        {"statement": "The only limit to our realization of tomorrow is our doubts of today.","author": "Franklin D. Roosevelt"},
+                                        {"statement": "In the middle of every difficulty lies opportunity.","author": "Albert Einstein"}
+                                    ]
+                                    </code>
+                                </pre>
+                            </p>
+                        </div>
+                    </div>
+                </div>            
+		    </div>
+
+            <div class="accordion mt-3" id="fileFormatAccordion">
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseImport" aria-expanded="false" aria-controls="collapseImport">
+                            Upload a Quote File
+                        </button>
+                    </h2>
+                    <div id="collapseImport" class="accordion-collapse collapse" data-bs-parent="#collapseImport">
+                        <h1 class="text-center">Import Quote Files</h1>
+                        <div class="col-12 m-2">
+                            <!-- Make a file upload -->
+                            <form id="fileUploadForm" class="container-fluid m-2" action="/fileUploadForm" method="post" enctype="multipart/form-data">
+                                <input type="hidden" name="use" value="true">
+                                <input type="hidden" name="location" value="">
+                                <input type="hidden" name="inherent" value="false">
+                                <div class="mb-3 row">
+                                    <label for="fileInput" class="col-sm-2 col-form-label" title="Upload a json quote file">Select file:</label>
+                                    <input type="file" id="fileInput" name="fileInput" class="form-control-plaintext" accept=".txt,.csv,.json"/>
+                                </div>
+                                <div class="mb-3 row">
+                                    <label for="name" class="col-sm-2 col-form-label" title="A Name with no special Characters">Name</label>
+                                    <div class="col-sm-9 border-1 border-Azure shadow shadow-Azure rounded">
+                                        <input type="text" class="form-control-plaintext" id="name" value="">
+                                    </div>
+                                </div>
+                                <div class="mb-3 row">
+                                    <label for="title" class="col-sm-2 col-form-label" title="What you will see. Pretty name">Title</label>
+                                    <div class="col-sm-9 border-1 border-Azure shadow shadow-Azure rounded">
+                                        <input type="text" class="form-control-plaintext" id="title" value="">
+                                    </div>
+                                </div>
+                                <div class="mb-3 row">
+                                    <label for="creators" class="col-sm-2 col-form-label" title="This should be to a group you got this from (Like GoodReads)">Creators</label>
+                                    <div class="col-sm-9 border-1 border-Azure shadow shadow-Azure rounded">
+                                        <input type="text" class="form-control-plaintext" id="creators" value="">
+                                    </div>
+                                </div>                                
+                                <div class="mb-3 row">
+                                    <label for="citation" class="col-sm-2 col-form-label" title="This should be to a web site or just a description of where you got these. ex. https://www.goodreads.com/author/quotes/317613.Douglas_MacArthur">Citation</label>
+                                    <div class="col-sm-9 border-1 border-Azure shadow shadow-Azure rounded">
+                                        <input type="text" class="form-control-plaintext" id="citation" value="">
+                                    </div>
+                                </div>
+                                <div class="mb-3 row">
+                                    <label for="info" class="col-sm-2 col-form-label" title="Information about the Creators/Website you got these from">Citation Info</label>
+                                    <div class="col-sm-9 border-1 border-Azure shadow shadow-Azure rounded">
+                                        <input type="text" class="form-control-plaintext" id="info" value="">
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Upload</button>
+                            </form>
+                            <div id="uploadResponse" class="mt-2"></div>
+                        </div>
+                    </div>
 		<!-- make  a accordion element here to allow for detailed example of what the file should look like using bootstrap 5 classes -->
-		<div class="accordion mt-3" id="fileFormatAccordion">
-			<div class="accordion-item">
-				<h2 class="accordion-header">
-					<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
-						Example of a quote file
-					</button>
-				</h2>
-				<div id="collapseOne" class="accordion-collapse collapse" data-bs-parent="#collapseOne">
-				<div class="accordion-body">
-					<p>Here is an example of a quote file in JSON format:</p>
-						<pre>
-							<code class="language-json">
-								[ 
-									{"statement": "The only limit to our realization of tomorrow is our doubts of today.","author": "Franklin D. Roosevelt"},
-									{"statement": "In the middle of every difficulty lies opportunity.","author": "Albert Einstein"}
-								]
-							</code>
-						</pre>
-					</p>
-				</div>
-			</div>
-
-
+		
     </div>
+    <script>
+document.getElementById('fileUploadForm').addEventListener('submit', async function(e) {
+    e.preventDefault(); // Prevent default form submission
+
+    const form = e.target;
+    const formData = new FormData(form);
+
+    const responseDiv = document.getElementById('uploadResponse');
+    responseDiv.textContent = "Uploading...";
+
+    try {
+        const res = await fetch(form.action, {
+            method: form.method,
+            body: formData
+        });
+
+        const text = await res.text();
+        if (res.ok) {
+            responseDiv.textContent = text;
+            responseDiv.className = "alert alert-success mt-2";
+        } else {
+            responseDiv.textContent = text;
+            responseDiv.className = "alert alert-danger mt-2";
+        }
+    } catch (err) {
+        responseDiv.textContent = "Upload failed: " + err;
+        responseDiv.className = "alert alert-danger mt-2";
+    }
+});
+</script>
 </body>

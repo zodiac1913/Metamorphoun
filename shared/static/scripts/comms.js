@@ -305,21 +305,21 @@ export default class comms{
         headerDiv.className="row";
         let headerUseDiv=document.createElement("div");
         headerUseDiv.id="TLHeaderRowEnabledDiv";
-        headerUseDiv.className="col-1";
+        headerUseDiv.className="col";
         headerUseDiv.innerText="Enabled"
         headerUseDiv.title="Determines if this Library will be included in the random selection"
         headerDiv.appendChild(headerUseDiv);
 
         let headerNameDiv=document.createElement("div");
         headerNameDiv.id="TLHeaderRowNameDiv";
-        headerNameDiv.className="col-3";
+        headerNameDiv.className="col";
         headerNameDiv.innerText="Library"
         headerNameDiv.title="The Name of the library to use"
         headerDiv.appendChild(headerNameDiv);
 
         let headerLocationDiv=document.createElement("div");
         headerLocationDiv.id="TLHeaderRowLocationDiv";
-        headerLocationDiv.className="col-8";
+        headerLocationDiv.className="col";
         headerLocationDiv.innerText="Citation"
         headerLocationDiv.title="The Citation and link to where it came from"
         headerDiv.appendChild(headerLocationDiv);
@@ -337,7 +337,7 @@ export default class comms{
             //Checkbox div
             let useDiv=document.createElement("div");
             useDiv.id="TL" + configItem.name + "ImageItemRowUseDiv";
-            useDiv.className="col-1";
+            useDiv.className="col";
             let useDivCheckBox=document.createElement("input");
             useDivCheckBox.id="TL" + "Use" + configItem.name;
             useDivCheckBox.type="checkbox";
@@ -349,7 +349,7 @@ export default class comms{
             //Name Div
             let nameDiv=document.createElement("div");
             nameDiv.id="TL" + configItem.name + "ImageItemRowNameDiv";
-            nameDiv.className="col-3";
+            nameDiv.className="col";
 
             let nameTitleDiv=document.createElement("div");
             nameTitleDiv.id="TLName" + configItem.name;
@@ -361,7 +361,7 @@ export default class comms{
             //Location
             let locationDiv=document.createElement("div");
             locationDiv.id="TL" + configItem.name + "ImageItemRowLocationDiv";
-            locationDiv.className="col-8";
+            locationDiv.className="col";
 
             let locationTitleDiv=document.createElement("div");
             locationTitleDiv.id="TL" + "Citation" + configItem.name;

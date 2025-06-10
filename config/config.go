@@ -49,6 +49,7 @@ type Config struct {
 	ShowTextOverlay           bool          `json:"showTextOverlay"`
 	TextChangeMinutes         int           `json:"textChangeMinutes"`
 	TextLibraries             []TextLibrary `json:"textLibraries"`
+	PersonalTextLibraries     []TextLibrary `json:"personalTextLibraries"`
 	TextFontFile              string        `json:"textFontFile"`
 	TextFontPath              string        `json:"textFontPath"`
 	TextBoxLocation           string        `json:"textBoxLocation"`
@@ -80,7 +81,7 @@ type TextLibrary struct {
 	Citation string `json:"citation"`
 	Creators string `json:"creators"`
 	Info     string `json:"info"`
-	Inherent bool   `json:"inherent"` // Indicates if the image is inherent to the system
+	Inherent bool   `json:"inherent"` // Indicates if the quote file is inherent to the system
 }
 
 type PicHistory struct {
@@ -661,7 +662,8 @@ func CreateConfig() error {
 				Inherent: true,
 			},
 		},
-		PicHistories: []PicHistory{},
+		PersonalTextLibraries: []TextLibrary{},
+		PicHistories:          []PicHistory{},
 	}
 
 	// Get the user's home directory

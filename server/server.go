@@ -7,6 +7,7 @@ import (
 	"Metamorphoun/zutil"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/fs"
 	"io/ioutil"
 	"log"
@@ -44,6 +45,7 @@ func Serve(cfg config.Config) bool { //serverUrl string, serverPort int
 	http.HandleFunc("/addImagesField", addImagesField)
 	http.HandleFunc("/editImagesField", editImagesField)
 	http.HandleFunc("/currentInfoApi", currentInfoApi)
+	http.HandleFunc("/fileUploadForm", fileUploadForm)
 
 	// Register pprof handlers on the custom mux
 	// mux.HandleFunc("/debug/pprof/", pprof.Index)
@@ -619,4 +621,59 @@ func currentInfoApi(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to write response", http.StatusInternalServerError)
 		return
 	}
+}
+
+func fileUploadForm(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseMultipartForm(10 << 20) // Limit file size to 10 MB
+	if err != nil {
+		http.Error(w, "Error parsing form data", http.StatusBadRequest)
+		return
+	}
+
+	file, fileHeader, err := r.FormFile("fileInput")
+	if err != nil {
+		http.Error(w, "Error retrieving file", http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
+	originalFilename := fileHeader.Filename
+
+	// Read the uploaded file content
+	fileContent, err := io.ReadAll(file) // use io.ReadAll, not ioutil.ReadAll
+	if err != nil {
+		http.Error(w, "Error reading uploaded file", http.StatusInternalServerError)
+		return
+	}
+
+	// Validate the file is well-formed JSON
+	var js interface{}
+	if err := json.Unmarshal(fileContent, &js); err != nil {
+		http.Error(w, "Uploaded file is not valid JSON", http.StatusBadRequest)
+		return
+	}
+
+	// Create the Quotes directory if it doesn't exist
+	quotesDir := filepath.Join(config.GetFolderPath(enum.PathLoc.Config), "Quotes")
+	if err := os.MkdirAll(quotesDir, 0755); err != nil {
+		http.Error(w, "Error creating quotes directory", http.StatusInternalServerError)
+		return
+	}
+
+	// Create a new file in the Quotes directory
+	outFilePath := filepath.Join(quotesDir, originalFilename)
+	outFile, err := os.Create(outFilePath)
+	if err != nil {
+		http.Error(w, "Error creating output file", http.StatusInternalServerError)
+		return
+	}
+	defer outFile.Close()
+
+	// Write the validated JSON content to the new file
+	if _, err := outFile.Write(fileContent); err != nil {
+		http.Error(w, "Error saving uploaded file", http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Fprintf(w, "File uploaded and validated as JSON: %s", originalFilename)
 }

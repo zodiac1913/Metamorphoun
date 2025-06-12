@@ -49,7 +49,6 @@ type Config struct {
 	ShowTextOverlay           bool          `json:"showTextOverlay"`
 	TextChangeMinutes         int           `json:"textChangeMinutes"`
 	TextLibraries             []TextLibrary `json:"textLibraries"`
-	PersonalTextLibraries     []TextLibrary `json:"personalTextLibraries"`
 	TextFontFile              string        `json:"textFontFile"`
 	TextFontPath              string        `json:"textFontPath"`
 	TextBoxLocation           string        `json:"textBoxLocation"`
@@ -662,8 +661,7 @@ func CreateConfig() error {
 				Inherent: true,
 			},
 		},
-		PersonalTextLibraries: []TextLibrary{},
-		PicHistories:          []PicHistory{},
+		PicHistories: []PicHistory{},
 	}
 
 	// Get the user's home directory

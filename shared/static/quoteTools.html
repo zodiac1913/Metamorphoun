@@ -35,6 +35,10 @@
                                     </code>
                                 </pre>
                             </p>
+                            <p>
+                                If you name the file in a Pascal Case notation, (ie AlbertEinstein.json) the form will below will assume
+                                that is the author of the quotes and name the file accordingly.
+                            </p>
                         </div>
                     </div>
                 </div>            
@@ -62,31 +66,31 @@
                                 <div class="mb-3 row">
                                     <label for="name" class="col-sm-2 col-form-label" title="A Name with no special Characters">Name</label>
                                     <div class="col-sm-9 border-1 border-Azure shadow shadow-Azure rounded">
-                                        <input type="text" class="form-control-plaintext" id="name" value="">
+                                        <input type="text" class="form-control-plaintext" title="A Name with no special Characters" id="name" value="">
                                     </div>
                                 </div>
                                 <div class="mb-3 row">
                                     <label for="title" class="col-sm-2 col-form-label" title="What you will see. Pretty name">Title</label>
                                     <div class="col-sm-9 border-1 border-Azure shadow shadow-Azure rounded">
-                                        <input type="text" class="form-control-plaintext" id="title" value="">
+                                        <input type="text" class="form-control-plaintext" id="title" title="What you will see. Pretty name" value="">
                                     </div>
                                 </div>
                                 <div class="mb-3 row">
                                     <label for="creators" class="col-sm-2 col-form-label" title="This should be to a group you got this from (Like GoodReads)">Creators</label>
                                     <div class="col-sm-9 border-1 border-Azure shadow shadow-Azure rounded">
-                                        <input type="text" class="form-control-plaintext" id="creators" value="">
+                                        <input type="text" class="form-control-plaintext" title="This should be to a group you got this from (Like GoodReads)" id="creators" value="">
                                     </div>
                                 </div>                                
                                 <div class="mb-3 row">
                                     <label for="citation" class="col-sm-2 col-form-label" title="This should be to a web site or just a description of where you got these. ex. https://www.goodreads.com/author/quotes/317613.Douglas_MacArthur">Citation</label>
                                     <div class="col-sm-9 border-1 border-Azure shadow shadow-Azure rounded">
-                                        <input type="text" class="form-control-plaintext" id="citation" value="">
+                                        <input type="text" class="form-control-plaintext" id="citation" value="" title="This should be to a web site or just a description of where you got these. ex. https://www.goodreads.com/author/quotes/317613.Douglas_MacArthur">
                                     </div>
                                 </div>
                                 <div class="mb-3 row">
                                     <label for="info" class="col-sm-2 col-form-label" title="Information about the Creators/Website you got these from">Citation Info</label>
                                     <div class="col-sm-9 border-1 border-Azure shadow shadow-Azure rounded">
-                                        <input type="text" class="form-control-plaintext" id="info" value="">
+                                        <input type="text" class="form-control-plaintext" id="info" value="" title="Information about the Creators/Website you got these from">
                                     </div>
                                 </div>
                                 <button type="submit" class="btn btn-primary">Upload</button>
@@ -98,6 +102,26 @@
 		
     </div>
     <script>
+var fileyInput = document.getElementById("fileInput");
+fileyInput.addEventListener("change", function() {
+    var fileName = fileyInput.value.split('\\').pop(); // Get the file name from the full path
+    var nameInput = document.getElementById("name");
+    var titleInput = document.getElementById("title");
+
+    // Set the name input to the file name without extension
+    if (fileName) {
+        var nameWithoutExtension = fileName.replace(/\.[^/.]+$/, ""); // Remove the file extension
+        nameInput.value = nameWithoutExtension+"Quotes";
+        titleInput.value = camelToTitle(nameWithoutExtension)+" Quotes"; // Set title to the same value
+    } else {
+        nameInput.value = "";
+        titleInput.value = "";
+    }
+});
+function camelToTitle(str) {
+		return str.replace(/([A-Z])/g, " $1").replace(/^./, function(str) {	return str.toUpperCase();}).trim();
+}
+
 document.getElementById('fileUploadForm').addEventListener('submit', async function(e) {
     e.preventDefault(); // Prevent default form submission
 

@@ -21,6 +21,7 @@ func RecallBackground(caller string, pastImg int32) error {
 	pic := cfg.PicHistories[pastImg]
 	if caller == "SystrayFavStoreNQ" && strings.HasPrefix(pic.OriginName, GetFolderPath(enum.PathLoc.Favorites)) {
 		fmt.Println("This picture is already in your favorites without quotes, no need to save it again.")
+		return nil
 	} else {
 		//if(!isFavoriteWithQuote) pic.Quote
 		BackgroundSet(caller, pic)

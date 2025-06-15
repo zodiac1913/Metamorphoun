@@ -35,6 +35,7 @@ func main() {
 	config.GetFolderPath = getFolderPathImpl
 	morphLog.GetFolderPath = getFolderPathImpl
 	service.GetFolderPath = getFolderPathImpl
+	server.GetFolderPath = getFolderPathImpl
 	systemTray.GetFolderPath = getFolderPathImpl
 	service.SetRandomQuote = setRandomQuoteImpl
 	configData, err := config.LoadConfig()

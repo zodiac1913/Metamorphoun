@@ -7,7 +7,6 @@ import (
 	"Metamorphoun/zutil"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/fs"
 	"io/ioutil"
 	"log"
@@ -28,6 +27,10 @@ import (
 	"github.com/tidwall/gjson"
 )
 
+var GetFolderPath func(string) string
+
+type PathLocType string
+
 type Data struct {
 	Name  string `json:"parameter"`
 	Value string `json:"value"`
@@ -45,7 +48,8 @@ func Serve(cfg config.Config) bool { //serverUrl string, serverPort int
 	http.HandleFunc("/addImagesField", addImagesField)
 	http.HandleFunc("/editImagesField", editImagesField)
 	http.HandleFunc("/currentInfoApi", currentInfoApi)
-	http.HandleFunc("/fileUploadForm", fileUploadForm)
+	//http.HandleFunc("/fileUploadForm", fileUploadForm)
+	http.HandleFunc("/uploadFile", uploadFile)
 
 	// Register pprof handlers on the custom mux
 	// mux.HandleFunc("/debug/pprof/", pprof.Index)
@@ -623,57 +627,129 @@ func currentInfoApi(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func fileUploadForm(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseMultipartForm(10 << 20) // Limit file size to 10 MB
-	if err != nil {
-		http.Error(w, "Error parsing form data", http.StatusBadRequest)
-		return
-	}
-
-	file, fileHeader, err := r.FormFile("fileInput")
-	if err != nil {
-		http.Error(w, "Error retrieving file", http.StatusBadRequest)
-		return
-	}
-	defer file.Close()
-
-	originalFilename := fileHeader.Filename
-
-	// Read the uploaded file content
-	fileContent, err := io.ReadAll(file) // use io.ReadAll, not ioutil.ReadAll
-	if err != nil {
-		http.Error(w, "Error reading uploaded file", http.StatusInternalServerError)
-		return
-	}
-
-	// Validate the file is well-formed JSON
-	var js interface{}
-	if err := json.Unmarshal(fileContent, &js); err != nil {
-		http.Error(w, "Uploaded file is not valid JSON", http.StatusBadRequest)
-		return
-	}
-
-	// Create the Quotes directory if it doesn't exist
-	quotesDir := filepath.Join(config.GetFolderPath(enum.PathLoc.Config), "Quotes")
-	if err := os.MkdirAll(quotesDir, 0755); err != nil {
-		http.Error(w, "Error creating quotes directory", http.StatusInternalServerError)
-		return
-	}
-
-	// Create a new file in the Quotes directory
-	outFilePath := filepath.Join(quotesDir, originalFilename)
-	outFile, err := os.Create(outFilePath)
-	if err != nil {
-		http.Error(w, "Error creating output file", http.StatusInternalServerError)
-		return
-	}
-	defer outFile.Close()
-
-	// Write the validated JSON content to the new file
-	if _, err := outFile.Write(fileContent); err != nil {
-		http.Error(w, "Error saving uploaded file", http.StatusInternalServerError)
-		return
-	}
-
-	fmt.Fprintf(w, "File uploaded and validated as JSON: %s", originalFilename)
+// Define your request structure
+type FileUploadRequest struct {
+	Name     string `json:"name"`
+	Title    string `json:"title"`
+	Creators string `json:"creators"`
+	Citation string `json:"citation"`
+	Info     string `json:"info"`
+	FilePath string `json:"filePath"` // Assume this is the path to the file to be copied
 }
+
+func uploadFile(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var request FileUploadRequest
+
+	// Decode the JSON body into our struct
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	// Define the target directory path
+	configFolderPath := filepath.Join("path_to_config_folder") // Update with your config path
+	targetDir := filepath.Join(configFolderPath, "Quotes")
+	if err := os.MkdirAll(targetDir, os.ModePerm); err != nil {
+		http.Error(w, "Failed to create directories", http.StatusInternalServerError)
+		return
+	}
+
+	// Define the target file path
+	fileName := filepath.Base(request.FilePath) // Extract just the fileName from the filePath
+	targetFilePath := filepath.Join(targetDir, fileName)
+
+	// Copy the file
+	if err := zutil.CopyFile(request.FilePath, targetFilePath); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to copy file: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Update request with new location
+	request.FilePath = targetFilePath
+
+	// Here you would update `TextLibraries` of config to add that new record as needed.
+	fmt.Println("File copied and updated:", request)
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode("File uploaded successfully")
+}
+
+// Receives upload of form to add a new quote file
+// func fileUploadForm(w http.ResponseWriter, r *http.Request) {
+// 	err := r.ParseMultipartForm(10 << 20) // 10 MB
+// 	if err != nil {
+// 		http.Error(w, "Error parsing form data", http.StatusBadRequest)
+// 		return
+// 	}
+
+// 	// 1. Validate required fields (except hidden)
+// 	requiredFields := []string{"fileInput", "name", "title", "creators", "citation", "info"} // Example required fields
+// 	missing := []string{}
+// 	for _, field := range requiredFields {
+// 		val := r.FormValue(field)
+// 		if val == "" {
+// 			missing = append(missing, field)
+// 		}
+// 	}
+
+// 	// 2. Handle file upload
+// 	file, fileHeader, err := r.FormFile("fileInput")
+// 	if err != nil {
+// 		missing = append(missing, "fileInput")
+// 	} else {
+// 		defer file.Close()
+// 	}
+
+// 	// 3. If any required fields are missing, return error
+// 	if len(missing) > 0 {
+// 		http.Error(w, "Missing required fields: "+strings.Join(missing, ", "), http.StatusBadRequest)
+// 		return
+// 	}
+
+// 	// 4. Read and validate file content as JSON
+// 	fileContent, err := io.ReadAll(file)
+// 	if err != nil {
+// 		http.Error(w, "Error reading uploaded file", http.StatusInternalServerError)
+// 		return
+// 	}
+// 	var js interface{}
+// 	if err := json.Unmarshal(fileContent, &js); err != nil {
+// 		http.Error(w, "Uploaded file is not valid JSON", http.StatusBadRequest)
+// 		return
+// 	}
+
+// 	// 5. Save file
+// 	quotesDir := filepath.Join(config.GetFolderPath(enum.PathLoc.Config), "Quotes")
+// 	if err := os.MkdirAll(quotesDir, 0755); err != nil {
+// 		http.Error(w, "Error creating quotes directory", http.StatusInternalServerError)
+// 		return
+// 	}
+// 	outFilePath := filepath.Join(quotesDir, fileHeader.Filename)
+// 	outFile, err := os.Create(outFilePath)
+// 	if err != nil {
+// 		http.Error(w, "Error creating output file", http.StatusInternalServerError)
+// 		return
+// 	}
+// 	defer outFile.Close()
+// 	if _, err := outFile.Write(fileContent); err != nil {
+// 		http.Error(w, "Error saving uploaded file", http.StatusInternalServerError)
+// 		return
+// 	}
+
+// 	// 6. Set hidden fields to defaults, except location
+// 	hiddenDefaults := map[string]string{
+// 		//"hidden1": "default1",
+// 		//"hidden2": "default2",
+// 		// Add more as needed
+// 		"location": outFilePath, // Set location to saved file path
+// 	}
+// 	// You can now use hiddenDefaults as needed (e.g., save to DB, etc.)
+// 	_ = hiddenDefaults
+// 	fmt.Fprintf(w, "File uploaded and validated as JSON: %s", outFilePath)
+// }

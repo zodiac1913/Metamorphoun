@@ -55,10 +55,10 @@
                         <h1 class="text-center">Import Quote Files</h1>
                         <div class="col-12 m-2">
                             <!-- Make a file upload -->
-                            <form id="fileUploadForm" class="container-fluid m-2" action="/fileUploadForm" method="post" enctype="multipart/form-data">
-                                <input type="hidden" name="use" value="true">
-                                <input type="hidden" name="location" value="">
-                                <input type="hidden" name="inherent" value="false">
+                            <form id="uploadForm" class="container-fluid m-2 form" action="/fileUploadForm"  method="post" enctype="multipart/form-data">
+                                <input type="hidden" id="use" name="use" value="true">
+                                <input type="hidden" id="location" name="location" value="">
+                                <input type="hidden" id="inherent" name="inherent" value="false">
                                 <div class="mb-3 row">
                                     <label for="fileInput" class="col-sm-2 col-form-label" title="Upload a json quote file">Select file:</label>
                                     <input type="file" id="fileInput" name="fileInput" class="form-control-plaintext" accept=".txt,.csv,.json"/>
@@ -66,31 +66,31 @@
                                 <div class="mb-3 row">
                                     <label for="name" class="col-sm-2 col-form-label" title="A Name with no special Characters">Name</label>
                                     <div class="col-sm-9 border-1 border-Azure shadow shadow-Azure rounded">
-                                        <input type="text" class="form-control-plaintext" title="A Name with no special Characters" id="name" value="">
+                                        <input type="text" class="form-control-plaintext" title="A Name with no special Characters" id="name" name="name" value="">
                                     </div>
                                 </div>
                                 <div class="mb-3 row">
                                     <label for="title" class="col-sm-2 col-form-label" title="What you will see. Pretty name">Title</label>
                                     <div class="col-sm-9 border-1 border-Azure shadow shadow-Azure rounded">
-                                        <input type="text" class="form-control-plaintext" id="title" title="What you will see. Pretty name" value="">
+                                        <input type="text" class="form-control-plaintext" id="title" name="title" title="What you will see. Pretty name" value="">
                                     </div>
                                 </div>
                                 <div class="mb-3 row">
                                     <label for="creators" class="col-sm-2 col-form-label" title="This should be to a group you got this from (Like GoodReads)">Creators</label>
                                     <div class="col-sm-9 border-1 border-Azure shadow shadow-Azure rounded">
-                                        <input type="text" class="form-control-plaintext" title="This should be to a group you got this from (Like GoodReads)" id="creators" value="">
+                                        <input type="text" class="form-control-plaintext" title="This should be to a group you got this from (Like GoodReads)" id="creators" name="creators" value="">
                                     </div>
                                 </div>                                
                                 <div class="mb-3 row">
                                     <label for="citation" class="col-sm-2 col-form-label" title="This should be to a web site or just a description of where you got these. ex. https://www.goodreads.com/author/quotes/317613.Douglas_MacArthur">Citation</label>
                                     <div class="col-sm-9 border-1 border-Azure shadow shadow-Azure rounded">
-                                        <input type="text" class="form-control-plaintext" id="citation" value="" title="This should be to a web site or just a description of where you got these. ex. https://www.goodreads.com/author/quotes/317613.Douglas_MacArthur">
+                                        <input type="text" class="form-control-plaintext" id="citation" name="citation" value="" title="This should be to a web site or just a description of where you got these. ex. https://www.goodreads.com/author/quotes/317613.Douglas_MacArthur">
                                     </div>
                                 </div>
                                 <div class="mb-3 row">
                                     <label for="info" class="col-sm-2 col-form-label" title="Information about the Creators/Website you got these from">Citation Info</label>
                                     <div class="col-sm-9 border-1 border-Azure shadow shadow-Azure rounded">
-                                        <input type="text" class="form-control-plaintext" id="info" value="" title="Information about the Creators/Website you got these from">
+                                        <input type="text" class="form-control-plaintext" id="info" name="info" value="" title="Information about the Creators/Website you got these from">
                                     </div>
                                 </div>
                                 <button type="submit" class="btn btn-primary">Upload</button>
@@ -122,33 +122,82 @@ function camelToTitle(str) {
 		return str.replace(/([A-Z])/g, " $1").replace(/^./, function(str) {	return str.toUpperCase();}).trim();
 }
 
-document.getElementById('fileUploadForm').addEventListener('submit', async function(e) {
+// document.getElementById('fileUploadForm').addEventListener('submit', async function(e) {
+//     e.preventDefault(); // Prevent default form submission
+
+//     const form = e.target;
+//     const formData = new FormData(form);
+
+//     const responseDiv = document.getElementById('uploadResponse');
+//     responseDiv.textContent = "Uploading...";
+
+//     try {
+//         const res = await fetch(form.action, {
+//             method: form.method,
+//             body: formData
+//         });
+
+//         const text = await res.text();
+//         if (res.ok) {
+//             responseDiv.textContent = text;
+//             responseDiv.className = "alert alert-success mt-2";
+//         } else {
+//             responseDiv.textContent = text;
+//             responseDiv.className = "alert alert-danger mt-2";
+//         }
+//     } catch (err) {
+//         responseDiv.textContent = "Upload failed: " + err;
+//         responseDiv.className = "alert alert-danger mt-2";
+//     }
+// });
+
+document.getElementById('uploadForm').addEventListener('submit', async function(e) {
     e.preventDefault(); // Prevent default form submission
 
-    const form = e.target;
-    const formData = new FormData(form);
+    const form = this;
+    const jsonPayload = {};
 
-    const responseDiv = document.getElementById('uploadResponse');
-    responseDiv.textContent = "Uploading...";
+    // Collect regular input fields into a JSON object
+    for (const element of form.elements) {
+        if (element.name && !element.type.startsWith('file')) {
+            jsonPayload[element.name] = element.value;
+        }
+    }
+
+    // Handle file inputs separately since they can't be serialized into JSON directly
+    const filesArray = [];
+    for (const element of form.elements) {
+        if (element.type === 'file') {
+            Array.from(element.files).forEach(file => {
+                filesArray.push({
+                    name: element.name,
+                    fileName: file.name,
+                    mimeType: file.type,
+                    size: file.size
+                });
+            });
+        }
+    }
+
+    jsonPayload['files'] = filesArray;
 
     try {
-        const res = await fetch(form.action, {
-            method: form.method,
-            body: formData
+        const response = await fetch('http://127.0.0.1:3000/uploadFile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(jsonPayload)
         });
 
-        const text = await res.text();
-        if (res.ok) {
-            responseDiv.textContent = text;
-            responseDiv.className = "alert alert-success mt-2";
+        if (response.ok) {
+            console.log('Upload successful:', await response.text());
         } else {
-            responseDiv.textContent = text;
-            responseDiv.className = "alert alert-danger mt-2";
+            console.error('Upload failed:', await response.text());
         }
-    } catch (err) {
-        responseDiv.textContent = "Upload failed: " + err;
-        responseDiv.className = "alert alert-danger mt-2";
+    } catch (error) {
+        console.error('Error:', error);
     }
 });
+
+
 </script>
 </body>

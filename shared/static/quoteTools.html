@@ -151,52 +151,52 @@ function camelToTitle(str) {
 //     }
 // });
 
-document.getElementById('uploadForm').addEventListener('submit', async function(e) {
-    e.preventDefault(); // Prevent default form submission
+// document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+//     e.preventDefault(); // Prevent default form submission
 
-    const form = this;
-    const jsonPayload = {};
+//     const form = this;
+//     const jsonPayload = {};
 
-    // Collect regular input fields into a JSON object
-    for (const element of form.elements) {
-        if (element.name && !element.type.startsWith('file')) {
-            jsonPayload[element.name] = element.value;
-        }
-    }
+//     // Collect regular input fields into a JSON object
+//     for (const element of form.elements) {
+//         if (element.name && !element.type.startsWith('file')) {
+//             jsonPayload[element.name] = element.value;
+//         }
+//     }
 
-    // Handle file inputs separately since they can't be serialized into JSON directly
-    const filesArray = [];
-    for (const element of form.elements) {
-        if (element.type === 'file') {
-            Array.from(element.files).forEach(file => {
-                filesArray.push({
-                    name: element.name,
-                    fileName: file.name,
-                    mimeType: file.type,
-                    size: file.size
-                });
-            });
-        }
-    }
+//     // Handle file inputs separately since they can't be serialized into JSON directly
+//     const filesArray = [];
+//     for (const element of form.elements) {
+//         if (element.type === 'file') {
+//             Array.from(element.files).forEach(file => {
+//                 filesArray.push({
+//                     name: element.name,
+//                     fileName: file.name,
+//                     mimeType: file.type,
+//                     size: file.size
+//                 });
+//             });
+//         }
+//     }
 
-    jsonPayload['files'] = filesArray;
+//     jsonPayload['files'] = filesArray;
 
-    try {
-        const response = await fetch('http://127.0.0.1:3000/uploadFile', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(jsonPayload)
-        });
+//     try {
+//         const response = await fetch('http://127.0.0.1:3000/uploadFile', {
+//             method: 'POST',
+//             headers: { 'Content-Type': 'application/json' },
+//             body: JSON.stringify(jsonPayload)
+//         });
 
-        if (response.ok) {
-            console.log('Upload successful:', await response.text());
-        } else {
-            console.error('Upload failed:', await response.text());
-        }
-    } catch (error) {
-        console.error('Error:', error);
-    }
-});
+//         if (response.ok) {
+//             console.log('Upload successful:', await response.text());
+//         } else {
+//             console.error('Upload failed:', await response.text());
+//         }
+//     } catch (error) {
+//         console.error('Error:', error);
+//     }
+// });
 
 
 </script>

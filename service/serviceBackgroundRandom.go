@@ -356,10 +356,20 @@ func GetQuote(currentPic config.PicHistory) (config.PicHistory, error) {
 	randomIndex := rand.Intn(len(onQLs))
 	qLibrary := onQLs[randomIndex]
 
-	quotesRaw, err := shared.GetStaticFSQuotes(qLibrary.Location)
-	if err != nil {
-		fmt.Println("failed to get static file:", err)
-		return currentPic, err
+	quotesRaw := []byte{}
+	err := error(nil)
+	if qLibrary.Inherent {
+		quotesRaw, err = shared.GetStaticFSQuotes(qLibrary.Location)
+		if err != nil {
+			fmt.Println("failed to get static file:", err)
+			return currentPic, err
+		}
+	} else {
+		quotesRaw, err = os.ReadFile(qLibrary.Location)
+		if err != nil {
+			fmt.Println("failed to read file:", err)
+			return currentPic, err
+		}
 	}
 
 	// // Read the config file

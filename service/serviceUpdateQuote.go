@@ -218,7 +218,7 @@ func GetFontInfo(currentPic config.PicHistory) (float64, string, bool, config.Pi
 	fontPath := GetFolderPath(enum.PathLoc.Fonts) //filepath.Join(config.ConfigInstance.TextFontPath, config.ConfigInstance.TextFontFile)
 	// List of substrings to exclude
 	excludedSubstrings := []string{
-		"AmiriQuran.ttf", "EmojiOneColor-SVGinOT.ttf", "KacstBook.ttf", "KacstOffice.ttf",
+		"AmiriQuran.ttf", "EmojiOneColor-SVGinOT.ttf", "KacstBook.ttf", "KacstOffice.ttf", "constani.ttf",
 		"MiriamCLM-Bold.ttf", "MiriamCLM-Book.ttf", "NotoKufi", "NotoNaskh", "NotoSans", "NotoSansArabic",
 		"Noto", "SegoeIcons", "Marlett.ttf", "opens__", "segmdl2", "symbol.ttf", "webdings", "wingding",
 		"Gubbi.ttf", "Navilu.ttf", "DroidSansFallbackFull.ttf", "Mukti.ttf", "Muktibold.ttf", "SanSerifCollection.ttf",

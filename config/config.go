@@ -482,6 +482,14 @@ func CreateConfig() error {
 				Inherent:  true,
 			},
 			{
+				Use:       false,
+				Name:      "PicSum",
+				Title:     "Pictures from PicSum random photos API",
+				Location:  "https://picsum.photos/1920/1080",
+				Operation: "WebPicPage",
+				Inherent:  true,
+			},
+			{
 				Use:       true,
 				Name:      "WallpapersLocal",
 				Title:     "Wallpapers",

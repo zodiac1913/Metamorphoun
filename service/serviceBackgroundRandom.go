@@ -186,6 +186,8 @@ func backgroundGenRandomSource(currentPic config.PicHistory) (config.PicHistory,
 		img, url, err = GetBackgroundNASA(currentPic.ImageItem)
 	} else if currentPic.ImageItem.Name == "UnSplash" {
 		img, url, err = GetBackgroundUnSplash(currentPic.ImageItem)
+	} else if currentPic.ImageItem.Name == "PicSum" {
+		img, url, err = GetBackgroundPicSum(currentPic.ImageItem)
 	} else {
 		//WallpapersLocal && Favorites
 		img, url, err = GetBackgroundFolder(currentPic.ImageItem)

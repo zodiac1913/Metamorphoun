@@ -12,8 +12,8 @@ import (
 	"sync"
 )
 
-const AppVersion = "2025.6.17"
-const PublishedOn = "2025-06-17"
+const AppVersion = "2025.6.25"
+const PublishedOn = "2025-06-25"
 
 var GetFolderPath func(string) string
 
@@ -44,6 +44,7 @@ type Config struct {
 	WallpaperFilterOilify           bool    `json:"wallpaperFilterOilify"`
 	WallpaperFilterWavy             bool    `json:"wallpaperFilterWavy"`
 	WallpaperFilterVortex           bool    `json:"wallpaperFilterVortex"`
+	WallpaperFilterMosaic           bool    `json:"wallpaperFilterMosaic"`
 	//WallpaperFilterSpiral           bool          `json:"wallpaperFilterSpiral"`
 	WallpaperFilterMonochrome bool          `json:"wallpaperFilterMonochrome"`
 	ShowTextOverlay           bool          `json:"showTextOverlay"`
@@ -266,6 +267,8 @@ func UpdateConfigField(propertyName string, newValue interface{}) error {
 		ConfigInstance.WallpaperFilterWavy = zutil.AsBool(fmt.Sprintf("%v", newValue))
 	case "wallpaperFilterVortex":
 		ConfigInstance.WallpaperFilterVortex = zutil.AsBool(fmt.Sprintf("%v", newValue))
+	case "wallpaperFilterMosaic":
+		ConfigInstance.WallpaperFilterMosaic = zutil.AsBool(fmt.Sprintf("%v", newValue))
 	case "wallpaperFilterMonochrome":
 		ConfigInstance.WallpaperFilterMonochrome = zutil.AsBool(fmt.Sprintf("%v", newValue))
 	default:

@@ -320,7 +320,7 @@ func configApi(w http.ResponseWriter, r *http.Request) {
 }
 
 func openLocationApi(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("Made it to formapi\r\n")
+	fmt.Printf("Made it to openLocationApi\r\n")
 
 	// Read the request body
 	jsonData, err := ioutil.ReadAll(r.Body)

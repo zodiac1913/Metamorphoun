@@ -376,6 +376,6 @@ func MosaicSet(currentPic config.PicHistory, img image.Image) (image.Image, erro
 			draw.Draw(mosaic, destRect, tile, image.Point{}, draw.Over)
 		}
 	}
-	saveImage(mosaic, "mosaicEnd.jpg")
+	//saveImage(mosaic, "mosaicEnd.jpg")
 	return mosaic, nil
 }

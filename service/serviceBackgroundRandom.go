@@ -259,7 +259,7 @@ func picTypeAndFilter(currentPic config.PicHistory, img image.Image, filterChoic
 		quadrants := []string{"topLeft", "topRight", "bottomLeft", "bottomRight", "center"}
 		currentPic, img, err = applyVortexToQuadrantsNfo(currentPic, img, quadrants) //, pullDistance, maxAngle, maxDistance
 	case "mosaic":
-		img, err = MosaicSet(currentPic, img, 5, 20) //(img image.Image, tileMinSize int, tileMaxSize int)
+		img, err = MosaicSet(currentPic, img) //(img image.Image, tileMinSize int, tileMaxSize int)
 	case "monochrome":
 		currentPic, img, err = MonochromeItNfo(currentPic, img)
 	default: //Original

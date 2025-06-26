@@ -7,7 +7,6 @@ import (
 	"image/color"
 	"math"
 	"math/rand"
-	"path"
 
 	"github.com/disintegration/imaging"
 	"github.com/fogleman/gg"
@@ -211,95 +210,172 @@ func applyVortexToQuadrantsSet(currentPic config.PicHistory, img image.Image) (i
 //     "github.com/disintegration/imaging"
 // )
 
-// MosaicFilter creates a mosaic effect on an image by breaking it into randomly sized tiles.
-func MosaicSet(currentPic config.PicHistory, img image.Image, tileMinSizeRatio, tileMaxSizeRatio float64) (image.Image, error) {
-	bounds := img.Bounds()
-	width, height := bounds.Dx(), bounds.Dy()
-
-	// Calculate the minimum and maximum tile sizes based on the image dimensions
-	tileMinSize := int(tileMinSizeRatio * float64(width))
-	tileMaxSize := int(tileMaxSizeRatio * float64(width))
-
-	// Make grout much more visible
-	groutMinSize := 15 // Increased for visibility
-	groutMaxSize := 30 // Increased for visibility
-
-	// Use a very dark grout color for contrast
-	groutColor := color.RGBA{R: 0, G: 0, B: 0, A: 255}
-
-	// Create a new blank image with a dark background (grout)
-	mosaic := imaging.New(width, height, groutColor)
-
-	for x := 0; x < width; {
-		tileWidth := rand.Intn(tileMaxSize-tileMinSize+1) + tileMinSize
-		if x+tileWidth > width {
-			tileWidth = width - x
-		}
-
-		groutSize := 0
-
-		for y := 0; y < height; {
-			tileHeight := rand.Intn(tileMaxSize-tileMinSize+1) + tileMinSize
-			if y+tileHeight > height {
-				tileHeight = height - y
-			}
-
-			subImgRect := image.Rect(x, y, x+tileWidth, y+tileHeight)
-			tile := imaging.Crop(img, subImgRect)
-
-			// Edge-only blur: create a mask for the edges and blend blurred tile only at the edges
-			edgeBlurRadius := 8.0 // How much of the edge to blur
-			blurredTile := imaging.Blur(tile, 4.0)
-			mask := image.NewAlpha(tile.Bounds())
-			for mx := 0; mx < tileWidth; mx++ {
-				for my := 0; my < tileHeight; my++ {
-					distToEdge := min(min(mx, tileWidth-1-mx), min(my, tileHeight-1-my))
-					alpha := uint8(0)
-					if float64(distToEdge) < edgeBlurRadius {
-						alpha = uint8(255 * (1.0 - float64(distToEdge)/edgeBlurRadius))
-					}
-					mask.SetAlpha(mx, my, color.Alpha{A: alpha})
-				}
-			}
-			// Manually blend blurred edges with original tile using the mask
-			tileWithBlurredEdges := image.NewNRGBA(tile.Bounds())
-			for mx := 0; mx < tileWidth; mx++ {
-				for my := 0; my < tileHeight; my++ {
-					ma := mask.AlphaAt(mx, my).A
-					origColor := tile.At(mx, my).(color.NRGBA)
-					blurColor := blurredTile.At(mx, my).(color.NRGBA)
-					// Blend: ma=0 -> orig, ma=255 -> blur
-					blend := func(a, b uint8, alpha uint8) uint8 {
-						return uint8((int(a)*(255-int(alpha)) + int(b)*int(alpha)) / 255)
-					}
-					tileWithBlurredEdges.SetNRGBA(mx, my, color.NRGBA{
-						R: blend(origColor.R, blurColor.R, ma),
-						G: blend(origColor.G, blurColor.G, ma),
-						B: blend(origColor.B, blurColor.B, ma),
-						A: origColor.A, // preserve original alpha
-					})
-				}
-			}
-
-			groutSize = rand.Intn(groutMaxSize-groutMinSize+1) + groutMinSize
-
-			// Paste the tile with blurred edges into the mosaic with grout
-			mosaic = imaging.Paste(mosaic, tileWithBlurredEdges, image.Pt(x+groutSize, y+groutSize))
-
-			y += tileHeight + groutSize
-		}
-		x += tileWidth + groutSize
-	}
-	configFldr := GetFolderPath("config")
-	fileLoc := path.Join(configFldr, "mosaicEnd.jpg")
-	saveImage(mosaic, fileLoc)
-	return mosaic, nil
-}
-
-// min helper function
 func min(a, b int) int {
 	if a < b {
 		return a
 	}
 	return b
+}
+
+// func MosaicSet(currentPic config.PicHistory, img image.Image, tileMinSizeRatio, tileMaxSizeRatio float64) (image.Image, error) {
+// 	// --- 1. Internal Settings ---
+// 	// The scale factor for the initial reduction.
+// 	const reductionScale = 0.90
+// 	const maxJitter = 2 // Jitter can be small, as spacing is now guaranteed.
+
+// 	// --- 2. Setup Canvases ---
+// 	bounds := img.Bounds()
+// 	origWidth, origHeight := bounds.Dx(), bounds.Dy()
+
+// 	// The final mosaic canvas is full size and filled with grout color.
+// 	groutColor := color.RGBA{R: 25, G: 25, B: 25, A: 255}
+// 	mosaic := image.NewNRGBA(bounds)
+// 	draw.Draw(mosaic, mosaic.Bounds(), &image.Uniform{C: groutColor}, image.Point{}, draw.Src)
+
+// 	// --- 3. Reduce the Source Image (Our Stable Baseline) ---
+// 	scaledWidth := int(float64(origWidth) * reductionScale)
+// 	scaledImg := imaging.Resize(img, scaledWidth, 0, imaging.Lanczos)
+// 	scaledBounds := scaledImg.Bounds()
+// 	scaledW, scaledH := scaledBounds.Dx(), scaledBounds.Dy()
+
+// 	// Pre-calculate the ratio to stretch the coordinates back out.
+// 	// This is the core of the fix.
+// 	stretchRatioX := float64(origWidth) / float64(scaledW)
+// 	stretchRatioY := float64(origHeight) / float64(scaledH)
+
+// 	// --- 4. Tiling Loop ---
+// 	// Calculate tile size constraints based on the *scaled* image's width.
+// 	tileMinSize := int(tileMinSizeRatio * float64(scaledW))
+// 	tileMaxSize := int(tileMaxSizeRatio * float64(scaledW))
+// 	if tileMinSize <= 1 {
+// 		tileMinSize = 2
+// 	}
+// 	if tileMinSize >= tileMaxSize {
+// 		tileMaxSize = tileMinSize + 20
+// 	}
+
+// 	// Loop over the coordinates of the smaller, scaled-down image.
+// 	for x := 0; x < scaledW; {
+// 		tileWidth := rand.Intn(tileMaxSize-tileMinSize+1) + tileMinSize
+// 		if x+tileWidth > scaledW {
+// 			tileWidth = scaledW - x
+// 		}
+
+// 		for y := 0; y < scaledH; {
+// 			tileHeight := rand.Intn(tileMaxSize-tileMinSize+1) + tileMinSize
+// 			if y+tileHeight > scaledH {
+// 				tileHeight = scaledH - y
+// 			}
+
+// 			// 1. Crop the tile from the small, scaled-down image.
+// 			cropRect := image.Rect(x, y, x+tileWidth, y+tileHeight)
+// 			tile := imaging.Crop(scaledImg, cropRect)
+
+// 			// 2. *** THE FIX: Map the tile's position to the full-size canvas ***
+// 			//    We stretch the (x,y) coordinate from the small image to fill the large canvas.
+// 			destX := int(float64(x) * stretchRatioX)
+// 			destY := int(float64(y) * stretchRatioY)
+
+// 			// 3. Add random jitter for an imperfect, hand-laid look.
+// 			jitterX := rand.Intn(maxJitter*2+1) - maxJitter
+// 			jitterY := rand.Intn(maxJitter*2+1) - maxJitter
+
+// 			// 4. Calculate the final rectangle on the destination canvas.
+// 			pastePoint := image.Pt(destX+jitterX, destY+jitterY)
+// 			destRect := tile.Bounds().Add(pastePoint)
+
+// 			// 5. Draw the tile onto the mosaic at its new, stretched position.
+// 			draw.Draw(mosaic, destRect, tile, image.Point{}, draw.Over)
+
+// 			// Move to the next tile position in the SMALL image.
+// 			y += tileHeight
+// 		}
+// 		x += tileWidth
+// 	}
+// 	saveImage(mosaic, "mosaicEnd.jpg")
+
+//		return mosaic, nil
+//	}
+func MosaicSet(currentPic config.PicHistory, img image.Image) (image.Image, error) {
+	rsRnd := float64((rand.Intn(50) + 50))
+	reductionScale := float64(rsRnd / 100) //0.95
+	maxJitter := (rand.Intn(2) + 2)
+	numberOfTiles := (rand.Intn(2) + 1) * 75
+
+	bounds := img.Bounds()
+	origWidth, origHeight := bounds.Dx(), bounds.Dy()
+
+	//grout color components randomized
+	groutColor := color.RGBA{R: uint8(rand.Intn(64)), G: uint8(rand.Intn(64)), B: uint8(rand.Intn(64)), A: 255}
+	//groutColor := color.RGBA{R: 25, G: 25, B: 25, A: 255}
+	mosaic := image.NewNRGBA(bounds)
+	draw.Draw(mosaic, mosaic.Bounds(), &image.Uniform{C: groutColor}, image.Point{}, draw.Src)
+
+	scaledWidth := int(float64(origWidth) * reductionScale)
+	scaledImg := imaging.Resize(img, scaledWidth, 0, imaging.Lanczos)
+	scaledBounds := scaledImg.Bounds()
+	scaledW, scaledH := scaledBounds.Dx(), scaledBounds.Dy()
+	tileW := origWidth / numberOfTiles
+	tileH := origHeight / numberOfTiles
+
+	stretchRatioX := float64(origWidth) / float64(scaledW)
+	stretchRatioY := float64(origHeight) / float64(scaledH)
+
+	// tileMinSize := int(tileMinSizeRatio * float64(scaledW))
+	// tileMaxSize := int(tileMaxSizeRatio * float64(scaledW))
+
+	// if tileMinSize <= 1 {
+	// 	tileMinSize = 2
+	// }
+	// if tileMinSize >= tileMaxSize {
+	// 	tileMaxSize = tileMinSize + 20
+	// }
+
+	// Calculate number of tiles for even distribution.
+	numTilesX := origWidth / tileW //(tileMinSize * 2) // Adjust multiplier to control density
+	numTilesY := origHeight / tileH
+
+	if numTilesX < 1 {
+		numTilesX = 1
+	}
+	if numTilesY < 1 {
+		numTilesY = 1
+	}
+
+	tileWidth := tileW  //origWidth / numTilesX
+	tileHeight := tileH //origHeight / numTilesY
+
+	for xTile := 0; xTile < numTilesX; xTile++ {
+		x := int(float64(xTile) * float64(tileWidth))
+
+		for yTile := 0; yTile < numTilesY; yTile++ {
+			y := int(float64(yTile) * float64(tileHeight))
+
+			scaledX := int(float64(x) / stretchRatioX)
+			scaledY := int(float64(y) / stretchRatioY)
+
+			tileWidthScaled := int(float64(tileWidth) / stretchRatioX)
+			if scaledX+tileWidthScaled > scaledW {
+				tileWidthScaled = scaledW - scaledX
+			}
+
+			tileHeightScaled := int(float64(tileHeight) / stretchRatioY)
+			if scaledY+tileHeightScaled > scaledH {
+				tileHeightScaled = scaledH - scaledY
+			}
+
+			cropRect := image.Rect(scaledX, scaledY, scaledX+tileWidthScaled, scaledY+tileHeightScaled)
+			tile := imaging.Crop(scaledImg, cropRect)
+
+			jitterX := rand.Intn(maxJitter*2+1) - maxJitter
+			jitterY := rand.Intn(maxJitter*2+1) - maxJitter
+
+			pastePoint := image.Pt(x+jitterX, y+jitterY)
+			destRect := tile.Bounds().Add(pastePoint)
+
+			draw.Draw(mosaic, destRect, tile, image.Point{}, draw.Over)
+		}
+	}
+	saveImage(mosaic, "mosaicEnd.jpg")
+	return mosaic, nil
 }

@@ -308,7 +308,7 @@ func filterCurrentPic(currentPic config.PicHistory, img image.Image) (image.Imag
 	case "vortex":
 		img, err = applyVortexToQuadrantsSet(currentPic, img) //, pullDistance, maxAngle, maxDistance
 	case "mosaic":
-		img, err = MosaicSet(currentPic, img, 5, 20) //(img image.Image, tileMinSize int, tileMaxSize int)
+		img, err = MosaicSet(currentPic, img) //(img image.Image, tileMinSize int, tileMaxSize int)
 	case "monochrome":
 		currentPic, img, err = MonochromeItNfo(currentPic, img)
 	default: //Original

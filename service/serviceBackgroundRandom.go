@@ -218,7 +218,7 @@ func picTypeAndFilter(currentPic config.PicHistory, img image.Image, filterChoic
 		filters = append(filters, "oilify")
 	}
 	if config.ConfigInstance.WallpaperFilterWavy {
-		filters = append(filters, "wavy")
+		filters = append(filters, "picasso")
 	}
 	if config.ConfigInstance.WallpaperFilterMosaic {
 		filters = append(filters, "mosaic")
@@ -253,7 +253,7 @@ func picTypeAndFilter(currentPic config.PicHistory, img image.Image, filterChoic
 		currentPic, img, err = PixelateItNfo(currentPic, img, 0)
 	case "oilify":
 		currentPic, img, err = OilifyItNfo(currentPic, img, 0)
-	case "wavy":
+	case "picasso":
 		currentPic, img, err = PicassoNfo(currentPic, img, 0)
 	case "vortex":
 		quadrants := []string{"topLeft", "topRight", "bottomLeft", "bottomRight", "center"}

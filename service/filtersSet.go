@@ -217,97 +217,20 @@ func min(a, b int) int {
 	return b
 }
 
-// func MosaicSet(currentPic config.PicHistory, img image.Image, tileMinSizeRatio, tileMaxSizeRatio float64) (image.Image, error) {
-// 	// --- 1. Internal Settings ---
-// 	// The scale factor for the initial reduction.
-// 	const reductionScale = 0.90
-// 	const maxJitter = 2 // Jitter can be small, as spacing is now guaranteed.
-
-// 	// --- 2. Setup Canvases ---
-// 	bounds := img.Bounds()
-// 	origWidth, origHeight := bounds.Dx(), bounds.Dy()
-
-// 	// The final mosaic canvas is full size and filled with grout color.
-// 	groutColor := color.RGBA{R: 25, G: 25, B: 25, A: 255}
-// 	mosaic := image.NewNRGBA(bounds)
-// 	draw.Draw(mosaic, mosaic.Bounds(), &image.Uniform{C: groutColor}, image.Point{}, draw.Src)
-
-// 	// --- 3. Reduce the Source Image (Our Stable Baseline) ---
-// 	scaledWidth := int(float64(origWidth) * reductionScale)
-// 	scaledImg := imaging.Resize(img, scaledWidth, 0, imaging.Lanczos)
-// 	scaledBounds := scaledImg.Bounds()
-// 	scaledW, scaledH := scaledBounds.Dx(), scaledBounds.Dy()
-
-// 	// Pre-calculate the ratio to stretch the coordinates back out.
-// 	// This is the core of the fix.
-// 	stretchRatioX := float64(origWidth) / float64(scaledW)
-// 	stretchRatioY := float64(origHeight) / float64(scaledH)
-
-// 	// --- 4. Tiling Loop ---
-// 	// Calculate tile size constraints based on the *scaled* image's width.
-// 	tileMinSize := int(tileMinSizeRatio * float64(scaledW))
-// 	tileMaxSize := int(tileMaxSizeRatio * float64(scaledW))
-// 	if tileMinSize <= 1 {
-// 		tileMinSize = 2
-// 	}
-// 	if tileMinSize >= tileMaxSize {
-// 		tileMaxSize = tileMinSize + 20
-// 	}
-
-// 	// Loop over the coordinates of the smaller, scaled-down image.
-// 	for x := 0; x < scaledW; {
-// 		tileWidth := rand.Intn(tileMaxSize-tileMinSize+1) + tileMinSize
-// 		if x+tileWidth > scaledW {
-// 			tileWidth = scaledW - x
-// 		}
-
-// 		for y := 0; y < scaledH; {
-// 			tileHeight := rand.Intn(tileMaxSize-tileMinSize+1) + tileMinSize
-// 			if y+tileHeight > scaledH {
-// 				tileHeight = scaledH - y
-// 			}
-
-// 			// 1. Crop the tile from the small, scaled-down image.
-// 			cropRect := image.Rect(x, y, x+tileWidth, y+tileHeight)
-// 			tile := imaging.Crop(scaledImg, cropRect)
-
-// 			// 2. *** THE FIX: Map the tile's position to the full-size canvas ***
-// 			//    We stretch the (x,y) coordinate from the small image to fill the large canvas.
-// 			destX := int(float64(x) * stretchRatioX)
-// 			destY := int(float64(y) * stretchRatioY)
-
-// 			// 3. Add random jitter for an imperfect, hand-laid look.
-// 			jitterX := rand.Intn(maxJitter*2+1) - maxJitter
-// 			jitterY := rand.Intn(maxJitter*2+1) - maxJitter
-
-// 			// 4. Calculate the final rectangle on the destination canvas.
-// 			pastePoint := image.Pt(destX+jitterX, destY+jitterY)
-// 			destRect := tile.Bounds().Add(pastePoint)
-
-// 			// 5. Draw the tile onto the mosaic at its new, stretched position.
-// 			draw.Draw(mosaic, destRect, tile, image.Point{}, draw.Over)
-
-// 			// Move to the next tile position in the SMALL image.
-// 			y += tileHeight
-// 		}
-// 		x += tileWidth
-// 	}
-// 	saveImage(mosaic, "mosaicEnd.jpg")
-
-//		return mosaic, nil
-//	}
+// MosaicSet creates a mosaic effect on the input image.
 func MosaicSet(currentPic config.PicHistory, img image.Image) (image.Image, error) {
 	rsRnd := float64((rand.Intn(50) + 50))
 	reductionScale := float64(rsRnd / 100) //0.95
 	maxJitter := (rand.Intn(2) + 2)
-	numberOfTiles := (rand.Intn(2) + 1) * 75
+	numberOfTiles := (rand.Intn(50) + 35) * (rand.Intn(3) + 1)
+
+	fmt.Println("Number of tiles:", numberOfTiles)
 
 	bounds := img.Bounds()
 	origWidth, origHeight := bounds.Dx(), bounds.Dy()
 
 	//grout color components randomized
-	groutColor := color.RGBA{R: uint8(rand.Intn(64)), G: uint8(rand.Intn(64)), B: uint8(rand.Intn(64)), A: 255}
-	//groutColor := color.RGBA{R: 25, G: 25, B: 25, A: 255}
+	groutColor := color.RGBA{R: uint8(rand.Intn(96)), G: uint8(rand.Intn(96)), B: uint8(rand.Intn(96)), A: 255}
 	mosaic := image.NewNRGBA(bounds)
 	draw.Draw(mosaic, mosaic.Bounds(), &image.Uniform{C: groutColor}, image.Point{}, draw.Src)
 

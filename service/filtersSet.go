@@ -221,7 +221,7 @@ func min(a, b int) int {
 func MosaicSet(currentPic config.PicHistory, img image.Image) (image.Image, error) {
 	rsRnd := float64((rand.Intn(50) + 50))
 	reductionScale := float64(rsRnd / 100) //0.95
-	maxJitter := (rand.Intn(2) + 2)
+	maxJitter := (rand.Intn(2) + 1)
 	numberOfTiles := (rand.Intn(50) + 35) * (rand.Intn(3) + 1)
 
 	fmt.Println("Number of tiles:", numberOfTiles)

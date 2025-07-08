@@ -3,9 +3,9 @@ package systemTray
 import (
 	"Metamorphoun/config"
 	"Metamorphoun/enum"
-	"Metamorphoun/icon"
 	"Metamorphoun/server"
 	"Metamorphoun/service"
+	"Metamorphoun/shared"
 	"strings"
 	"time"
 
@@ -24,9 +24,9 @@ var GetFolderPath func(string) string
 type PathLocType string
 
 func MakeSystemTray() {
-	systray.SetTemplateIcon(icon.Data, icon.Data)
-	systray.SetTitle("Background Fun")
-	systray.SetTooltip("Metamorphoun")
+	// systray.SetTemplateIcon(icon.Data, icon.Data)
+	// systray.SetTitle("Metamorphoun")
+	// systray.SetTooltip("Metamorphoun")
 	usr, err := user.Current()
 	if err != nil {
 		fmt.Println("failed to get user home directory:", err)
@@ -42,9 +42,18 @@ func MakeSystemTray() {
 
 	// We can manipulate the systray in other goroutines
 	go func() {
-		systray.SetTemplateIcon(icon.Data, icon.Data)
-		systray.SetTitle("Background Fun")
+		//exeDir := GetFolderPath("executable")
+		iconBytes, err := shared.GetStaticPic("metamorphoun.png") //  filepath.Join(exeDir, "static", "pics", "metamorphoun.png")
+		//iconBytes, err := os.ReadFile(picFile)                  // Adjust path as needed
+		if err != nil {
+			panic("failed to load icon: " + err.Error())
+		}
+		systray.SetIcon(iconBytes)
 		systray.SetTooltip("Metamorphoun")
+		//systray.SetTemplateIcon(icon.Data, icon.Data)
+		//systray.SetIcon(icon.Data)
+		//systray.SetTitle("Metamorphoun")
+		//systray.SetTooltip("Metamorphoun")
 		// mChange := systray.AddMenuItem("Change Me", "Change Me")
 		// mChecked := systray.AddMenuItemCheckbox("Unchecked", "Check Me", true)
 		// mEnabled := systray.AddMenuItem("Enabled", "Enabled")

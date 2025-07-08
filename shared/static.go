@@ -45,3 +45,27 @@ func GetStaticFSQuotes(filename string) ([]byte, error) {
 	}
 	return data, nil
 }
+
+func GetStaticPic(filename string) ([]byte, error) {
+	fmt.Println("Embedded files:", StaticFiles)
+	filenameHasPrefixSlash := filename[0] == '/'
+	filenamePrefix := "static/"
+	if filenameHasPrefixSlash {
+		filenamePrefix = "static"
+	}
+	if strings.Contains(filenamePrefix, "pics") {
+		filenamePrefix = "static/"
+	}
+	if strings.Contains(filenamePrefix, "/pics") {
+		filenamePrefix = "static"
+	}
+	fmt.Println("filenamePrefix:", filenamePrefix)
+	fmt.Println("filename:", filename)
+
+	data, err := StaticFiles.ReadFile(filenamePrefix + "pics/" + filename)
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
+
+}

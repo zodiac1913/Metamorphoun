@@ -12,9 +12,11 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/reujab/wallpaper"
 )
 
@@ -96,7 +98,18 @@ func BackgroundGenerate(caller string, currentPic config.PicHistory) error {
 		if len(sourceExt) > 5 {
 			sourceExt = UnUnsplash(currentPic.OriginName)
 		}
-		currentPic.SaveName = filepath.Join(wallpaperMain, "pic0"+sourceExt)
+		if runtime.GOOS == "darwin" {
+			oldFn := config.ConfigInstance.PicHistories[1].SaveName
+			err = os.Remove(oldFn)
+			if err != nil {
+				fmt.Println("Error deleting pic0 file:", err)
+			}
+
+			fn := uuid.New()
+			currentPic.SaveName = filepath.Join(wallpaperMain, "btrfly"+fn.String()+sourceExt)
+		} else {
+			currentPic.SaveName = filepath.Join(wallpaperMain, "pic0"+sourceExt)
+		}
 		config.ConfigInstance.AddPicHistory(currentPic)
 
 		fileLoc := currentPic.SaveName

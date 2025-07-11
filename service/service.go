@@ -85,12 +85,25 @@ func removeAllPic0s() error {
 			fmt.Println("Error deleting pic0 file:", err)
 		}
 	}
+	pic1Files, err := filepath.Glob(filepath.Join(wallpaperMain, "btrfly*.*"))
+	if err != nil {
+		fmt.Println("Error finding btrfly files:", err)
+	}
+	for _, file := range pic1Files {
+		err = os.Remove(file)
+		if err != nil {
+			fmt.Println("Error deleting btrfly file:", err)
+		}
+	}
 	return nil
 }
 
 // Choose the scaling choice and scale image
 func handleScaling(img image.Image, currentPic config.PicHistory, choice string, err error) (image.Image, config.PicHistory) {
 
+	if GetScreenInfo().len < 1 {
+		return BackgroundGenerate(caller, currentPic)
+	}
 	screenInfo := GetScreenInfo()[0]
 	screenWidth := screenInfo.Width
 	screenHeight := screenInfo.Height

@@ -226,6 +226,9 @@ func GetFontInfo(currentPic config.PicHistory) (float64, string, bool, config.Pi
 		"vemana2000.ttf", "opens___.ttf", "constanb", "SamYak", "LakkiReddy", "Ponnala.ttf",
 		"RaviPrakash.ttf", "Raghu", "Lohit", "holomdl2.ttf", "constanz.ttf", "FrankRuehlCLM-Medium.otf",
 		"corbeli.ttf", "constan.ttf", "SansSerifCollection.ttf",
+
+		//Mac
+		"Braille", "STIXNonUniBolIta.otf",
 	}
 
 	// Get all font files in the specified path

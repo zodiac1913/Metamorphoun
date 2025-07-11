@@ -414,23 +414,26 @@ func OpenFolder(title string, path string) error {
 	}
 
 	var cmd *exec.Cmd
-	if matched {
-		if runtime.GOOS == "linux" {
-			cmd = exec.Command("xdg-open", path)
-		} else if runtime.GOOS == "windows" {
+
+	switch runtime.GOOS {
+	case "linux":
+		cmd = exec.Command("xdg-open", path)
+	case "windows":
+		if matched {
 			cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", path)
-		}
-	} else {
-		if runtime.GOOS == "linux" {
-			cmd = exec.Command("xdg-open", path)
-		} else if runtime.GOOS == "windows" {
+		} else {
 			cmd = exec.Command("explorer", path)
 		}
+	case "darwin":
+		// macOS uses `open` for both folders and URLs
+		cmd = exec.Command("open", path)
+	default:
+		return fmt.Errorf("unsupported platform: %s", runtime.GOOS)
 	}
 
 	err = cmd.Run()
 	if err != nil {
-		fmt.Println("Error opening folder or URL:", err)
+		fmt.Printf("Error opening folder or URL: %v\n", err)
 		return err
 	}
 	return nil

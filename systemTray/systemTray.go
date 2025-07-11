@@ -6,12 +6,14 @@ import (
 	"Metamorphoun/server"
 	"Metamorphoun/service"
 	"Metamorphoun/shared"
+	"runtime"
 	"strings"
 	"time"
 
 	"Metamorphoun/zutil"
 	"fmt"
 	"os"
+	"os/exec"
 	"os/user"
 	"path/filepath"
 
@@ -149,9 +151,33 @@ func MakeSystemTray() {
 			// 	mEnabled.SetTitle("Disabled")
 			// 	mEnabled.Disable()
 			case <-mUrl.ClickedCh:
-				//open.Run("https://www.getlantern.org")
-				urlSettings := "http://" + config.ConfigInstance.ServerAddress + ":" + zutil.AsString(config.ConfigInstance.ServerPort)
-				server.OpenFolder("explorer", urlSettings)
+				{
+					urlSettings := "http://" + config.ConfigInstance.ServerAddress + ":" + zutil.AsString(config.ConfigInstance.ServerPort)
+					var cmd *exec.Cmd
+
+					switch runtime.GOOS {
+					case "windows":
+						// On Windows, use "cmd /c start" or "explorer"
+						// "start" is often more reliable for opening URLs directly.
+						cmd = exec.Command("cmd", "/c", "start", urlSettings)
+					case "darwin": // macOS
+						// On macOS, use the "open" command
+						cmd = exec.Command("open", urlSettings)
+					case "linux":
+						// On Linux, "xdg-open" is the standard way to open files/URLs in the default app.
+						// It relies on FreeDesktop.org standards and works across most desktop environments.
+						cmd = exec.Command("xdg-open", urlSettings)
+					default:
+						fmt.Printf("Unsupported operating system: %s\n", runtime.GOOS)
+						return
+					}
+					// Run the command
+					err := cmd.Start() // Use Start() for non-blocking if you want the tray app to remain responsive
+					if err != nil {
+						fmt.Printf("Error opening URL '%s': %v\n", urlSettings, err)
+						// Consider adding more robust error logging or user notification here
+					}
+				}
 				//case <-subMenuBottom2.ClickedCh:
 				//	panic("panic button pressed")
 				//case <-subMenuBottom.ClickedCh:

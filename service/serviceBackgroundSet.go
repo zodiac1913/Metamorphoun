@@ -53,6 +53,7 @@ func BackgroundSet(caller string, currentPic config.PicHistory) error {
 	if img == nil {
 		fmt.Println("Image is Empty 1 wallpaper firing random")
 		println(err)
+		config.ConfigInstance.BackgroundChangeAttempt++
 		return BackgroundGenerate(caller, currentPic)
 	}
 	sourceExt := filepath.Ext(currentPic.OriginName)
@@ -71,6 +72,7 @@ func BackgroundSet(caller string, currentPic config.PicHistory) error {
 	}
 	if err != nil {
 		fmt.Println("Image is Empty 1 wallpaper firing random")
+		config.ConfigInstance.BackgroundChangeAttempt++
 		return BackgroundGenerate(caller, currentPic)
 	}
 	//Handle Favorite with quote
@@ -88,6 +90,7 @@ func BackgroundSet(caller string, currentPic config.PicHistory) error {
 			currentPic, img, err = SetQuoteBlock(currentPic, img)
 			if (err != nil) || img == nil {
 				fmt.Println("Image is Empty 1 wallpaper firing random")
+				config.ConfigInstance.BackgroundChangeAttempt++
 				return BackgroundGenerate(caller, currentPic)
 			}
 		}

@@ -32,6 +32,7 @@ type Config struct {
 	CurrentBackgroundName           string  `json:"currentBackgroundName"`
 	CurrentBackgroundFolder         string  `json:"currentBackgroundFolder"`
 	BackgroundChangingBlock         bool    `json:"backgroundChangingBlock"`
+	BackgroundChangeAttempt         int     `json:"backgroundChangeAttempt"`
 	StartOnStartup                  bool    `json:"startOnStartup"`
 	ChangeWallpaperOnStartup        bool    `json:"changeWallpaperOnStartup"`
 	ChangeMinutes                   int32   `json:"changeMinutes"`

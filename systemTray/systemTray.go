@@ -130,6 +130,7 @@ func MakeSystemTray() {
 				time.Sleep(15 * time.Second)
 				server.OpenFolder("explorer", favPicFolderWithoutQuote)
 			case <-mNextBG.ClickedCh:
+				config.ConfigInstance.BackgroundChangeAttempt++
 				service.BackgroundGenerate("SystrayNextBackground", config.PicHistory{})
 			case <-mLastBG.ClickedCh:
 				service.RecallBackground("RecallBackground", 1)

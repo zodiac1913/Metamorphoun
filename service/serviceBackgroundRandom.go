@@ -24,6 +24,10 @@ var SetRandomQuote func(config.PicHistory, image.Image) (config.PicHistory, imag
 
 func BackgroundGenerate(caller string, currentPic config.PicHistory) error {
 	println("BackgroundGenerate called from", caller)
+	if config.ConfigInstance.BackgroundChangeAttempt > 3 {
+		log.Println("Too many attempts in", caller)
+		return fmt.Errorf("Too many bad attempts")
+	}
 	config.ConfigInstance.PicUpdateCalled = true
 	var img image.Image
 	picEmpty := false
@@ -38,6 +42,7 @@ func BackgroundGenerate(caller string, currentPic config.PicHistory) error {
 		if err != nil {
 			//Failure to get image item
 			println("Failure to get image item..rerun")
+			config.ConfigInstance.BackgroundChangeAttempt++
 			BackgroundGenerate(caller, currentPic)
 			return nil
 		}
@@ -46,6 +51,7 @@ func BackgroundGenerate(caller string, currentPic config.PicHistory) error {
 		if img == nil {
 			fmt.Println("Image is Empty 1 wallpaper")
 			println(err)
+			config.ConfigInstance.BackgroundChangeAttempt++
 			return BackgroundGenerate(caller, currentPic)
 		}
 		sourceExt := filepath.Ext(currentPic.OriginName)
@@ -75,6 +81,7 @@ func BackgroundGenerate(caller string, currentPic config.PicHistory) error {
 			}
 			if err != nil {
 				fmt.Println("Error applying filter:", err)
+				config.ConfigInstance.BackgroundChangeAttempt++
 				return BackgroundGenerate(caller, currentPic)
 			}
 		}
@@ -84,6 +91,7 @@ func BackgroundGenerate(caller string, currentPic config.PicHistory) error {
 				currentPic, img, err = SetRandomQuote(currentPic, img)
 				if (err != nil) || img == nil {
 					fmt.Println("Error applying quote:")
+					config.ConfigInstance.BackgroundChangeAttempt++
 					return BackgroundGenerate(caller, currentPic)
 				}
 			}
@@ -139,6 +147,7 @@ func BackgroundGenerate(caller string, currentPic config.PicHistory) error {
 	}
 	config.ConfigInstance.PicUpdateCalled = false
 	//Step 6: Save the image
+	config.ConfigInstance.BackgroundChangeAttempt = 0
 	return nil
 }
 

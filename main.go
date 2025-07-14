@@ -99,6 +99,7 @@ func main() {
 
 	if cfg.ChangeWallpaperOnStartup {
 		pic := config.PicHistory{}
+		config.ConfigInstance.BackgroundChangeAttempt = 0
 		service.BackgroundGenerate("ChangeOnStartup", pic)
 	}
 
@@ -124,6 +125,7 @@ func main() {
 	go func() {
 		timer := time.NewTicker(time.Duration(cfg.ChangeMinutes) * time.Minute)
 		pic := config.PicHistory{}
+		config.ConfigInstance.BackgroundChangeAttempt = 0
 		defer timer.Stop()
 		for {
 			select {

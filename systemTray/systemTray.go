@@ -6,6 +6,7 @@ import (
 	"Metamorphoun/server"
 	"Metamorphoun/service"
 	"Metamorphoun/shared"
+	"log"
 	"runtime"
 	"strings"
 	"time"
@@ -45,10 +46,23 @@ func MakeSystemTray() {
 	// We can manipulate the systray in other goroutines
 	go func() {
 		//exeDir := GetFolderPath("executable")
-		iconBytes, err := shared.GetStaticPic("metamorphoun.png") //  filepath.Join(exeDir, "static", "pics", "metamorphoun.png")
+		var iconBytes []byte
+		var err error
+		switch runtime.GOOS {
+		case "windows":
+			iconBytes, err = shared.GetStaticPic("metamorphoun.ico") //  filepath.Join(exeDir, "static", "pics", "metamorphoun.ico")
+		default:
+			iconBytes, err = shared.GetStaticPic("metamorphoun.png") //  filepath.Join(exeDir, "static", "pics", "metamorphoun.ico")
+		}
 		//iconBytes, err := os.ReadFile(picFile)                  // Adjust path as needed
-		if err != nil {
-			panic("failed to load icon: " + err.Error())
+		if err != nil || len(iconBytes) == 0 {
+			log.Println("Icon load failed, using default...")
+			switch runtime.GOOS {
+			case "windows":
+				iconBytes, err = shared.GetStaticPic("safeIcon.ico") //  filepath.Join(exeDir, "static", "pics", "metamorphoun.ico")
+			default:
+				iconBytes, err = shared.GetStaticPic("safeIcon.png") //  filepath.Join
+			}
 		}
 		systray.SetIcon(iconBytes)
 		systray.SetTooltip("Metamorphoun")

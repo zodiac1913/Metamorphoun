@@ -69,3 +69,27 @@ func GetStaticPic(filename string) ([]byte, error) {
 	return data, nil
 
 }
+
+func GetStaticImages(filename string) ([]byte, error) {
+	fmt.Println("Embedded files:", StaticFiles)
+	filenameHasPrefixSlash := filename[0] == '/'
+	filenamePrefix := "static/"
+	if filenameHasPrefixSlash {
+		filenamePrefix = "static"
+	}
+	if strings.Contains(filenamePrefix, "images") {
+		filenamePrefix = "static/"
+	}
+	if strings.Contains(filenamePrefix, "/images") {
+		filenamePrefix = "static"
+	}
+	fmt.Println("filenamePrefix:", filenamePrefix)
+	fmt.Println("filename:", filename)
+
+	data, err := StaticFiles.ReadFile(filenamePrefix + "images/" + filename)
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
+
+}

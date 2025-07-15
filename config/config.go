@@ -421,6 +421,7 @@ func CreateConfig() error {
 	wallpaperDir := GetFolderPath(enum.PathLoc.Pictures)
 	wallpaperFavs := GetFolderPath(enum.PathLoc.Favorites) //filep@th.Join(usr.HomeDir, ".Metamorphoun", "Favorites")
 	wallpaperFS := GetFolderPath(enum.PathLoc.Executable)  //filep@th.Join(exeDir, "static", "images")
+	//staticWallpaperDir := shared.GetStaticImages()
 	cfg := Config{
 		Version:                         AppVersion,
 		Published:                       PublishedOn,

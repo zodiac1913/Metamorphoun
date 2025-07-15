@@ -391,58 +391,26 @@ func GetOpacityAndSetBoxBackground(currentPic config.PicHistory, dc *gg.Context,
 	dc.Fill()
 	return false, currentPic, nil
 }
+func calculateLuminance(r, g, b uint8) float64 {
+	return 0.299*float64(r) + 0.587*float64(g) + 0.114*float64(b)
+}
 func GetTextColor(redColorBackground uint8, greenColorBackground uint8, blueColorBackground uint8, currentPic config.PicHistory, dc *gg.Context) (bool, config.PicHistory, error) {
-	redColorText, greenColorText, blueColorText := uint8(0), uint8(0), uint8(0)
+	var redColorText, greenColorText, blueColorText uint8
+
 	if config.ConfigInstance.QuoteAppearanceRandom {
-		prominentBGColor := "red"
-		if redColorBackground >= greenColorBackground && redColorBackground >= blueColorBackground {
-			prominentBGColor = "red"
-		}
-		if greenColorBackground >= redColorBackground && greenColorBackground >= blueColorBackground {
-			prominentBGColor = "green"
-		}
-		if blueColorBackground >= redColorBackground && blueColorBackground >= greenColorBackground {
-			prominentBGColor = "blue"
-		}
-		otherColorsModifier := uint8(0)
-		if prominentBGColor == "red" {
-			otherColorsModifier = (redColorBackground - greenColorBackground) + (redColorBackground - blueColorBackground)
+		luminance := calculateLuminance(redColorBackground, greenColorBackground, blueColorBackground)
+
+		if luminance < 128 {
+			// Background is dark, use white text
+			redColorText, greenColorText, blueColorText = 255, 255, 255
 		} else {
-			if prominentBGColor == "green" {
-				otherColorsModifier = (greenColorBackground - redColorBackground) + (greenColorBackground - blueColorBackground)
-			} else {
-				otherColorsModifier = (blueColorBackground - greenColorBackground) + (blueColorBackground - redColorBackground)
-			}
-		}
-		redColorText = uint8(224 + rand.Intn(32))
-		if prominentBGColor != "red" {
-			if uint32(redColorText)+uint32(otherColorsModifier) > 255 {
-				redColorText = uint8(255)
-			} else {
-				redColorText += otherColorsModifier
-			}
-		}
-		greenColorText = uint8(224 + rand.Intn(32))
-		if prominentBGColor != "green" {
-			if uint32(greenColorText)+uint32(otherColorsModifier) > 255 {
-				greenColorText = uint8(255)
-			} else {
-				greenColorText += otherColorsModifier
-			}
-		}
-		blueColorText = uint8(224 + rand.Intn(32))
-		if prominentBGColor != "blue" {
-			if uint32(blueColorText)+uint32(otherColorsModifier) > 255 {
-				blueColorText = uint8(255)
-			} else {
-				blueColorText += otherColorsModifier
-			}
+			// Background is light, use black text
+			redColorText, greenColorText, blueColorText = 0, 0, 0
 		}
 
 		currentPic.QuoteTextColorR = redColorText
 		currentPic.QuoteTextColorG = greenColorText
 		currentPic.QuoteTextColorB = blueColorText
-
 	} else {
 		bgR, bgG, bgB, err := ConvertHexToRGB(config.ConfigInstance.QuoteTextColor)
 		if err != nil {
@@ -456,14 +424,87 @@ func GetTextColor(redColorBackground uint8, greenColorBackground uint8, blueColo
 		currentPic.QuoteTextColorR = redColorText
 		currentPic.QuoteTextColorG = greenColorText
 		currentPic.QuoteTextColorB = blueColorText
-
 	}
 
-	fmt.Println("RGB for text: R-", redColorText, ",G-", greenColorText, ",B-", blueColorText, "")
+	fmt.Printf("RGB for text: R-%d, G-%d, B-%d\n", redColorText, greenColorText, blueColorText)
 
 	dc.SetColor(color.RGBA{redColorText, greenColorText, blueColorText, 255})
 	return false, currentPic, nil
 }
+
+// func GetTextColor(redColorBackground uint8, greenColorBackground uint8, blueColorBackground uint8, currentPic config.PicHistory, dc *gg.Context) (bool, config.PicHistory, error) {
+// 	redColorText, greenColorText, blueColorText := uint8(0), uint8(0), uint8(0)
+// 	if config.ConfigInstance.QuoteAppearanceRandom {
+// 		prominentBGColor := "red"
+// 		if redColorBackground >= greenColorBackground && redColorBackground >= blueColorBackground {
+// 			prominentBGColor = "red"
+// 		}
+// 		if greenColorBackground >= redColorBackground && greenColorBackground >= blueColorBackground {
+// 			prominentBGColor = "green"
+// 		}
+// 		if blueColorBackground >= redColorBackground && blueColorBackground >= greenColorBackground {
+// 			prominentBGColor = "blue"
+// 		}
+// 		otherColorsModifier := uint8(0)
+// 		if prominentBGColor == "red" {
+// 			otherColorsModifier = (redColorBackground - greenColorBackground) + (redColorBackground - blueColorBackground)
+// 		} else {
+// 			if prominentBGColor == "green" {
+// 				otherColorsModifier = (greenColorBackground - redColorBackground) + (greenColorBackground - blueColorBackground)
+// 			} else {
+// 				otherColorsModifier = (blueColorBackground - greenColorBackground) + (blueColorBackground - redColorBackground)
+// 			}
+// 		}
+// 		redColorText = uint8(224 + rand.Intn(32))
+// 		if prominentBGColor != "red" {
+// 			if uint32(redColorText)+uint32(otherColorsModifier) > 255 {
+// 				redColorText = uint8(255)
+// 			} else {
+// 				redColorText += otherColorsModifier
+// 			}
+// 		}
+// 		greenColorText = uint8(224 + rand.Intn(32))
+// 		if prominentBGColor != "green" {
+// 			if uint32(greenColorText)+uint32(otherColorsModifier) > 255 {
+// 				greenColorText = uint8(255)
+// 			} else {
+// 				greenColorText += otherColorsModifier
+// 			}
+// 		}
+// 		blueColorText = uint8(224 + rand.Intn(32))
+// 		if prominentBGColor != "blue" {
+// 			if uint32(blueColorText)+uint32(otherColorsModifier) > 255 {
+// 				blueColorText = uint8(255)
+// 			} else {
+// 				blueColorText += otherColorsModifier
+// 			}
+// 		}
+
+// 		currentPic.QuoteTextColorR = redColorText
+// 		currentPic.QuoteTextColorG = greenColorText
+// 		currentPic.QuoteTextColorB = blueColorText
+
+// 	} else {
+// 		bgR, bgG, bgB, err := ConvertHexToRGB(config.ConfigInstance.QuoteTextColor)
+// 		if err != nil {
+// 			fmt.Println("Error converting hex color to RGB:", err)
+// 			return true, currentPic, nil
+// 		}
+// 		redColorText = bgR
+// 		greenColorText = bgG
+// 		blueColorText = bgB
+
+// 		currentPic.QuoteTextColorR = redColorText
+// 		currentPic.QuoteTextColorG = greenColorText
+// 		currentPic.QuoteTextColorB = blueColorText
+
+// 	}
+
+// 	fmt.Println("RGB for text: R-", redColorText, ",G-", greenColorText, ",B-", blueColorText, "")
+
+// 	dc.SetColor(color.RGBA{redColorText, greenColorText, blueColorText, 255})
+// 	return false, currentPic, nil
+// }
 
 type QService struct {
 	interval time.Duration

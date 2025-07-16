@@ -32,6 +32,7 @@ func initCapture() {
 func SetRandomQuote(currentPic config.PicHistory, img image.Image) (config.PicHistory, image.Image, error) {
 	fmt.Println("running setRandomQuote")
 
+	//if(len(service.GetScreenInfo())==0) return currentPic, img, nil
 	screenInfo := service.GetScreenInfo()[0]
 	screenWidth := screenInfo.Width
 	screenHeight := screenInfo.Height

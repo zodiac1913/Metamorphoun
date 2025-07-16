@@ -30,7 +30,9 @@ var updateSignal chan struct{}
 
 func main() {
 	//top!!!
-	//service.RenderFontsSample(fontFldrs)
+	// var ff []string
+	// ff = append(ff, `/System/Library/Fonts/`)
+	// service.RenderFontsSample(ff)
 	//service.ChangeLockScreen = changeLockScreenImpl
 	config.GetFolderPath = getFolderPathImpl
 	morphLog.GetFolderPath = getFolderPathImpl

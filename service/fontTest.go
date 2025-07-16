@@ -143,7 +143,7 @@ func getDefaultFontPath() string {
 	case "windows":
 		return `C:\Windows\Fonts\arial.ttf`
 	case "darwin":
-		return `/Library/Fonts/Arial.ttf`
+		return `/System/Library/Fonts/NewYorkItalic.ttf`
 	default: // linux
 		return `/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf`
 	}

@@ -306,8 +306,8 @@ func filterCurrentPic(currentPic config.PicHistory, img image.Image) (image.Imag
 		img, err = PixelateItSet(currentPic, img)
 	case "oilify":
 		img, err = OilifyItSet(currentPic, img)
-	case "picasso":
-		img, err = PicassoSet(currentPic, img)
+	case "Dali":
+		img, err = DaliSet(currentPic, img)
 	case "vortex":
 		img, err = applyVortexToQuadrantsSet(currentPic, img) //, pullDistance, maxAngle, maxDistance
 	case "mosaic":

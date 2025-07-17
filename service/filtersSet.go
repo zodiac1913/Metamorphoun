@@ -95,7 +95,7 @@ func OilifyItSet(currentPic config.PicHistory, img image.Image) (image.Image, er
 	return newImg, nil
 }
 
-func PicassoSet(currentPic config.PicHistory, img image.Image) (image.Image, error) {
+func DaliSet(currentPic config.PicHistory, img image.Image) (image.Image, error) {
 	screenInfo := GetScreenInfo()[0]
 	screenWidth := screenInfo.Width
 	screenHeight := screenInfo.Height

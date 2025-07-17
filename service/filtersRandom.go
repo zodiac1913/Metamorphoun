@@ -106,8 +106,8 @@ func OilifyItNfo(currentPic config.PicHistory, img image.Image, radius int) (con
 	return currentPic, newImg, nil
 }
 
-// -------------------------FINAL PICASSO---------------------------------------
-func PicassoNfo(currentPic config.PicHistory, img image.Image, intensity float64) (config.PicHistory, image.Image, error) {
+// -------------------------FINAL Dali---------------------------------------
+func DaliNfo(currentPic config.PicHistory, img image.Image, intensity float64) (config.PicHistory, image.Image, error) {
 	screenInfo := GetScreenInfo()[0]
 	screenWidth := screenInfo.Width
 	screenHeight := screenInfo.Height

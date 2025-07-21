@@ -229,7 +229,7 @@ func GetFontInfo(currentPic config.PicHistory) (float64, string, bool, config.Pi
 
 		//Mac
 		"Braille", "STIXNonUniBolIta.otf", "SF", "Bodoni Ornaments.ttf", "Comic Sans MS Bold.ttf", "Ornaments",
-		"NotoSans", "NotoSerif", "STIX", "Webdings", "Symbol", "Dingbats",
+		"NotoSans", "NotoSerif", "STIX", "Webdings", "Symbol", "Dingbats", "Gurmukhi",
 	}
 
 	// Get all font files in the specified path

@@ -111,7 +111,7 @@ func ChangeLockScreen(pic config.PicHistory) error {
 	return nil
 }
 func PrintPlatformMessage() {
-	fmt.Println("Running Windows-specific code")
+	fmt.Println("Running Mac OS-specific code")
 }
 func GetFolderPath(pathNeeded string) string {
 	usr, err := user.Current()

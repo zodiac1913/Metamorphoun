@@ -130,6 +130,10 @@ func BackgroundGenerate(caller string, currentPic config.PicHistory) error {
 		if img == nil {
 			fmt.Println("Image is Empty 6")
 		}
+		if currentPic.ImageItem.Name == "PicSum" {
+			//Picsum images are not saved in the cache
+			saveImage(img, "picSumCache.png")
+		}
 		saveImg(img, fileLoc)
 		//_ = imgType
 

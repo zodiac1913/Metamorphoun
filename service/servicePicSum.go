@@ -21,6 +21,10 @@ func GetBackgroundPicSum(imgItem config.Image) (image.Image, string, error) {
 		fmt.Println("failed to fetch image from URL: %w", err)
 		return nil, "", err
 	}
+	//Picsum gives random pics.  To make sure the normal process works,
+	//  we need to return have a copy of the pure and the filtered image
+	//savePureLoc := filepath.Join(GetFolderPath("config"), "picsumPureCache.png")
+	saveImage(img, "picsumPureCache.png")
 	return img, pic, nil
 }
 

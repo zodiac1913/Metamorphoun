@@ -453,7 +453,7 @@ func localFontApi(w http.ResponseWriter, r *http.Request) {
 	//fmt.Println("formApi-Received JSON:", string(jsonData))
 
 	// Get the path from the configuration
-	fontPath := config.ConfigInstance.TextFontPath
+	fontPath := GetFolderPath(enum.PathLoc.Fonts)
 
 	// Get all font files in the specified path
 	fontFiles, err := getFontFiles(fontPath)

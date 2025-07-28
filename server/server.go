@@ -106,6 +106,7 @@ func errorHandler(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 }
 
+// Save Changes made on web page for configuration
 func formApi(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("Made it to formapi\r\n")
 

@@ -124,12 +124,15 @@ export default class comms{
         let dontProcessFields="images,server_address,serverPort,originalCurrentBackgroundName," +
             "sourceCurrentBackgroundName,sourceCurrentBackgroundFolder," +
             "originalCurrentBackgroundFolder,currentBackgroundName,currentBackgroundFolder" +
-            ",backgroundChangingBlock,textLibraries,currentQuoteStatement" + 
+            ",backgroundChangingBlock,backgroundChangeAttempt,textLibraries,currentQuoteStatement" + 
             ",currentQuoteAuthor,picHistories,picUpdateCalled,version,published".split(',');
+//IF THE input value is null (below) it means the dontProcessFields is not used for a non-DOM config.
+//Add the fields not to process above            
         for (const [key, value] of Object.entries(traffic.config)) {
-            //console.log(`${key}: ${value}`);
+            console.log(`${key}: ${value}`);
             if(!dontProcessFields.includes(key)){
                 let input=document.querySelector("#" + key);
+                if(input===null) console.log("input is null above. Its because the developer added a config field that is not a DOM element");
                 console.log(`${key}: ${value}`);
                 if(input.nodeName === "SELECT"){
                     for(let option of input.options){

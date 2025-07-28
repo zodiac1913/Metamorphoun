@@ -6,6 +6,7 @@ package main
 
 import (
 	"Metamorphoun/config"
+	"Metamorphoun/enum"
 	"Metamorphoun/morphLog"
 	"Metamorphoun/service"
 	"Metamorphoun/zutil"
@@ -97,7 +98,7 @@ var fontDirs = []string{
 func findFonts(currentPic config.PicHistory) (float64, string, bool, config.PicHistory, error) {
 	var foundFonts []string
 	initialFontSize := 22.0
-	fontPath := filepath.Join(config.ConfigInstance.TextFontPath, config.ConfigInstance.TextFontFile)
+	fontPath := filepath.Join(GetFolderPath(enum.PathLoc.Fonts), config.ConfigInstance.TextFontFile)
 	for _, dir := range fontDirs {
 		expandedDir, err := filepath.Abs(dir)
 		if err != nil {
@@ -124,14 +125,14 @@ func findFonts(currentPic config.PicHistory) (float64, string, bool, config.PicH
 			Level:     "INFO",
 			Library:   "AddQuote:Random Font",
 			Operation: "Picked random font",
-			Origin:    config.ConfigInstance.TextFontPath,
+			Origin:    GetFolderPath(enum.PathLoc.Fonts),
 			LocalFile: fontPath,
 		}
 		morphLog.UpdateLogs(lEntry)
 		fmt.Println("new log entry:", lEntry)
 	} else {
 		if zutil.IsInRange(fontPath, foundFonts) {
-			fontPath = filepath.Join(config.ConfigInstance.TextFontPath, config.ConfigInstance.TextFontFile)
+			fontPath = filepath.Join(GetFolderPath(enum.PathLoc.Fonts), config.ConfigInstance.TextFontFile)
 		} else {
 			fontPath = foundFonts[0]
 		}

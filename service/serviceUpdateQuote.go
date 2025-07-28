@@ -215,7 +215,7 @@ func GetScreenInfo() []screenInfo {
 }
 func GetFontInfo(currentPic config.PicHistory) (float64, string, bool, config.PicHistory, error) {
 	initialFontSize := 22.0
-	fontPath := GetFolderPath(enum.PathLoc.Fonts) //filepath.Join(config.ConfigInstance.TextFontPath, config.ConfigInstance.TextFontFile)
+	fontPath := GetFolderPath(enum.PathLoc.Fonts) //filepath.Join(GetFolderPath(enum.PathLoc.Fonts), config.ConfigInstance.TextFontFile)
 	// List of substrings to exclude
 	excludedSubstrings := []string{
 		"AmiriQuran.ttf", "EmojiOneColor-SVGinOT.ttf", "KacstBook.ttf", "KacstOffice.ttf", "constani.ttf",
@@ -270,14 +270,14 @@ func GetFontInfo(currentPic config.PicHistory) (float64, string, bool, config.Pi
 			Level:     "INFO",
 			Library:   "AddQuote:Random Font",
 			Operation: "Picked random font",
-			Origin:    config.ConfigInstance.TextFontPath,
+			Origin:    GetFolderPath(enum.PathLoc.Fonts),
 			LocalFile: fontPath,
 		}
 		morphLog.UpdateLogs(lEntry)
 		fmt.Println("new log entry:", lEntry)
 	} else {
 		if zutil.IsInRange(fontPath, validFontFiles) {
-			fontPath = filepath.Join(config.ConfigInstance.TextFontPath, config.ConfigInstance.TextFontFile)
+			fontPath = filepath.Join(GetFolderPath(enum.PathLoc.Fonts), config.ConfigInstance.TextFontFile)
 		} else {
 			fontPath = validFontFiles[0]
 		}

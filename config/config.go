@@ -52,17 +52,17 @@ type Config struct {
 	TextChangeMinutes         int           `json:"textChangeMinutes"`
 	TextLibraries             []TextLibrary `json:"textLibraries"`
 	TextFontFile              string        `json:"textFontFile"`
-	TextFontPath              string        `json:"textFontPath"`
-	TextBoxLocation           string        `json:"textBoxLocation"`
-	CurrentQuoteStatement     string        `json:"currentQuoteStatement"`
-	CurrentQuoteAuthor        string        `json:"currentQuoteAuthor"`
-	QuoteAppearanceRandom     bool          `json:"quoteAppearanceRandom"`
-	QuoteFontRandom           bool          `json:"quoteFontRandom"`
-	QuoteTextColor            string        `json:"quoteTextColor"`
-	QuoteBackgroundColor      string        `json:"quoteBackgroundColor"`
-	QuoteBackgroundOpacity    string        `json:"quoteBackgroundOpacity"`
-	PicHistories              []PicHistory  `json:"picHistories"`
-	PicUpdateCalled           bool          `json:"picUpdateCalled"`
+	//TextFontPath              string        `json:"textFontPath"`
+	TextBoxLocation        string       `json:"textBoxLocation"`
+	CurrentQuoteStatement  string       `json:"currentQuoteStatement"`
+	CurrentQuoteAuthor     string       `json:"currentQuoteAuthor"`
+	QuoteAppearanceRandom  bool         `json:"quoteAppearanceRandom"`
+	QuoteFontRandom        bool         `json:"quoteFontRandom"`
+	QuoteTextColor         string       `json:"quoteTextColor"`
+	QuoteBackgroundColor   string       `json:"quoteBackgroundColor"`
+	QuoteBackgroundOpacity string       `json:"quoteBackgroundOpacity"`
+	PicHistories           []PicHistory `json:"picHistories"`
+	PicUpdateCalled        bool         `json:"picUpdateCalled"`
 	// Add other configuration fields here
 }
 type Image struct {
@@ -234,8 +234,8 @@ func UpdateConfigField(propertyName string, newValue interface{}) error {
 	case "textChangeMinutes":
 		intValue := zutil.AsInt(fmt.Sprintf("%v", newValue))
 		ConfigInstance.TextChangeMinutes = int(intValue)
-	case "textFontPath":
-		ConfigInstance.TextFontPath = newValue.(string)
+	// case "textFontPath":
+	// 	ConfigInstance.TextFontPath = newValue.(string)
 	case "textFontFile":
 		ConfigInstance.TextFontFile = newValue.(string)
 	case "textBoxLocation":
@@ -503,9 +503,9 @@ func CreateConfig() error {
 				Inherent:  true,
 			},
 		},
-		ShowTextOverlay:           false,
-		TextChangeMinutes:         5,
-		TextFontPath:              "C:\\Windows\\Fonts\\",
+		ShowTextOverlay:   false,
+		TextChangeMinutes: 5,
+		// TextFontPath:              "C:\\Windows\\Fonts\\",
 		TextFontFile:              "DejaVuSans-Bold.ttf",
 		TextBoxLocation:           "TopRight",
 		WallpaperImageSizing:      "",

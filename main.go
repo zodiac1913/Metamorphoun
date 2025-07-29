@@ -11,7 +11,7 @@ import (
 	"context"
 	"fmt"
 	"image"
-	"io/ioutil"
+	"os"
 	"os/exec"
 	"time"
 
@@ -171,7 +171,7 @@ func main() {
 	// 	// System tray onExit function
 	// 	onExit := func() {
 	// 		now := time.Now()
-	// 		ioutil.WriteFile(fmt.Sprintf(`on_exit_%d.txt`, now.UnixNano()), []byte(now.String()), 0644)
+	// 		os.WriteFile(fmt.Sprintf(`on_exit_%d.txt`, now.UnixNano()), []byte(now.String()), 0644)
 	// 		// Signal all goroutines to stop
 	// 		cancel()
 	// 	}
@@ -190,7 +190,7 @@ func main() {
 	//if runtime.GOOS == "windows" {
 	onExit := func() {
 		now := time.Now()
-		ioutil.WriteFile(fmt.Sprintf(`on_exit_%d.txt`, now.UnixNano()), []byte(now.String()), 0644)
+		os.WriteFile(fmt.Sprintf(`on_exit_%d.txt`, now.UnixNano()), []byte(now.String()), 0644)
 		cancel()
 	}
 	systray.Run(systemTray.MakeSystemTray, onExit)

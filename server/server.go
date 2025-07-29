@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"io/ioutil"
 	"log"
 	"net/http"
 
@@ -111,7 +110,7 @@ func formApi(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("Made it to formapi\r\n")
 
 	// Read the request body
-	jsonData, err := ioutil.ReadAll(r.Body)
+	jsonData, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Error reading request body", http.StatusBadRequest)
 		return
@@ -168,7 +167,7 @@ func formApi(w http.ResponseWriter, r *http.Request) {
 
 //	func imagesFieldChangeApi(w http.ResponseWriter, r *http.Request) {
 //		fmt.Printf("Made it to imagesFieldChangeApi\r\n")
-//		jsonData, err1 := ioutil.ReadAll(r.Body)
+//		jsonData, err1 := io.ReadAll(r.Body)
 //		if err1 != nil {
 //		}
 //		fmt.Println("Received JSON:", string(jsonData))
@@ -181,7 +180,7 @@ func formApi(w http.ResponseWriter, r *http.Request) {
 //	}
 // func imagesFieldChangeApi(w http.ResponseWriter, r *http.Request) {
 // 	// Read the request body
-// 	jsonData, err := ioutil.ReadAll(r.Body)
+// 	jsonData, err := io.ReadAll(r.Body)
 // 	if err != nil {
 // 		http.Error(w, "Error reading request body", http.StatusBadRequest)
 // 		return
@@ -213,7 +212,7 @@ func formApi(w http.ResponseWriter, r *http.Request) {
 
 func imagesFieldChangeApi(w http.ResponseWriter, r *http.Request) {
 	// Read the request body
-	jsonData, err := ioutil.ReadAll(r.Body)
+	jsonData, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Error reading request body", http.StatusBadRequest)
 		return
@@ -252,7 +251,7 @@ func textFieldChangeApi(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("Made it to textFieldChangeApi\r\n")
 
 	// Read the request body
-	jsonData, err := ioutil.ReadAll(r.Body)
+	jsonData, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Error reading request body", http.StatusBadRequest)
 		return
@@ -303,7 +302,7 @@ func textFieldChangeApi(w http.ResponseWriter, r *http.Request) {
 func configApi(w http.ResponseWriter, r *http.Request) {
 	configPath := config.GetFolderPath(enum.PathLoc.ConfigFile)
 	// Read config file
-	jsonData, err := ioutil.ReadFile(configPath)
+	jsonData, err := os.ReadFile(configPath)
 	if err != nil {
 		fmt.Println("Failed to read config file:", err)
 		http.Error(w, "Failed to read config file", http.StatusInternalServerError)
@@ -324,7 +323,7 @@ func openLocationApi(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("Made it to openLocationApi\r\n")
 
 	// Read the request body
-	jsonData, err := ioutil.ReadAll(r.Body)
+	jsonData, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Error reading request body", http.StatusBadRequest)
 		return
@@ -444,7 +443,7 @@ func localFontApi(w http.ResponseWriter, r *http.Request) {
 	//fmt.Printf("Made it to localFontApi\r\n")
 
 	// Read the request body
-	//jsonData, err := ioutil.ReadAll(r.Body)
+	//jsonData, err := io.ReadAll(r.Body)
 	// if err != nil {
 	// 	http.Error(w, "Error reading request body", http.StatusBadRequest)
 	// 	return
@@ -483,7 +482,7 @@ func localFontApi(w http.ResponseWriter, r *http.Request) {
 // getFontFiles returns a slice of all font file paths in the given directory
 func getFontFiles(dir string) ([]string, error) {
 	var fontFiles []string
-	files, err := ioutil.ReadDir(dir)
+	files, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, err
 	}
@@ -520,7 +519,7 @@ func addImagesField(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("Made it to addImagesField\r\n")
 
 	// Read the request body
-	jsonData, err := ioutil.ReadAll(r.Body)
+	jsonData, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Error reading request body", http.StatusBadRequest)
 		return
@@ -562,7 +561,7 @@ func editImagesField(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("Made it to editImagesField\r\n")
 
 	// Read the request body
-	jsonData, err := ioutil.ReadAll(r.Body)
+	jsonData, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Error reading request body", http.StatusBadRequest)
 		return

@@ -697,7 +697,7 @@ func CreateConfig() error {
 	}
 
 	// Write the JSON data to the file
-	//err = ioutil.WriteFile(configPath, data, 0600) // Adjust permissions as needed
+	//err = os.WriteFile(configPath, data, 0600) // Adjust permissions as needed
 	err = os.WriteFile(configPath, data, 0600) // Adjust permissions as needed
 	if err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)

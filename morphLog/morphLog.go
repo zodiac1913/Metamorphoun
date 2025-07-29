@@ -4,7 +4,7 @@ import (
 	"Metamorphoun/enum"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"time"
@@ -60,7 +60,7 @@ func UpdateLogs(entry LogItem) []LogItem {
 	}
 
 	// Write the updated JSON data back to the file
-	err = ioutil.WriteFile(logFilePath, data, 0644)
+	err = os.WriteFile(logFilePath, data, 0644)
 	if err != nil {
 		fmt.Errorf("failed to write file: %w", err)
 	}
@@ -81,7 +81,7 @@ func getLog(filename string) ([]LogItem, error) {
 			return nil, fmt.Errorf("failed to marshal JSON: %w", err)
 		}
 		// Create the file and write the JSON data
-		err = ioutil.WriteFile(filename, data, 0644)
+		err = os.WriteFile(filename, data, 0644)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create file: %w", err)
 		}
@@ -93,7 +93,7 @@ func getLog(filename string) ([]LogItem, error) {
 	defer file.Close()
 
 	// Read the file contents
-	data, err := ioutil.ReadAll(file)
+	data, err := io.ReadAll(file)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file: %w", err)
 	}

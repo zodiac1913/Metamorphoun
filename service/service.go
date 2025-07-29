@@ -12,7 +12,6 @@ import (
 	"image/png"
 	_ "image/png"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -329,7 +328,7 @@ func ConvertHexToRGB(hex string) (uint8, uint8, uint8, error) {
 // getFontFiles returns a slice of all font file paths in the given directory
 func getFontFiles(dir string) ([]string, error) {
 	var fontFiles []string
-	files, err := ioutil.ReadDir(dir)
+	files, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, err
 	}
@@ -350,7 +349,7 @@ func getFontFiles(dir string) ([]string, error) {
 
 // func getFontFiles(dir string) ([]string, error) {
 // 	var fontFiles []string
-// 	files, err := ioutil.ReadDir(dir)
+// 	files, err := os.ReadDir(dir)
 // 	if err != nil {
 // 		return nil, err
 // 	}

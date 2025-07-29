@@ -176,7 +176,7 @@ func getDefaultFontPath() string {
 // 		margin := 10
 
 // 		// Get all font files in the specified directory
-// 		files, err := ioutil.ReadDir(fontDir)
+// 		files, err := os.ReadDir(fontDir)
 // 		if err != nil {
 // 			return fmt.Errorf("failed to read font directory: %v", err)
 // 		}

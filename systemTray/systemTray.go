@@ -40,7 +40,6 @@ func MakeSystemTray() {
 	makeFavFolders()
 	favPicFolderWithQuote := filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites", "Pictures", "WithQuotes")
 	favPicFolderWithoutQuote := filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites", "Pictures", "WithOutQuotes")
-
 	//favQuotesFolder := filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites", "Quotes")
 
 	// We can manipulate the systray in other goroutines
@@ -81,6 +80,7 @@ func MakeSystemTray() {
 		favPicsMenu := systray.AddMenuItem("Favorite (Pics)", "Store Favorite Pictures")
 		mFavStoreWQ := favPicsMenu.AddSubMenuItem("Store With Quote", "Store this pic with the quote that is on it")
 		mFavStoreNQ := favPicsMenu.AddSubMenuItem("Store Without Quote", "Store this pic without the quote that is on it")
+		mFavStoreQ := systray.AddMenuItem("Save Quote as Favorite", "Store the quote that is on this pic as a favorite")
 
 		//subMenuMiddle := subMenuTop.AddSubMenuItem("SubMenuMiddle", "SubMenu Test (middle)")
 		//subMenuBottom := subMenuMiddle.AddSubMenuItemCheckbox("SubMenuBottom - Toggle Panic!", "SubMenu Test (bottom) - Hide/Show Panic!", false)
@@ -143,11 +143,15 @@ func MakeSystemTray() {
 				service.RecallBackground("SystrayFavStoreNQ", 0)
 				time.Sleep(15 * time.Second)
 				server.OpenFolder("explorer", favPicFolderWithoutQuote)
+			case <-mFavStoreQ.ClickedCh:
+				cq := config.ConfigInstance.PicHistories[0]
+				storeQuote("{\"statement\": \"" + cq.QuoteStatement + "\", \"author\": \"" + cq.QuoteAuthor + "\"}")
 			case <-mNextBG.ClickedCh:
 				config.ConfigInstance.BackgroundChangeAttempt++
 				service.BackgroundGenerate("SystrayNextBackground", config.PicHistory{})
 			case <-mLastBG.ClickedCh:
 				service.RecallBackground("RecallBackground", 1)
+
 			// case <-mShowCurrentPicture.ClickedCh:
 			// 	currPicInfo := "http://" + config.ConfigInstance.ServerAddress + ":" + zutil.AsString(config.ConfigInstance.ServerPort) + "/picInfo.html"
 			// 	server.OpenFolder("explorer", currPicInfo)
@@ -227,4 +231,46 @@ func makeFavFolders() {
 	if err != nil {
 		fmt.Println("failed to create config directory: %w", err)
 	}
+}
+
+func storeQuote(quoteRecord string) {
+	usr, err := user.Current()
+	if err != nil {
+		fmt.Println("failed to get user home directory:", err)
+		return
+	}
+	favQuoteFolder := filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites", "Quotes")
+	if _, err := os.Stat(favQuoteFolder); os.IsNotExist(err) {
+		fmt.Println("Favorites Quotes folder does not exist, creating it...")
+		err = os.MkdirAll(favQuoteFolder, 0700) // Adjust permissions as needed
+		if err != nil {
+			fmt.Println("failed to create Favorites Quotes directory: %w", err)
+			return
+		}
+	}
+
+	// Create a new file with the current timestamp
+	fileName := fmt.Sprintf("quoteFavorites.json")
+	filePath := filepath.Join(favQuoteFolder, fileName)
+	// Check if file exists and if quoteRecord is already present
+	if data, err := os.ReadFile(filePath); err == nil {
+		if strings.Contains(string(data), quoteRecord) {
+			fmt.Println("Quote already exists in favorites, not saving.")
+			return
+		}
+	}
+
+	// Append the quoteRecord to the file (with a newline for separation)
+	f, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		fmt.Println("failed to open quote file:", err)
+		return
+	}
+	defer f.Close()
+
+	if _, err := f.WriteString(quoteRecord + "\n"); err != nil {
+		fmt.Println("failed to write quote to file:", err)
+		return
+	}
+	fmt.Printf("Quote stored successfully in %s\n", filePath)
 }

@@ -11,6 +11,7 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"os/user"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -377,12 +378,45 @@ func GetQuote(currentPic config.PicHistory) (config.PicHistory, error) {
 
 	config.GetConfig()
 	cfg := config.GetConfig()
+	usr, err := user.Current()
+	if err != nil {
+		fmt.Println("failed to get user home directory:", err)
+		return currentPic, err
+	}
+
 	onQLs := make([]config.TextLibrary, 0)
 	for _, ql := range cfg.TextLibraries {
 		if ql.Use {
 			onQLs = append(onQLs, ql)
 		}
 	}
+
+	favQuoteFolder := filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites", "Quotes", "quoteFavorites.json")
+	if _, err := os.Stat(favQuoteFolder); os.IsNotExist(err) {
+		//Ignore
+	} else {
+
+		fileName := fmt.Sprintf("quoteFavorites.json")
+		filePath := filepath.Join(favQuoteFolder, fileName)
+		third := len(onQLs) / 3
+		if third < 1 {
+			third = 1
+		}
+		// Inject a new record with filePath every 'third' records
+		for i := third - 1; i < len(onQLs); i += third + 1 {
+			newRec := onQLs[i] // copy the current record
+			newRec.Use = true
+			newRec.Name = "Favorites"
+			newRec.Location = filePath
+			newRec.Citation = "Favs"
+			newRec.Creators = "User"
+			newRec.Info = "Generated On the Fly for User"
+			newRec.Inherent = false
+			onQLs = append(onQLs[:i+1], append([]config.TextLibrary{newRec}, onQLs[i+1:]...)...)
+		}
+
+	}
+
 	if len(onQLs) < 1 {
 		log.Println("Error: No Image choices selected. Select a image source")
 		return currentPic, nil
@@ -392,7 +426,7 @@ func GetQuote(currentPic config.PicHistory) (config.PicHistory, error) {
 	qLibrary := onQLs[randomIndex]
 
 	quotesRaw := []byte{}
-	err := error(nil)
+	err = error(nil)
 	if qLibrary.Inherent {
 		quotesRaw, err = shared.GetStaticFSQuotes(qLibrary.Location)
 		if err != nil {

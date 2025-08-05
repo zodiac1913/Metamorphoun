@@ -4,11 +4,14 @@ package zutil
 import (
 	"fmt"
 	"image"
+	"image/jpeg"
+	"image/png"
 	"io"
 	"math"
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 )
 
 func AsString(input interface{}) string {
@@ -142,4 +145,17 @@ func LoadImageFromURL(url string) (image.Image, error) {
 	}
 
 	return img, nil
+}
+
+// loadImg loads an image from the given file path (supports PNG and JPEG)
+func LoadImg(path string) (image.Image, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	if strings.HasSuffix(strings.ToLower(path), ".png") {
+		return png.Decode(f)
+	}
+	return jpeg.Decode(f)
 }

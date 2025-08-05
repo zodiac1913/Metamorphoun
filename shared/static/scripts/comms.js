@@ -13,6 +13,7 @@ export default class comms{
         traffic.server=cfg?.server||"http://127.0.0.1:3000";
         traffic.imagesDiv=document.querySelector("#ImagesDiv");
         traffic.textLibs=document.querySelector("#textLibraries");
+        traffic.picSumSave="";
         window.pic={};
         traffic.updatePicInfo();
 
@@ -93,6 +94,7 @@ export default class comms{
     async fetchConfig(){
         let traffic=this;
         let cfgData=await traffic.apiCall(traffic.server + "/configApi","");
+        traffic.picSumSave=picHistories[0].saveName.replaceAll("pic0","picSumCache")
         traffic.config=cfgData;
         // if(traffic.imagesDiv.innerText.length<3){
         //     traffic.makeImagesItems();
@@ -451,9 +453,18 @@ export default class comms{
         let flexRow2={i:"ImageItemDataFlexRow2",c:"d-flex justify-content-between mb-3",b:[]}
         flexRow2.b.push(
             {i:"inherent",c:"p-2 fw-bold",t:"Is Inherent: ",ttl:"If inherent this can NOT be changed!",b:[{i:"inherentVal",c:"text-Maroon float-end ms-2 fst-italic",t: currentPic.imageItem.inherent.toString()}]},
-            {i:"name",c:"p-2 fw-bold",t:"Name: ",b:[{i:"nameVal",c:"text-Maroon float-end ms-2 fst-italic",t: currentPic.imageItem.name}]},
-            {i:"use",c:"p-2 fw-bold",t:"Use this: ",ttl:"If true this Library is in use",b:[{i:"useVal","data-url":currentPic.imageItem.location,c:"text-Maroon float-end ms-2 fst-italic opencapable",t: currentPic.imageItem.use}]},
         )
+        if(currentPic.imageItem.name==="PicSum"){
+            flexRow2.b.push(
+                {i:"name",c:"p-2 fw-bold",t:"Name: ",b:[{i:"nameVal",c:"text-Maroon float-end ms-2 fst-italic",t: currentPic.imageItem.name}]},
+                {i:"use",c:"p-2 fw-bold",t:"Use this: ",ttl:"If true this Library is in use",b:[{i:"useVal","data-url": traffic.picSumSave,c:"text-Maroon float-end ms-2 fst-italic opencapable",t: currentPic.imageItem.use}]},
+            )
+        }else{
+            flexRow2.b.push(
+                {i:"name",c:"p-2 fw-bold",t:"Name: ",b:[{i:"nameVal",c:"text-Maroon float-end ms-2 fst-italic",t: currentPic.imageItem.name}]},
+                {i:"use",c:"p-2 fw-bold",t:"Use this: ",ttl:"If true this Library is in use",b:[{i:"useVal","data-url":currentPic.imageItem.location,c:"text-Maroon float-end ms-2 fst-italic opencapable",t: currentPic.imageItem.use}]},
+            )
+        }
 
         randomIIPicked.b.push(flexRow1,flexRow2);
         let flexRow3={i:"ImageItemDataFlexRow3",c:"d-flex flex-row bg-dark",b:[]}

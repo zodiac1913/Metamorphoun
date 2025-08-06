@@ -34,6 +34,7 @@ export default class comms{
             // Handle the response if needed
             if (response && JSON.stringify(response) !== JSON.stringify(window.pic)) { // Check if the response is different from the current pic history
                 console.log("Pic history has been updated.");
+                traffic.picSumSave=await window.pic.saveName.replaceAll("pic0","picSumCache");
                 window.pic = response;
                 let currInfoLoading = document.querySelector("#currentInfoLoading");
                 if (currInfoLoading) currInfoLoading.remove();
@@ -94,7 +95,7 @@ export default class comms{
     async fetchConfig(){
         let traffic=this;
         let cfgData=await traffic.apiCall(traffic.server + "/configApi","");
-        traffic.picSumSave=picHistories[0].saveName.replaceAll("pic0","picSumCache")
+        traffic.picSumSave=cfgData.picHistories[0].saveName.replaceAll("pic0","picSumCache")
         traffic.config=cfgData;
         // if(traffic.imagesDiv.innerText.length<3){
         //     traffic.makeImagesItems();

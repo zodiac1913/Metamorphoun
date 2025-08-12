@@ -613,9 +613,13 @@ func editImagesField(w http.ResponseWriter, r *http.Request) {
 func currentInfoApi(w http.ResponseWriter, r *http.Request) {
 	// Read the JSON file
 	var rtnJson = config.ConfigInstance.PicHistories[0]
+	w.Header().Set("Content-Type", "application/json")
+
+	if rtnJson.ImageItem.Name == "PicSum" {
+
+	}
 
 	// Set Content-Type header
-	w.Header().Set("Content-Type", "application/json")
 	// Write JSON data to response
 	jsonBytes, err := json.Marshal(rtnJson)
 	if err != nil {

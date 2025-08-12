@@ -47,8 +47,17 @@ func UpdateQuote(caller string) error {
 		log.Println("Pic History is empty")
 		return nil
 	}
-	//Step 2: get image from source (web/local)
-	img, err = backgroundSetSource(currentPic)
+	//Step 2: get image from source (web/local/PicSum)
+	if currentPic.ImageItem.Name == "PicSum" {
+		picSumCachePath := filepath.Join(GetFolderPath(enum.PathLoc.Config), "picsumPureCache.png")
+		img, err = zutil.LoadImg(picSumCachePath)
+		if err != nil {
+			fmt.Println("Error loading PicSum cache image:", err)
+			return err
+		}
+	} else {
+		img, err = backgroundSetSource(currentPic)
+	}
 	if img == nil {
 		fmt.Println("Image is Empty 1 wallpaper firing random")
 		println(err)

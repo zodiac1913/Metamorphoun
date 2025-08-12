@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"image"
+	"image/png"
 	"log"
 	"math/rand"
 	"os"
@@ -17,7 +18,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/kbinani/screenshot"
 	"github.com/reujab/wallpaper"
+	"golang.org/x/image/draw"
 )
 
 var SetRandomQuote func(config.PicHistory, image.Image) (config.PicHistory, image.Image, error)
@@ -85,6 +88,17 @@ func BackgroundGenerate(caller string, currentPic config.PicHistory) error {
 				return BackgroundGenerate(caller, currentPic)
 			}
 		}
+		if currentPic.ImageItem.Name == "PicSum" {
+			currentPicsFolder := GetFolderPath(enum.PathLoc.Config)
+			picSumCach := filepath.Join(currentPicsFolder, "imgPicSumCache.png")
+			err = os.Remove(picSumCach)
+			if err != nil {
+				fmt.Println("Error deleting pic0 file:", err)
+			}
+			//Picsum images are not saved in the cache
+			saveImage(img, "imgPicSumCache.png")
+		}
+
 		//Step 5: Handle Quote
 		if config.ConfigInstance.ShowTextOverlay {
 			if specialCaseType != "WithQuotes" {
@@ -120,21 +134,30 @@ func BackgroundGenerate(caller string, currentPic config.PicHistory) error {
 		}
 		config.ConfigInstance.AddPicHistory(currentPic)
 
-		fileLoc := currentPic.SaveName
 		removeAllPic0s()
-		// Save the resulting image to the bufferPic path
-		fmt.Println(currentPic.OriginName)
-		if _, err := os.Stat(fileLoc); os.IsExist(err) {
-			os.Remove(fileLoc)
+		fileLoc := ""
+		if runtime.GOOS == "windows" {
+			numDisplays := screenshot.NumActiveDisplays()
+			for i := 0; i < numDisplays; i++ {
+				currentPic.SaveName = filepath.Join(wallpaperMain, "pic"+fmt.Sprintf("%d", i)+sourceExt)
+				fileLoc = currentPic.SaveName
+				// Save the resulting image to the bufferPic path
+				fmt.Println(currentPic.OriginName)
+				if _, err := os.Stat(fileLoc); os.IsExist(err) {
+					os.Remove(fileLoc)
+				}
+				if img == nil {
+					fmt.Println("Image is Empty 6")
+				}
+				// if currentPic.ImageItem.Name == "PicSum" {
+				// 	//Picsum images are not saved in the cache
+				// 	saveImage(img, "imgPicSumCache.png")
+				// }
+
+				saveImg(img, fileLoc)
+
+			}
 		}
-		if img == nil {
-			fmt.Println("Image is Empty 6")
-		}
-		if currentPic.ImageItem.Name == "PicSum" {
-			//Picsum images are not saved in the cache
-			saveImage(img, "picSumCache.png")
-		}
-		saveImg(img, fileLoc)
 		//_ = imgType
 
 		// Set the wallpaper
@@ -152,6 +175,53 @@ func BackgroundGenerate(caller string, currentPic config.PicHistory) error {
 	config.ConfigInstance.PicUpdateCalled = false
 	//Step 6: Save the image
 	config.ConfigInstance.BackgroundChangeAttempt = 0
+	return nil
+}
+
+func SetWallpapersForAllScreens() error {
+	baseDir := GetFolderPath(enum.PathLoc.Config)
+	numDisplays := screenshot.NumActiveDisplays()
+	for i := 0; i < numDisplays; i++ {
+		bounds := screenshot.GetDisplayBounds(i)
+		imgPath := filepath.Join(baseDir, fmt.Sprintf("pic%d.png", i))
+		imgFile, err := os.Open(imgPath)
+		if err != nil {
+			fmt.Printf("Could not open image for screen %d: %v\n", i, err)
+			continue
+		}
+		srcImg, _, err := image.Decode(imgFile)
+		imgFile.Close()
+		if err != nil {
+			fmt.Printf("Could not decode image for screen %d: %v\n", i, err)
+			continue
+		}
+		// Resize/crop to fit the screen bounds
+		dstImg := image.NewRGBA(bounds)
+		draw.CatmullRom.Scale(dstImg, dstImg.Bounds(), srcImg, srcImg.Bounds(), draw.Over, nil)
+
+		// Save the resized image to a temp file
+		outPath := filepath.Join(baseDir, fmt.Sprintf("pic%d_fitted.png", i))
+		outFile, err := os.Create(outPath)
+		if err != nil {
+			fmt.Printf("Could not create output file for screen %d: %v\n", i, err)
+			continue
+		}
+		err = png.Encode(outFile, dstImg)
+		outFile.Close()
+		if err != nil {
+			fmt.Printf("Could not encode output image for screen %d: %v\n", i, err)
+			continue
+		}
+
+		// Set wallpaper for this screen if supported by your wallpaper library
+		err = wallpaper.SetFromFile(outPath)
+		if err != nil {
+			fmt.Printf("Failed to set wallpaper for screen %d: %v\n", i, err)
+			continue
+		} else {
+			fmt.Printf("Wallpaper set successfully for screen %d!\n", i)
+		}
+	}
 	return nil
 }
 

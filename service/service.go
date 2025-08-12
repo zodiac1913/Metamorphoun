@@ -74,7 +74,7 @@ func removeAllPic0s() error {
 	//Delete all files in the picture folder with pic0*.*
 	wallpaperMain := GetFolderPath(enum.PathLoc.Config)
 	//wallpaperFavs := filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites")
-	pic0Files, err := filepath.Glob(filepath.Join(wallpaperMain, "pic0*.*"))
+	pic0Files, err := filepath.Glob(filepath.Join(wallpaperMain, "pic*.*"))
 	if err != nil {
 		fmt.Println("Error finding pic0 files:", err)
 	}

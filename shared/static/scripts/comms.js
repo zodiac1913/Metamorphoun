@@ -470,10 +470,17 @@ export default class comms{
         randomIIPicked.b.push(flexRow3);
         let flexRow4={i:"ImageItemDataFlexRow4",c:"d-flex flex-row mb-3 bg-dark",b:[]}
         let picSavedLink={};
-        if(currentPic.saveName.toLowerCase().startsWith("http")){
-            picSavedLink={n:"a",i:"saveNameVal",href:currentPic.saveName,target:"_blank","title":"Click to see picture",t:currentPic.saveName}
+        if(currentPic.imageItem.name==="PicSum"){
+            let picsumCache=currentPic.saveName.replaceAll("pic0.png","imgPicSumCache.png");
+            // picSavedLink={n:"a",i:"saveNameVal",href:picsumCache,target:"_blank","title":"Click to see picture",t:picsumCache}
+            picSavedLink={i:"saveNameVal","data-url":picsumCache,c:"text-Lavender float-end ms-2 fst-italic opencapable",t: picsumCache}
+
         }else{
-            picSavedLink={i:"saveNameVal","data-url":currentPic.saveName,c:"text-Lavender float-end ms-2 fst-italic opencapable",t: currentPic.saveName}
+            if(currentPic.saveName.toLowerCase().startsWith("http")){
+                picSavedLink={n:"a",i:"saveNameVal",href:currentPic.saveName,target:"_blank","title":"Click to see picture",t:currentPic.saveName}
+            }else{
+                picSavedLink={i:"saveNameVal","data-url":currentPic.saveName,c:"text-Lavender float-end ms-2 fst-italic opencapable",t: currentPic.saveName}
+            }
         }
         flexRow4.b.push(
             {i:"saved",c:"d-flex p-2 fw-bold text-LightSalmon",t:"Picture Saved: "

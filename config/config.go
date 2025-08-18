@@ -9,6 +9,8 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"reflect"
+	"strings"
 	"sync"
 )
 
@@ -176,110 +178,143 @@ func GetImageByName(name string) *Image {
 }
 
 func UpdateConfigField(propertyName string, newValue interface{}) error {
-	//fmt.Println("UpdateConfigField:")
-	//fmt.Println(propertyName)
-	//fmt.Println(newValue)
 	ConfigInstance = GetConfig()
-	//fmt.Println("Config-BEFORE")
-	//fmt.Println(ConfigInstance)
-	switch propertyName {
-	case "serverAddress":
-		ConfigInstance.ServerAddress = newValue.(string)
-	case "serverPort":
-		toString := fmt.Sprintf("%v", newValue)
-		ConfigInstance.ServerPort = zutil.AsInt(toString)
-	case "startOnStartup":
-		boolValue := zutil.AsBool(fmt.Sprintf("%v", newValue))
-		ConfigInstance.StartOnStartup = boolValue
-		fmt.Println("StartOnStartup-SET")
-		if boolValue {
-			err := AddToStartup()
-			if err != nil {
-				log.Println("Error adding to startup:", err)
-			}
-		} else {
-			err := RemoveFromStartup()
-			if err != nil {
-				log.Println("Error adding to startup:", err)
-			}
-		}
-	case "changeWallpaperOnStartup":
-		boolValue := zutil.AsBool(fmt.Sprintf("%v", newValue))
-		ConfigInstance.ChangeWallpaperOnStartup = boolValue
-		fmt.Println("StartOnStartup-SET")
-	case "changeMinutes":
-		intValue := zutil.AsInt(fmt.Sprintf("%v", newValue))
-		ConfigInstance.ChangeMinutes = int32(intValue)
-	case "sourceCurrentBackgroundName":
-		ConfigInstance.SourceCurrentBackgroundName = newValue.(string)
-	case "sourceCurrentBackgroundFolder":
-		ConfigInstance.SourceCurrentBackgroundFolder = newValue.(string)
-	case "originalCurrentBackgroundName":
-		ConfigInstance.OriginalCurrentBackgroundName = newValue.(string)
-	case "originalCurrentBackgroundFolder":
-		ConfigInstance.OriginalCurrentBackgroundFolder = newValue.(string)
-	case "currentBackgroundName":
-		ConfigInstance.CurrentBackgroundName = newValue.(string)
-	case "currentBackgroundFolder":
-		ConfigInstance.CurrentBackgroundFolder = newValue.(string)
-	case "backgroundChangingBlock":
-		ConfigInstance.BackgroundChangingBlock = newValue.(bool)
-	case "currentQuoteStatement":
-		ConfigInstance.CurrentQuoteStatement = newValue.(string)
-	case "currentQuoteAuthor":
-		ConfigInstance.CurrentQuoteAuthor = newValue.(string)
-	case "showTextOverlay":
-		boolValue := zutil.AsBool(fmt.Sprintf("%v", newValue))
-		ConfigInstance.ShowTextOverlay = boolValue
-	case "textChangeMinutes":
-		intValue := zutil.AsInt(fmt.Sprintf("%v", newValue))
-		ConfigInstance.TextChangeMinutes = int(intValue)
-	// case "textFontPath":
-	// 	ConfigInstance.TextFontPath = newValue.(string)
-	case "textFontFile":
-		ConfigInstance.TextFontFile = newValue.(string)
-	case "textBoxLocation":
-		ConfigInstance.TextBoxLocation = newValue.(string)
-	case "quoteAppearanceRandom":
-		boolValue := zutil.AsBool(fmt.Sprintf("%v", newValue))
-		ConfigInstance.QuoteAppearanceRandom = boolValue
-	case "quoteFontRandom":
-		boolValue := zutil.AsBool(fmt.Sprintf("%v", newValue))
-		ConfigInstance.QuoteFontRandom = boolValue
-	case "quoteTextColor":
-		ConfigInstance.QuoteTextColor = newValue.(string)
-	case "quoteBackgroundColor":
-		ConfigInstance.QuoteBackgroundColor = newValue.(string)
-	case "quoteBackgroundOpacity":
-		ConfigInstance.QuoteBackgroundOpacity = newValue.(string)
-	case "wallpaperImageSizing":
-		ConfigInstance.WallpaperImageSizing = newValue.(string)
-	case "wallpaperFilterOriginal":
-		ConfigInstance.WallpaperFilterOriginal = zutil.AsBool(fmt.Sprintf("%v", newValue))
-	case "wallpaperFilterBlurSoft":
-		ConfigInstance.WallpaperFilterBlurSoft = zutil.AsBool(fmt.Sprintf("%v", newValue))
-	case "wallpaperFilterBlurHard":
-		ConfigInstance.WallpaperFilterBlurHard = zutil.AsBool(fmt.Sprintf("%v", newValue))
-	case "wallpaperFilterPixelate":
-		ConfigInstance.WallpaperFilterPixelate = zutil.AsBool(fmt.Sprintf("%v", newValue))
-	case "wallpaperFilterOilify":
-		ConfigInstance.WallpaperFilterOilify = zutil.AsBool(fmt.Sprintf("%v", newValue))
-	case "wallpaperFilterWavy":
-		ConfigInstance.WallpaperFilterWavy = zutil.AsBool(fmt.Sprintf("%v", newValue))
-	case "wallpaperFilterVortex":
-		ConfigInstance.WallpaperFilterVortex = zutil.AsBool(fmt.Sprintf("%v", newValue))
-	case "wallpaperFilterMosaic":
-		ConfigInstance.WallpaperFilterMosaic = zutil.AsBool(fmt.Sprintf("%v", newValue))
-	case "wallpaperFilterMonochrome":
-		ConfigInstance.WallpaperFilterMonochrome = zutil.AsBool(fmt.Sprintf("%v", newValue))
-	default:
-		fmt.Printf("invalid field name: %s", propertyName)
-		return fmt.Errorf("invalid field name: %s", propertyName)
-	}
+	//typeName := reflect.TypeOf(newValue).String()
+	SetConfigField(propertyName, newValue)
+	// switch propertyName {
+	// case "serverAddress":
+	// 	ConfigInstance.ServerAddress = newValue.(string)
+	// case "serverPort":
+	// 	toString := fmt.Sprintf("%v", newValue)
+	// 	ConfigInstance.ServerPort = zutil.AsInt(toString)
+	// case "startOnStartup":
+	// 	boolValue := zutil.AsBool(fmt.Sprintf("%v", newValue))
+	// 	ConfigInstance.StartOnStartup = boolValue
+	// 	fmt.Println("StartOnStartup-SET")
+	// 	if boolValue {
+	// 		err := AddToStartup()
+	// 		if err != nil {
+	// 			log.Println("Error adding to startup:", err)
+	// 		}
+	// 	} else {
+	// 		err := RemoveFromStartup()
+	// 		if err != nil {
+	// 			log.Println("Error adding to startup:", err)
+	// 		}
+	// 	}
+	// case "changeWallpaperOnStartup":
+	// 	boolValue := zutil.AsBool(fmt.Sprintf("%v", newValue))
+	// 	ConfigInstance.ChangeWallpaperOnStartup = boolValue
+	// 	fmt.Println("StartOnStartup-SET")
+	// case "changeMinutes":
+	// 	intValue := zutil.AsInt(fmt.Sprintf("%v", newValue))
+	// 	ConfigInstance.ChangeMinutes = int32(intValue)
+	// case "sourceCurrentBackgroundName":
+	// 	ConfigInstance.SourceCurrentBackgroundName = newValue.(string)
+	// case "sourceCurrentBackgroundFolder":
+	// 	ConfigInstance.SourceCurrentBackgroundFolder = newValue.(string)
+	// case "originalCurrentBackgroundName":
+	// 	ConfigInstance.OriginalCurrentBackgroundName = newValue.(string)
+	// case "originalCurrentBackgroundFolder":
+	// 	ConfigInstance.OriginalCurrentBackgroundFolder = newValue.(string)
+	// case "currentBackgroundName":
+	// 	ConfigInstance.CurrentBackgroundName = newValue.(string)
+	// case "currentBackgroundFolder":
+	// 	ConfigInstance.CurrentBackgroundFolder = newValue.(string)
+	// case "backgroundChangingBlock":
+	// 	ConfigInstance.BackgroundChangingBlock = newValue.(bool)
+	// case "currentQuoteStatement":
+	// 	ConfigInstance.CurrentQuoteStatement = newValue.(string)
+	// case "currentQuoteAuthor":
+	// 	ConfigInstance.CurrentQuoteAuthor = newValue.(string)
+	// case "showTextOverlay":
+	// 	boolValue := zutil.AsBool(fmt.Sprintf("%v", newValue))
+	// 	ConfigInstance.ShowTextOverlay = boolValue
+	// case "textChangeMinutes":
+	// 	intValue := zutil.AsInt(fmt.Sprintf("%v", newValue))
+	// 	ConfigInstance.TextChangeMinutes = int(intValue)
+	// // case "textFontPath":
+	// // 	ConfigInstance.TextFontPath = newValue.(string)
+	// case "textFontFile":
+	// 	ConfigInstance.TextFontFile = newValue.(string)
+	// case "textBoxLocation":
+	// 	ConfigInstance.TextBoxLocation = newValue.(string)
+	// case "quoteAppearanceRandom":
+	// 	boolValue := zutil.AsBool(fmt.Sprintf("%v", newValue))
+	// 	ConfigInstance.QuoteAppearanceRandom = boolValue
+	// case "quoteFontRandom":
+	// 	boolValue := zutil.AsBool(fmt.Sprintf("%v", newValue))
+	// 	ConfigInstance.QuoteFontRandom = boolValue
+	// case "quoteTextColor":
+	// 	ConfigInstance.QuoteTextColor = newValue.(string)
+	// case "quoteBackgroundColor":
+	// 	ConfigInstance.QuoteBackgroundColor = newValue.(string)
+	// case "quoteBackgroundOpacity":
+	// 	ConfigInstance.QuoteBackgroundOpacity = newValue.(string)
+	// case "wallpaperImageSizing":
+	// 	ConfigInstance.WallpaperImageSizing = newValue.(string)
+	// case "wallpaperFilterOriginal":
+	// 	ConfigInstance.WallpaperFilterOriginal = zutil.AsBool(fmt.Sprintf("%v", newValue))
+	// case "wallpaperFilterBlurSoft":
+	// 	ConfigInstance.WallpaperFilterBlurSoft = zutil.AsBool(fmt.Sprintf("%v", newValue))
+	// case "wallpaperFilterBlurHard":
+	// 	ConfigInstance.WallpaperFilterBlurHard = zutil.AsBool(fmt.Sprintf("%v", newValue))
+	// case "wallpaperFilterPixelate":
+	// 	ConfigInstance.WallpaperFilterPixelate = zutil.AsBool(fmt.Sprintf("%v", newValue))
+	// case "wallpaperFilterOilify":
+	// 	ConfigInstance.WallpaperFilterOilify = zutil.AsBool(fmt.Sprintf("%v", newValue))
+	// case "wallpaperFilterWavy":
+	// 	ConfigInstance.WallpaperFilterWavy = zutil.AsBool(fmt.Sprintf("%v", newValue))
+	// case "wallpaperFilterVortex":
+	// 	ConfigInstance.WallpaperFilterVortex = zutil.AsBool(fmt.Sprintf("%v", newValue))
+	// case "wallpaperFilterMosaic":
+	// 	ConfigInstance.WallpaperFilterMosaic = zutil.AsBool(fmt.Sprintf("%v", newValue))
+	// case "wallpaperFilterMonochrome":
+	// 	ConfigInstance.WallpaperFilterMonochrome = zutil.AsBool(fmt.Sprintf("%v", newValue))
+	// default:
+	// 	fmt.Printf("invalid field name: %s", propertyName)
+	// 	return fmt.Errorf("invalid field name: %s", propertyName)
+	// }
 	//fmt.Println("Config-AFTER")
 	//fmt.Println(ConfigInstance)
 	return SaveConfig(ConfigInstance)
 }
+
+func SetConfigField(fieldName string, value interface{}) error {
+
+	v := reflect.ValueOf(ConfigInstance).Elem()
+	f := CaseInsensitiveFieldByName(v, fieldName)
+	if !f.IsValid() {
+		return fmt.Errorf("no such field: %s", fieldName)
+	}
+	if !f.CanSet() {
+		return fmt.Errorf("cannot set field: %s", fieldName)
+	}
+	val := reflect.ValueOf(value)
+	// Convert value to the correct type if needed
+	if val.Type() != f.Type() {
+		val = val.Convert(f.Type())
+	}
+	f.Set(val)
+	return nil
+}
+
+// CaseInsensitiveFieldByName returns the struct field with the given name (case-insensitive).
+func CaseInsensitiveFieldByName(v reflect.Value, name string) reflect.Value {
+	v = reflect.Indirect(v)
+	if v.Kind() != reflect.Struct {
+		return reflect.Value{}
+	}
+	lower := strings.ToLower(name)
+	t := v.Type()
+	for i := 0; i < t.NumField(); i++ {
+		if strings.ToLower(t.Field(i).Name) == lower {
+			return v.Field(i)
+		}
+	}
+	return reflect.Value{}
+}
+
 func AddToStartup() error {
 	err := AddToStartup()
 	if err != nil {

@@ -32,15 +32,21 @@ export default class comms{
             let response = await traffic.apiCall(traffic.server + "/currentInfoApi", "");
             //console.log("Pic history update check:", response);
             // Handle the response if needed
-            if (response && JSON.stringify(response) !== JSON.stringify(window.pic)) { // Check if the response is different from the current pic history
+            //if (response && JSON.stringify(response) !== JSON.stringify(window.pic)) { // Check if the response is different from the current pic history
                 console.log("Pic history has been updated.");
-                traffic.picSumSave=await window.pic.saveName.replaceAll("pic0","picSumCache");
-                window.pic = response;
+                if(response.imageItem.name==="PicSum"){
+                    traffic.picSumSave=await response.saveName.replaceAll("pic0","picSumCache");
+                }
+                //not necessarily needed
+                window.pic = JSON.stringify(response);
                 let currInfoLoading = document.querySelector("#currentInfoLoading");
                 if (currInfoLoading) currInfoLoading.remove();
                 traffic.currentInfoUpdate();
                 // Perform any additional actions if the history is updated
-            }
+            // }else{
+            //     console.log("No change in pic history.");
+            //     traffic.currentInfoUpdate();
+            // }
         } catch (error) {
             console.error("Error checking pic history update:", error);
         }
@@ -443,7 +449,7 @@ export default class comms{
 
     async currentInfoUpdate(){
         let traffic=this;
-        const currentPic=window.pic; // this is the current picture object from the server
+        const currentPic=typeof(window.pic)==="object"?window.pic:JSON.parse(window.pic); // this is the current picture object from the server
         let randomIIPicked={i:"ImageItemData",c:"bg-AliceBlue fw-bolder text-FireBrick mx-5",b:[]}
         let flexRow1={i:"ImageItemDataFlexRow1",c:"d-flex justify-content-between mb-3",b:[]}
         flexRow1.b.push(

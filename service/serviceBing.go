@@ -22,7 +22,7 @@ func GetBackgroundBing(imgItem config.Image) (image.Image, string, error) {
 	}
 	//choose image to use
 	if len(wppArray) < 1 {
-		fmt.Println("Error: No img links found on page ", imgItem.Location, " for ", imgItem.Operation, " on ", wppErr.Error())
+		//fmt.Println("Error: No img links found on page ", imgItem.Location, " for ", imgItem.Operation, " on ", wppErr.Error())
 		return nil, "", nil
 	}
 	wppRnd := rand.Intn(len(wppArray))

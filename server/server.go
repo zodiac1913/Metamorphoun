@@ -51,6 +51,10 @@ func Serve(cfg config.Config) bool { //serverUrl string, serverPort int
 	http.HandleFunc("/fileUploadForm", fileUploadForm)
 	//http.HandleFunc("/uploadFile", uploadFile)
 
+	http.HandleFunc("/lastBackgroundApi", lastBackgroundApi)
+	http.HandleFunc("/nextBackgroundApi", nextBackgroundApi)
+	http.HandleFunc("/saveFavoriteApi", saveFavoriteApi)
+
 	// Register pprof handlers on the custom mux
 	// mux.HandleFunc("/debug/pprof/", pprof.Index)
 	// mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
@@ -164,51 +168,6 @@ func formApi(w http.ResponseWriter, r *http.Request) {
 	w.Write(jData)
 
 }
-
-//	func imagesFieldChangeApi(w http.ResponseWriter, r *http.Request) {
-//		fmt.Printf("Made it to imagesFieldChangeApi\r\n")
-//		jsonData, err1 := io.ReadAll(r.Body)
-//		if err1 != nil {
-//		}
-//		fmt.Println("Received JSON:", string(jsonData))
-//		var data Data
-//		json.NewDecoder(r.Body).Decode(&data)
-//		fmt.Printf("Received data: %+v\n", data)
-//		config.UpdateImagesField(data.Name, data.Value)
-//		w.WriteHeader(http.StatusOK)
-//		w.Write([]byte("Data received successfully"))
-//	}
-// func imagesFieldChangeApi(w http.ResponseWriter, r *http.Request) {
-// 	// Read the request body
-// 	jsonData, err := io.ReadAll(r.Body)
-// 	if err != nil {
-// 		http.Error(w, "Error reading request body", http.StatusBadRequest)
-// 		return
-// 	}
-// 	defer r.Body.Close() // Close the body to prevent resource leaks
-
-// 	// Print the received JSON for debugging
-// 	fmt.Println("Received JSON:", string(jsonData))
-
-// 	// Define a struct to hold the incoming JSON data
-// 	var data struct {
-// 		Parameter string `json:"parameter"`
-// 		Value     bool   `json:"value"`
-// 	}
-
-// 	// Unmarshal the JSON data into the struct
-// 	err = json.Unmarshal(jsonData, &data)
-// 	if err != nil {
-// 		http.Error(w, "Error unmarshaling JSON", http.StatusBadRequest)
-// 		return
-// 	}
-
-// 	config.UpdateImagesField(data.Parameter, data.Value)
-
-// 	// Respond with success
-// 	w.WriteHeader(http.StatusOK)
-// 	w.Write([]byte("Configuration updated successfully"))
-// }
 
 func imagesFieldChangeApi(w http.ResponseWriter, r *http.Request) {
 	// Read the request body

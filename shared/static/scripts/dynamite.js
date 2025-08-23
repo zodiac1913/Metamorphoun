@@ -64,6 +64,32 @@ export default class dynamite{
 
 			});
 		}
+        //Web Actions (allow for web page instead of system tray)
+        //Background Change
+        document.querySelector("#callLastBackground").addEventListener("click",async (e)=>{
+            let apicallRtn=await bang.traffic.apiCall(bang.traffic.server + "/lastBackgroundApi",{})
+            console.log(apicallRtn);
+        });
+        document.querySelector("#callNextBackground").addEventListener("click",async (e)=>{
+            let apicallRtn=await bang.traffic.apiCall(bang.traffic.server + "/nextBackgroundApi",{})
+            console.log(apicallRtn);
+        });
+        //Favorites Menu
+        document.querySelector("#FavsBGWith").addEventListener("click",async (e)=>{
+            let apicallRtn=await bang.traffic.apiCall(bang.traffic.server + "/saveFavoriteApi",{type:"BG","save":"quoteOnBG"})
+            console.log(apicallRtn);
+        });
+        document.querySelector("#FavsBGWithout").addEventListener("click",async (e)=>{
+            let apicallRtn=await bang.traffic.apiCall(bang.traffic.server + "/saveFavoriteApi",{type:"BG","save":"noQuoteOnBG"})
+            console.log(apicallRtn);
+        });
+        document.querySelector("#FavsQuote").addEventListener("click",async (e)=>{
+            let apicallRtn=await bang.traffic.apiCall(bang.traffic.server + "/saveFavoriteApi",{type:"Quote","save":"quote"})
+            console.log(apicallRtn);
+        });
+        //End Web Actions
+
+
     }
 
 

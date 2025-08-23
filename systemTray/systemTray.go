@@ -13,7 +13,6 @@ import (
 
 	"Metamorphoun/zutil"
 	"fmt"
-	"os"
 	"os/exec"
 	"os/user"
 	"path/filepath"
@@ -37,7 +36,7 @@ func MakeSystemTray() {
 	now := time.Now()
 	dt := now.Format("20060102_150405")
 	wallpaperMain := GetFolderPath(enum.PathLoc.Config)
-	makeFavFolders()
+	service.MakeFavFolders()
 	favPicFolderWithQuote := filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites", "Pictures", "WithQuotes")
 	favPicFolderWithoutQuote := filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites", "Pictures", "WithOutQuotes")
 	//favQuotesFolder := filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites", "Quotes")
@@ -141,11 +140,11 @@ func MakeSystemTray() {
 				}
 			case <-mFavStoreNQ.ClickedCh:
 				service.RecallBackground("SystrayFavStoreNQ", 0)
-				time.Sleep(15 * time.Second)
+				time.Sleep(5 * time.Second)
 				server.OpenFolder("explorer", favPicFolderWithoutQuote)
 			case <-mFavStoreQ.ClickedCh:
 				cq := config.ConfigInstance.PicHistories[0]
-				storeQuote("{\"statement\": \"" + cq.QuoteStatement + "\", \"author\": \"" + cq.QuoteAuthor + "\"}")
+				service.StoreQuote("{\"statement\": \"" + cq.QuoteStatement + "\", \"author\": \"" + cq.QuoteAuthor + "\"}")
 			case <-mNextBG.ClickedCh:
 				config.ConfigInstance.BackgroundChangeAttempt++
 				service.BackgroundGenerate("SystrayNextBackground", config.PicHistory{})
@@ -212,65 +211,23 @@ func MakeSystemTray() {
 	}()
 }
 
-func makeFavFolders() {
-	usr, err := user.Current()
-	if err != nil {
-		fmt.Println("failed to get user home directory:", err)
-	}
-	//wallpaperFavs := filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites")
+// func makeFavFolders() {
+// 	usr, err := user.Current()
+// 	if err != nil {
+// 		fmt.Println("failed to get user home directory:", err)
+// 	}
+// 	//wallpaperFavs := filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites")
 
-	err = os.MkdirAll(filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites", "Pictures", "WithQuotes"), 0700) // Adjust permissions as needed
-	if err != nil {
-		fmt.Println("failed to create config directory: %w", err)
-	}
-	err = os.MkdirAll(filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites", "Pictures", "WithOutQuotes"), 0700) // Adjust permissions as needed
-	if err != nil {
-		fmt.Println("failed to create config directory: %w", err)
-	}
-	err = os.MkdirAll(filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites", "Quotes"), 0700) // Adjust permissions as needed
-	if err != nil {
-		fmt.Println("failed to create config directory: %w", err)
-	}
-}
-
-func storeQuote(quoteRecord string) {
-	usr, err := user.Current()
-	if err != nil {
-		fmt.Println("failed to get user home directory:", err)
-		return
-	}
-	favQuoteFolder := filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites", "Quotes")
-	if _, err := os.Stat(favQuoteFolder); os.IsNotExist(err) {
-		fmt.Println("Favorites Quotes folder does not exist, creating it...")
-		err = os.MkdirAll(favQuoteFolder, 0700) // Adjust permissions as needed
-		if err != nil {
-			fmt.Println("failed to create Favorites Quotes directory: %w", err)
-			return
-		}
-	}
-
-	// Create a new file with the current timestamp
-	fileName := fmt.Sprintf("quoteFavorites.json")
-	filePath := filepath.Join(favQuoteFolder, fileName)
-	// Check if file exists and if quoteRecord is already present
-	if data, err := os.ReadFile(filePath); err == nil {
-		if strings.Contains(string(data), quoteRecord) {
-			fmt.Println("Quote already exists in favorites, not saving.")
-			return
-		}
-	}
-
-	// Append the quoteRecord to the file (with a newline for separation)
-	f, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		fmt.Println("failed to open quote file:", err)
-		return
-	}
-	defer f.Close()
-
-	if _, err := f.WriteString(quoteRecord + "\n"); err != nil {
-		fmt.Println("failed to write quote to file:", err)
-		return
-	}
-	fmt.Printf("Quote stored successfully in %s\n", filePath)
-}
+// 	err = os.MkdirAll(filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites", "Pictures", "WithQuotes"), 0700) // Adjust permissions as needed
+// 	if err != nil {
+// 		fmt.Println("failed to create config directory: %w", err)
+// 	}
+// 	err = os.MkdirAll(filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites", "Pictures", "WithOutQuotes"), 0700) // Adjust permissions as needed
+// 	if err != nil {
+// 		fmt.Println("failed to create config directory: %w", err)
+// 	}
+// 	err = os.MkdirAll(filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites", "Quotes"), 0700) // Adjust permissions as needed
+// 	if err != nil {
+// 		fmt.Println("failed to create config directory: %w", err)
+// 	}
+// }

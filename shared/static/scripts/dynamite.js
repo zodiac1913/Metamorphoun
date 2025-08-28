@@ -59,8 +59,12 @@ export default class dynamite{
 			//set change functions
 			inpt.addEventListener("change",async (e)=>{
 				await window.comms.formFieldChanged(e);
-				if(e.target.id === "quoteFontRandom") bang.quoteFontRandomWiring(e);
-                if(e.target.id === "quoteAppearanceRandom") bang.quoteAppearanceRandomWiring(e);
+                if(e.target.id === "quoteFontRandom") {
+                    bang.quoteFontRandomWiring(e);
+                }
+                if(e.target.id === "quoteAppearanceRandom") {
+                    bang.quoteAppearanceRandomWiring(e);
+                }
 
 			});
 		}

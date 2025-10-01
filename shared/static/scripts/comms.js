@@ -10,7 +10,7 @@ export default class comms{
         let traffic=this;
         traffic.controller=new AbortController();
         traffic.signal=this.controller.signal;
-        traffic.server=cfg?.server||"http://127.0.0.1:3000";
+        traffic.server=cfg?.server||"http://localhost:3000";
         traffic.imagesDiv=document.querySelector("#ImagesDiv");
         traffic.textLibs=document.querySelector("#textLibraries");
         traffic.picSumSave="";

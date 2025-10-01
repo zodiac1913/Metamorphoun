@@ -10,6 +10,7 @@ import (
 	"io"
 	"io/fs"
 	"log"
+	"net"
 	"net/http"
 
 	//"net/http/pprof"
@@ -34,6 +35,17 @@ type PathLocType string
 type Data struct {
 	Name  string `json:"parameter"`
 	Value string `json:"value"`
+}
+
+func findAvailablePort(address string, startPort, maxPort int) (int, error) {
+	for port := startPort; port <= maxPort; port++ {
+		ln, err := net.Listen("tcp", fmt.Sprintf("%s:%d", address, port))
+		if err == nil {
+			ln.Close()
+			return port, nil
+		}
+	}
+	return 0, fmt.Errorf("no available port found in range %d-%d", startPort, maxPort)
 }
 
 func Serve(cfg config.Config) bool { //serverUrl string, serverPort int
@@ -82,14 +94,33 @@ func Serve(cfg config.Config) bool { //serverUrl string, serverPort int
 
 	log.Print("Listening on :3000...")
 	log.Printf("Listening on %s:%d...", cfg.ServerAddress, cfg.ServerPort)
-	//serverAddress := fmt.Sprintf("%s:%d", cfg.ServerAddress, cfg.ServerPort)
-	//err := http.ListenAndServe(serverAddress, mux)
-	err = http.ListenAndServe(":3000", nil)
+
+	address := cfg.ServerAddress
+	if address == "" {
+		address = "localhost"
+	}
+	port, err := findAvailablePort(address, cfg.ServerPort, cfg.ServerPort+100)
+	if err != nil {
+		log.Fatalf("No available port found: %v", err)
+		return false
+	}
+	log.Printf("Listening on %s:%d...", address, port)
+	config.ConfigInstance.ServerPort = port
+	serverAddress := fmt.Sprintf("%s:%d", address, port)
+	err = http.ListenAndServe(serverAddress, nil)
 	if err != nil {
 		fmt.Println(err)
 		return false
 	}
 	return true
+	// //serverAddress := fmt.Sprintf("%s:%d", cfg.ServerAddress, cfg.ServerPort)
+	// //err := http.ListenAndServe(serverAddress, mux)
+	// err = http.ListenAndServe(":3000", nil)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// 	return false
+	// }
+	// return true
 }
 
 func errorHandler(w http.ResponseWriter, r *http.Request) {

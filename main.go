@@ -13,6 +13,7 @@ import (
 	"image"
 	"os"
 	"os/exec"
+	"strconv"
 	"time"
 
 	"github.com/getlantern/systray"
@@ -193,6 +194,7 @@ func main() {
 		os.WriteFile(fmt.Sprintf(`on_exit_%d.txt`, now.UnixNano()), []byte(now.String()), 0644)
 		cancel()
 	}
+	server.OpenFolder("explorer", "http://localhost:"+strconv.Itoa(config.ConfigInstance.ServerPort))
 	systray.Run(systemTray.MakeSystemTray, onExit)
 	<-ctx.Done()
 	//Perhaps check if the systray fails via err and then run the gui

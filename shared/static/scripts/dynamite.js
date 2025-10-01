@@ -223,7 +223,7 @@ export default class dynamite{
         locationInputRow.b.push(labelLocation,locationInput);
 
         
-        let locationPopUp = {n:"a",href:"http://127.0.0.1:3000/openLocationApi",target:"_blank",b:[
+        let locationPopUp = {n:"a",href:"http://localhost:3000/openLocationApi",target:"_blank",b:[
             {n:"img",src:"/pics/folder.png",alt:"Use this to open a folder and copy the folder path to paste in the input.  Sorry for the overzealous web security issues!",height:32,width:32}
         ]};
         locationInputRow.b.push(locationPopUp);
@@ -344,7 +344,7 @@ export default class dynamite{
         locationInputRow.b.push(labelLocation,locationInput);
 
         
-        let locationPopUp = {n:"a",href:"http://127.0.0.1:3000/openLocationApi",target:"_blank",b:[
+        let locationPopUp = {n:"a",href:"http://localhost:3000/openLocationApi",target:"_blank",b:[
             {n:"img",src:"/pics/folder.png",alt:"Use this to open a folder and copy the folder path to paste in the input.  Sorry for the overzealous web security issues!",height:32,width:32}
         ]};
         locationInputRow.b.push(locationPopUp);

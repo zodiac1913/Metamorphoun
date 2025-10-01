@@ -460,7 +460,7 @@ func CreateConfig() error {
 	cfg := Config{
 		Version:                         AppVersion,
 		Published:                       PublishedOn,
-		ServerAddress:                   "127.0.0.1",
+		ServerAddress:                   "localhost",
 		ServerPort:                      3000,
 		SourceCurrentBackgroundName:     "",
 		SourceCurrentBackgroundFolder:   "",

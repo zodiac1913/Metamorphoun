@@ -24,7 +24,7 @@ func RecallBackground(caller string, pastImg int32) error {
 		return nil
 	} else {
 		//if(!isFavoriteWithQuote) pic.Quote
-		BackgroundSet(caller, pic)
+		BackgroundSet("WebServerRecall", pic)
 		return nil
 	}
 }
@@ -54,7 +54,7 @@ func BackgroundSet(caller string, currentPic config.PicHistory) error {
 		fmt.Println("Image is Empty 1 wallpaper firing random")
 		println(err)
 		config.ConfigInstance.BackgroundChangeAttempt++
-		return BackgroundGenerate(caller, currentPic)
+		return BackgroundGenerate("WebServerBackgroundSet", currentPic)
 	}
 	sourceExt := filepath.Ext(currentPic.OriginName)
 	_ = sourceExt

@@ -234,7 +234,7 @@ func GetFontInfo(currentPic config.PicHistory) (float64, string, bool, config.Pi
 		"padmaa-Medium-0.5.ttf", "Saab.ttf", "Kalapi.ttf", "utkal.ttf", "Pothana2000.ttf",
 		"vemana2000.ttf", "opens___.ttf", "constanb", "SamYak", "LakkiReddy", "Ponnala.ttf",
 		"RaviPrakash.ttf", "Raghu", "Lohit", "holomdl2.ttf", "constanz.ttf", "FrankRuehlCLM-Medium.otf",
-		"corbeli.ttf", "constan.ttf", "SansSerifCollection.ttf",
+		"corbeli.ttf", "constan.ttf", "SansSerifCollection.ttf", "corbel.ttf",
 
 		//Mac
 		"Braille", "STIXNonUniBolIta.otf", "SF", "Bodoni Ornaments.ttf", "Comic Sans MS Bold.ttf", "Ornaments",

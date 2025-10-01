@@ -30,6 +30,7 @@ func BackgroundGenerate(caller string, currentPic config.PicHistory) error {
 	println("BackgroundGenerate called from", caller)
 	if config.ConfigInstance.BackgroundChangeAttempt > 3 {
 		log.Println("Too many attempts in", caller)
+		config.ConfigInstance.BackgroundChangeAttempt = 0
 		return fmt.Errorf("Too many bad attempts")
 	}
 	config.ConfigInstance.PicUpdateCalled = true

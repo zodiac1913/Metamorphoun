@@ -92,3 +92,10 @@ On first run, configuration files and folders will be created in your user direc
 
 This project is based on the ideas of [Variety](https://github.com/peterlevi/variety) by Peter Levi.  
 See LICENSE
+
+## Version Updates
+
+2025-10-14:
+  Made changes to avoid distortions to Christian PD pics.  Vortex and Dali are not respecting to Adonai.
+
+  

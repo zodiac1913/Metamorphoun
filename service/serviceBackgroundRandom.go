@@ -317,8 +317,12 @@ func picTypeAndFilter(currentPic config.PicHistory, img image.Image, filterChoic
 	if config.ConfigInstance.WallpaperFilterOilify {
 		filters = append(filters, "oilify")
 	}
-	if config.ConfigInstance.WallpaperFilterWavy {
-		filters = append(filters, "Dali")
+	if config.ConfigInstance.WallpaperFilterWavy  {
+		if(currentPic.ImageItem.Name=="PDChristianArt"){
+			filters = append(filters, "oilify")
+		}else{
+			filters = append(filters, "Dali")
+		}
 	}
 	if config.ConfigInstance.WallpaperFilterMosaic {
 		filters = append(filters, "mosaic")
@@ -327,7 +331,12 @@ func picTypeAndFilter(currentPic config.PicHistory, img image.Image, filterChoic
 		filters = append(filters, "monochrome")
 	}
 	if config.ConfigInstance.WallpaperFilterVortex {
-		filters = append(filters, "vortex")
+
+		if(currentPic.ImageItem.Name=="PDChristianArt"){
+			filters = append(filters, "mosaic")
+		}else{
+			filters = append(filters, "vortex")
+		}
 	}
 	//if Original is on than weight it more
 	if config.ConfigInstance.WallpaperFilterOriginal {

@@ -317,10 +317,10 @@ func picTypeAndFilter(currentPic config.PicHistory, img image.Image, filterChoic
 	if config.ConfigInstance.WallpaperFilterOilify {
 		filters = append(filters, "oilify")
 	}
-	if config.ConfigInstance.WallpaperFilterWavy  {
-		if(currentPic.ImageItem.Name=="PDChristianArt"){
+	if config.ConfigInstance.WallpaperFilterWavy {
+		if !currentPic.ImageItem.AllowDistort {
 			filters = append(filters, "oilify")
-		}else{
+		} else {
 			filters = append(filters, "Dali")
 		}
 	}
@@ -332,9 +332,9 @@ func picTypeAndFilter(currentPic config.PicHistory, img image.Image, filterChoic
 	}
 	if config.ConfigInstance.WallpaperFilterVortex {
 
-		if(currentPic.ImageItem.Name=="PDChristianArt"){
+		if !currentPic.ImageItem.AllowDistort {
 			filters = append(filters, "mosaic")
-		}else{
+		} else {
 			filters = append(filters, "vortex")
 		}
 	}

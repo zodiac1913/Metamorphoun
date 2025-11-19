@@ -14,8 +14,8 @@ import (
 	"sync"
 )
 
-const AppVersion = "2025.10.14"
-const PublishedOn = "2025-10-14"
+const AppVersion = "2025.11.19"
+const PublishedOn = "2025-11-19"
 
 var GetFolderPath func(string) string
 
@@ -68,12 +68,13 @@ type Config struct {
 	// Add other configuration fields here
 }
 type Image struct {
-	Use       bool   `json:"use"`
-	Name      string `json:"name"`
-	Title     string `json:"title"`
-	Location  string `json:"location"`
-	Operation string `json:"operation"`
-	Inherent  bool   `json:"inherent"` // Indicates if the image is inherent to the system
+	Use          bool   `json:"use"`
+	Name         string `json:"name"`
+	Title        string `json:"title"`
+	Location     string `json:"location"`
+	Operation    string `json:"operation"`
+	AllowDistort bool   `json:"allowDistort"`
+	Inherent     bool   `json:"inherent"` // Indicates if the image is inherent to the system
 }
 
 type TextLibrary struct {
@@ -474,68 +475,76 @@ func CreateConfig() error {
 		ChangeMinutes:                   15,
 		Images: []Image{
 			{
-				Use:       false,
-				Name:      "Favorites",
-				Title:     "Favorites",
-				Location:  wallpaperFavs,
-				Operation: "Folder",
-				Inherent:  true,
+				Use:          false,
+				Name:         "Favorites",
+				Title:        "Favorites",
+				Location:     wallpaperFavs,
+				Operation:    "Folder",
+				AllowDistort: true,
+				Inherent:     true,
 			},
 			{
-				Use:       true,
-				Name:      "PDChristianArt",
-				Title:     "Christian Images",
-				Location:  wallpaperFS,
-				Operation: "Folder",
-				Inherent:  true,
+				Use:          true,
+				Name:         "PDChristianArt",
+				Title:        "Christian Images",
+				Location:     wallpaperFS,
+				Operation:    "Folder",
+				AllowDistort: false,
+				Inherent:     true,
 			},
 			{
-				Use:       false,
-				Name:      "Bing",
-				Title:     "Bing Photo of the Day",
-				Location:  "https://bing.gifposter.com",
-				Operation: "Webpage",
-				Inherent:  true,
+				Use:          false,
+				Name:         "Bing",
+				Title:        "Bing Photo of the Day",
+				Location:     "https://bing.gifposter.com",
+				Operation:    "Webpage",
+				AllowDistort: true,
+				Inherent:     true,
 			},
 			{
-				Use:       false,
-				Name:      "Flickr",
-				Title:     "DR Flickr Photos",
-				Location:  "https://www.flickr.com/photos/202229109@N02",
-				Operation: "WebPicPage",
-				Inherent:  true,
+				Use:          false,
+				Name:         "Flickr",
+				Title:        "DR Flickr Photos",
+				Location:     "https://www.flickr.com/photos/202229109@N02",
+				Operation:    "WebPicPage",
+				AllowDistort: true,
+				Inherent:     true,
 			},
 			{
-				Use:       false,
-				Name:      "NASA",
-				Title:     "NASA's Astronomy Random Picture of the Day",
-				Location:  "https://apod.nasa.gov/apod/random_apod.html",
-				Operation: "Webpage",
-				Inherent:  true,
+				Use:          false,
+				Name:         "NASA",
+				Title:        "NASA's Astronomy Random Picture of the Day",
+				Location:     "https://apod.nasa.gov/apod/random_apod.html",
+				Operation:    "Webpage",
+				AllowDistort: true,
+				Inherent:     true,
 			},
 			{
-				Use:       false,
-				Name:      "UnSplash",
-				Title:     "Photos from Unsplash.com",
-				Location:  "https://unsplash.com",
-				Operation: "WebPicPage",
-				Inherent:  true,
+				Use:          false,
+				Name:         "UnSplash",
+				Title:        "Photos from Unsplash.com",
+				Location:     "https://unsplash.com",
+				Operation:    "WebPicPage",
+				AllowDistort: true,
+				Inherent:     true,
 			},
 			{
-				Use:       false,
-				Name:      "PicSum",
-				Title:     "Pictures from PicSum random photos API",
-				Location:  "https://picsum.photos/1920/1080",
-				Operation: "WebPicPage",
-				Inherent:  true,
+				Use:          false,
+				Name:         "PicSum",
+				Title:        "Pictures from PicSum random photos API",
+				Location:     "https://picsum.photos/1920/1080",
+				Operation:    "WebPicPage",
+				AllowDistort: true,
+				Inherent:     true,
 			},
 			{
-				Use:       true,
-				Name:      "WallpapersLocal",
-				Title:     "Wallpapers",
-				Location:  wallpaperDir,
-				Operation: "Folder",
-				Inherent:  true,
+				Use:          true,
+				Name:         "WallpapersLocal",
+				Title:        "Wallpapers",
+				Location:     wallpaperDir,
+				Operation:    "Folder",
+				AllowDistort: true,
+				Inherent:     true,
 			},
 		},
 		ShowTextOverlay:   false,

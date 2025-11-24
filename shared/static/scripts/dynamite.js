@@ -87,7 +87,7 @@ export default class dynamite{
             let apicallRtn=await bang.traffic.apiCall(bang.traffic.server + "/saveFavoriteApi",{type:"BG","save":"noQuoteOnBG"})
             console.log(apicallRtn);
         });
-        document.querySelector("#FavsQuote").addEventListener("click",async (e)=>{
+        document.querySelector("#FavsBGWithquote").addEventListener("click",async (e)=>{
             let apicallRtn=await bang.traffic.apiCall(bang.traffic.server + "/saveFavoriteApi",{type:"Quote","save":"quote"})
             console.log(apicallRtn);
         });
@@ -135,8 +135,10 @@ export default class dynamite{
         let bang=this;
         bang.addLibraryButton=document.querySelector("#AddLibraryButton");
         bang.addLibraryButton.addEventListener("click", (e) => {bang.popupAddLibrary();})
-        bang.editLibraryButton.addEventListener("click", (e) => {bang.popupEditLibrary();})
-
+        if(bang.editLibraryButton.dataset.dataWired!=="true"){
+            bang.editLibraryButton.addEventListener("click", (e) => {bang.popupEditLibrary();})
+            bang.editLibraryButton.dataset.dataWired="true";
+        }
 
         if(bang.selectedImageLibrary!==undefined) {
             bang.addLibraryButton.classList.add("d-none");
@@ -243,7 +245,7 @@ export default class dynamite{
         let dialogEle=mdl.querySelector("dialog"); // Get the dialog element after inserting HTML
         mdl.classList.add("openPopup");
         let cardBodyDiv=document.querySelector("#CardBodyAddLibrary");
-        //JML
+        //Operation
         let opInputRow={c:"flex-row d-flex my-2 w-100",b:[]};
         let opLabel={n:"label",for:"LibraryOperationInput",t:"Operation:"}
         let opInput={n:"input",i:"LibraryOperationInput",type:"text",value:"Folder", 
@@ -259,6 +261,15 @@ export default class dynamite{
         let inherentInputRowHtml=jsonToHtml(inherentInputRow);
         cardBodyDiv.insertAdjacentHTML('beforeend',inherentInputRowHtml);
 
+        //Allow (Harsh) Distortions
+        let allowDistortCheckboxRow = {c:"flex-row d-flex my-2 w-100",b:[]}
+        let allowDistortCheckbox = {n:"input",i:"AllowDistortLibraryCheckbox",type:"checkbox"};
+        let allowDistortCheckboxName = {n:"label",for:"allowDistortNameInput",t:"Allow Harsh Distortions"
+            ,ttl:"This forbids distortions like Dali or Vortex from distorting to a level that can be unacceptable to the user."}
+        allowDistortCheckboxRow.b.push(allowDistortCheckbox,allowDistortCheckboxName);
+        cardBodyDiv.b.push(allowDistortCheckboxRow);
+
+                
         let buttonsDivRow={c:"d-flex justify-content-between my-2 w-100",b:[]};
         let closeButton={n:"button",type:"button",
             i:"AddImageLibraryCloseButton",
@@ -363,7 +374,8 @@ export default class dynamite{
         mdl.insertAdjacentHTML("afterbegin",dialogHTM);
         let dialogEle=mdl.querySelector("dialog"); // Get the dialog element after inserting HTML
         let cardBodyDiv=document.querySelector("#CardBodyEditLibrary");
-        //JML
+
+        //Operation
         let opInputRow={c:"flex-row d-flex my-2 w-100",b:[]};
         let opLabel={n:"label",for:"LibraryOperationInput",t:"Operation:"}
         let opInput={n:"input",i:"LibraryOperationInput",type:"text",value:"Folder", 
@@ -373,11 +385,23 @@ export default class dynamite{
         let opInputRowHtml=jsonToHtml(opInputRow);
         cardBodyDiv.insertAdjacentHTML('beforeend',opInputRowHtml);
         
+        //Inherent
         let inherentInputRow={c:"flex-row d-flex my-2 w-100",b:[]};
         let inherentInput={n:"input",i:"LibraryInherentInput",type:"hidden",value:false };
         inherentInputRow.b.push(inherentInput);
         let inherentInputRowHtml=jsonToHtml(inherentInputRow);
         cardBodyDiv.insertAdjacentHTML('beforeend',inherentInputRowHtml);
+
+        //Allow (Harsh) Distortions
+        let allowDistortCheckboxRow = {c:"flex-row d-flex my-2 w-100",b:[]}
+        let allowDistortCheckbox = {n:"input",i:"AllowDistortLibraryCheckbox",type:"checkbox"};
+        if(data.allowDistort) allowDistortCheckbox.checked=true;            
+        let allowDistortCheckboxName = {n:"label",for:"allowDistortNameInput",t:"Allow Harsh Distortions"
+            ,ttl:"This forbids distortions like Dali or Vortex from distorting to a level that can be unacceptable to the user."}
+        allowDistortCheckboxRow.b.push(allowDistortCheckbox,allowDistortCheckboxName);
+        let allowDistortCheckboxRowHtml=jsonToHtml(allowDistortCheckboxRow);
+        cardBodyDiv.insertAdjacentHTML('beforeend',allowDistortCheckboxRowHtml);
+
 
         let buttonsDivRow={c:"d-flex justify-content-between my-2 w-100",b:[]};
         let closeButton={n:"button",type:"button",
@@ -433,8 +457,11 @@ export default class dynamite{
         let locationInput = document.querySelector("#LibraryLocationInput").value;
         let opInput = document.querySelector("#LibraryOperationInput").value;
         let inherentInput = document.querySelector("#LibraryInherentInput").value;
+        let allowDistortInput = document.querySelector("#AllowDistortLibraryCheckbox").value;
         let jsonUp={"use":useCheckbox, "name": nameInput, "title": titleInput,
-            "location": locationInput, "operation": opInput}
+            "location": locationInput, "operation": opInput, "inherent": inherentInput,
+            "allowDistort": allowDistortInput
+        }
         let apicallRtn=await bang.traffic.apiCall(bang.traffic.server + "/addImagesField",jsonUp)
         console.log(apicallRtn);
         bang.closeAddLibraryForm();
@@ -449,9 +476,12 @@ export default class dynamite{
         let locationInput = document.querySelector("#LibraryLocationInput").value;
         let opInput = document.querySelector("#LibraryOperationInput").value;
         let inherentInput = document.querySelector("#LibraryInherentInput").value;
+        let allowDistortInput = document.querySelector("#AllowDistortLibraryCheckbox").value;
         let jsonUp={"use":useCheckbox, "name": nameInput, "title": titleInput,
-            "location": locationInput, "operation": opInput}
-                                                                    //Gotta add this to server
+            "location": locationInput, "operation": opInput,"inherent": inherentInput,
+            "allowDistort": allowDistortInput
+        }
+        //Gotta add this to server
         let apicallRtn=await bang.traffic.apiCall(bang.traffic.server + "/editImagesField",jsonUp)
         console.log(apicallRtn);
         bang.closeEditLibraryForm();

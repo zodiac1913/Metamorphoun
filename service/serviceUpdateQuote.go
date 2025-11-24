@@ -393,6 +393,14 @@ func GetOpacityAndSetBoxBackground(currentPic config.PicHistory, dc *gg.Context,
 		opacity = 110 + uint64(rand.Intn(144))
 	}
 	config.ConfigInstance.QuoteBackgroundOpacity = zutil.AsString(opacity)
+
+	//If Mosaic the background opacity needs to be higher to be visible
+	if currentPic.Filter == "mosaic" {
+		if opacity < 180 {
+			opacity = 180 + uint64(rand.Intn(60))
+		}
+	}
+
 	currentPic.QuoteOpacity = opacity
 
 	//fmt.Println("opacity", opacity)

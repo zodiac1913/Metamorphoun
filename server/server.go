@@ -563,6 +563,7 @@ func editImagesField(w http.ResponseWriter, r *http.Request) {
 	useResult := gjson.GetBytes(jsonData, "use").Bool()
 	_ = useResult
 	nameResult := gjson.GetBytes(jsonData, "name").String()
+
 	// Check if the nameResult is empty
 	if nameResult == "" {
 		http.Error(w, "Name field cannot be empty", http.StatusBadRequest)
@@ -571,10 +572,17 @@ func editImagesField(w http.ResponseWriter, r *http.Request) {
 	imageItem := config.GetImageByName(nameResult)
 	_ = imageItem
 	titleResult := gjson.GetBytes(jsonData, "title").String()
+	_ = titleResult
+
+	allowDistortTextResult := gjson.GetBytes(jsonData, "allowDistort").String()
+	if allowDistortTextResult == "on" {
+		imageItem.AllowDistort = true
+	} else {
+		imageItem.AllowDistort = false
+	}
+
 	// locationResult := gjson.GetBytes(jsonData, "location").String()
 	// operationResult := gjson.GetBytes(jsonData, "operation").String()
-
-	_ = titleResult
 
 	//result := config.editImagesField(useResult, nameResult, titleResult, locationResult, operationResult)
 	//fmt.Println(result)

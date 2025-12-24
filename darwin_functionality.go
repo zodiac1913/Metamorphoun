@@ -192,7 +192,7 @@ func GetFolderPath(pathNeeded string) string {
 	case "configfile":
 		return filepath.Join(metamorphounBase, "config.json")
 	case "pictures":
-		return filepath.Join(metamorphounBase, "Pictures")
+		return filepath.Join(usr.HomeDir, "Pictures")
 	case "logs":
 		return filepath.Join(metamorphounBase, "Logs")
 	case "executable":

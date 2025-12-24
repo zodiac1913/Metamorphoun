@@ -144,7 +144,7 @@ func GetFolderPath(pathNeeded string) string {
 	} else if pathNeeded == "configfile" {
 		return filepath.Join(usr.HomeDir, ".Metamorphoun", "config.json")
 	} else if pathNeeded == "pictures" {
-		return filepath.Join(usr.HomeDir, ".Metamorphoun", "Pictures")
+		return filepath.Join(usr.HomeDir, "Pictures")
 	} else if pathNeeded == "logs" {
 		return filepath.Join(usr.HomeDir, ".Metamorphoun", "Logs")
 	} else if pathNeeded == "executable" {

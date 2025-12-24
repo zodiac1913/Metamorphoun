@@ -6,6 +6,8 @@ package main
 import (
 	"Metamorphoun/config"
 	"Metamorphoun/service"
+	"Metamorphoun/shared"
+	"encoding/json"
 	"fmt"
 	"image"
 	"log"
@@ -15,10 +17,42 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/fogleman/gg"
 	"golang.org/x/sys/windows/registry"
 )
+
+var mbcQuotes []byte
+
+func init() {
+	loadMBCQuotes()
+}
+
+func loadMBCQuotes() {
+	fmt.Println("Starting to load MBC quotes...")
+
+	// Try embedded files first
+	fmt.Println("Trying embedded files...")
+	mbcData, err := shared.GetStaticFSQuotes("quotes/mbc.json")
+	if err != nil {
+		fmt.Printf("Embedded loading failed: %v\n", err)
+		// Fallback to file system for development
+		fmt.Println("Trying file system fallback...")
+		mbcFilePath := filepath.Join("shared", "static", "quotes", "mbc.json")
+		fmt.Printf("File path: %s\n", mbcFilePath)
+		mbcData, err = os.ReadFile(mbcFilePath)
+		if err != nil {
+			fmt.Printf("File system loading also failed: %v\n", err)
+			return
+		}
+		mbcQuotes = mbcData
+		fmt.Printf("Successfully loaded from file system: %d bytes\n", len(mbcData))
+	} else {
+		fmt.Printf("Successfully loaded from embedded: %d bytes\n", len(mbcData))
+	}
+	mbcQuotes = mbcData
+}
 
 // Add to startup registry
 const (
@@ -131,11 +165,66 @@ func SetRandomQuote(currentPic config.PicHistory, img image.Image) (config.PicHi
 	screenInfo := service.GetScreenInfo()[0]
 	screenWidth := screenInfo.Width
 	screenHeight := screenInfo.Height
+	valuesCount := len(mbcQuotes)
 	//Make Sure a Quote is loaded
-	currentPic, err = service.GetQuote(currentPic)
-	if err != nil {
-		fmt.Println("Error getting quote:", err)
-		return currentPic, img, err
+	if config.ConfigInstance.MBCMode {
+		fmt.Println("mbc mode active, skipping quote addition")
+		currentMonth := int(time.Now().Month())
+		fmt.Println("Current month:", currentMonth, "MBCMonth:", config.ConfigInstance.MBCMonth)
+		if config.ConfigInstance.MBCMonth != currentMonth {
+			config.ConfigInstance.MBCMonth = currentMonth
+			config.ConfigInstance.MBCValue++
+			if(config.ConfigInstance.MBCValue >= valuesCount) {
+				config.ConfigInstance.MBCValue = 0
+			}
+			if err := config.SaveConfig(config.ConfigInstance); err != nil {
+				fmt.Println("Failed to save config on month reset:", err)
+			} else {
+				fmt.Println("Config saved on month reset")
+			}
+		}
+		fmt.Println("MBCValue before:", config.ConfigInstance.MBCValue)
+		if len(mbcQuotes) == 0 {
+			currentPic.QuoteStatement = "MBC Quotes not loaded"
+		} else {
+			var quotes []struct {
+				Statement string `json:"statement"`
+				Author    string `json:"author"`
+			}
+			err = json.Unmarshal(mbcQuotes, &quotes)
+			if err != nil {
+				fmt.Printf("JSON unmarshal failed: %v\n", err)
+				currentPic.QuoteStatement = "MBC Quotes unmarshal failed"
+			} else if len(quotes) > 0 {
+				currentPic.QuoteStatement = quotes[config.ConfigInstance.MBCValue%len(quotes)].Statement
+				currentPic.QuoteAuthor = quotes[config.ConfigInstance.MBCValue%len(quotes)].Author
+				fmt.Println("Quote set to:", currentPic.QuoteStatement, "by", currentPic.QuoteAuthor)
+				t := currentPic.QuoteAuthor
+				_ = t
+			} else {
+				currentPic.QuoteStatement = "MBC Quotes not loaded"
+				currentPic.QuoteAuthor = "MBC Quotes not loaded"
+			}
+		}
+		config.UpdateConfigField("currentQuoteStatement", currentPic.QuoteStatement)
+		config.UpdateConfigField("currentQuoteAuthor", currentPic.QuoteAuthor)
+		currentPic.QuoteStatement = currentPic.QuoteStatement
+		currentPic.QuoteAuthor = currentPic.QuoteAuthor
+
+		// Increment MBCValue for next time
+		//config.ConfigInstance.MBCValue++
+		fmt.Println("MBCValue after increment:", config.ConfigInstance.MBCValue)
+		if err := config.SaveConfig(config.ConfigInstance); err != nil {
+			fmt.Println("Failed to save config after increment:", err)
+		} else {
+			fmt.Println("Config saved after increment")
+		}
+	} else {
+		currentPic, err := service.GetQuote(currentPic)
+		if err != nil {
+			fmt.Println("Error getting quote:", err)
+			return currentPic, img, err
+		}
 	}
 	fmt.Println("Quote:", currentPic.QuoteStatement)
 	fmt.Println("Author:", currentPic.QuoteAuthor)

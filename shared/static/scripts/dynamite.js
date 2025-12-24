@@ -48,6 +48,11 @@ export default class dynamite{
             document.querySelector("#quoteAppearanceBackgroundColorEnvelope").classList.remove("d-none");
             document.querySelector("#quoteAppearanceOpacityEnvelope").classList.remove("d-none");
         }
+        let mbcMode=document.querySelector("#mbcMode");
+        // if(mbcMode.checked){
+        // }else{
+        // }
+
         quoteToolsButton.addEventListener("click",async (e)=>{ 
             let url = "quoteTools.html";
             window.open(url);

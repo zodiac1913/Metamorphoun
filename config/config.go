@@ -10,12 +10,13 @@ import (
 	"os/user"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 )
 
-const AppVersion = "2025.11.23"
-const PublishedOn = "2025-11-23"
+const AppVersion = "2025.12.24"
+const PublishedOn = "2025-12-24"
 
 var GetFolderPath func(string) string
 
@@ -65,6 +66,9 @@ type Config struct {
 	QuoteBackgroundOpacity string       `json:"quoteBackgroundOpacity"`
 	PicHistories           []PicHistory `json:"picHistories"`
 	PicUpdateCalled        bool         `json:"picUpdateCalled"`
+	MBCMonth               int          `json:"mbcMonth"`
+	MBCMode                bool         `json:"mbcMode"`
+	MBCValue               int          `json:"mbcValue"`
 	// Add other configuration fields here
 }
 type Image struct {
@@ -182,107 +186,10 @@ func UpdateConfigField(propertyName string, newValue interface{}) error {
 	ConfigInstance = GetConfig()
 	//typeName := reflect.TypeOf(newValue).String()
 	SetConfigField(propertyName, newValue)
-	// switch propertyName {
-	// case "serverAddress":
-	// 	ConfigInstance.ServerAddress = newValue.(string)
-	// case "serverPort":
-	// 	toString := fmt.Sprintf("%v", newValue)
-	// 	ConfigInstance.ServerPort = zutil.AsInt(toString)
-	// case "startOnStartup":
-	// 	boolValue := zutil.AsBool(fmt.Sprintf("%v", newValue))
-	// 	ConfigInstance.StartOnStartup = boolValue
-	// 	fmt.Println("StartOnStartup-SET")
-	// 	if boolValue {
-	// 		err := AddToStartup()
-	// 		if err != nil {
-	// 			log.Println("Error adding to startup:", err)
-	// 		}
-	// 	} else {
-	// 		err := RemoveFromStartup()
-	// 		if err != nil {
-	// 			log.Println("Error adding to startup:", err)
-	// 		}
-	// 	}
-	// case "changeWallpaperOnStartup":
-	// 	boolValue := zutil.AsBool(fmt.Sprintf("%v", newValue))
-	// 	ConfigInstance.ChangeWallpaperOnStartup = boolValue
-	// 	fmt.Println("StartOnStartup-SET")
-	// case "changeMinutes":
-	// 	intValue := zutil.AsInt(fmt.Sprintf("%v", newValue))
-	// 	ConfigInstance.ChangeMinutes = int32(intValue)
-	// case "sourceCurrentBackgroundName":
-	// 	ConfigInstance.SourceCurrentBackgroundName = newValue.(string)
-	// case "sourceCurrentBackgroundFolder":
-	// 	ConfigInstance.SourceCurrentBackgroundFolder = newValue.(string)
-	// case "originalCurrentBackgroundName":
-	// 	ConfigInstance.OriginalCurrentBackgroundName = newValue.(string)
-	// case "originalCurrentBackgroundFolder":
-	// 	ConfigInstance.OriginalCurrentBackgroundFolder = newValue.(string)
-	// case "currentBackgroundName":
-	// 	ConfigInstance.CurrentBackgroundName = newValue.(string)
-	// case "currentBackgroundFolder":
-	// 	ConfigInstance.CurrentBackgroundFolder = newValue.(string)
-	// case "backgroundChangingBlock":
-	// 	ConfigInstance.BackgroundChangingBlock = newValue.(bool)
-	// case "currentQuoteStatement":
-	// 	ConfigInstance.CurrentQuoteStatement = newValue.(string)
-	// case "currentQuoteAuthor":
-	// 	ConfigInstance.CurrentQuoteAuthor = newValue.(string)
-	// case "showTextOverlay":
-	// 	boolValue := zutil.AsBool(fmt.Sprintf("%v", newValue))
-	// 	ConfigInstance.ShowTextOverlay = boolValue
-	// case "textChangeMinutes":
-	// 	intValue := zutil.AsInt(fmt.Sprintf("%v", newValue))
-	// 	ConfigInstance.TextChangeMinutes = int(intValue)
-	// // case "textFontPath":
-	// // 	ConfigInstance.TextFontPath = newValue.(string)
-	// case "textFontFile":
-	// 	ConfigInstance.TextFontFile = newValue.(string)
-	// case "textBoxLocation":
-	// 	ConfigInstance.TextBoxLocation = newValue.(string)
-	// case "quoteAppearanceRandom":
-	// 	boolValue := zutil.AsBool(fmt.Sprintf("%v", newValue))
-	// 	ConfigInstance.QuoteAppearanceRandom = boolValue
-	// case "quoteFontRandom":
-	// 	boolValue := zutil.AsBool(fmt.Sprintf("%v", newValue))
-	// 	ConfigInstance.QuoteFontRandom = boolValue
-	// case "quoteTextColor":
-	// 	ConfigInstance.QuoteTextColor = newValue.(string)
-	// case "quoteBackgroundColor":
-	// 	ConfigInstance.QuoteBackgroundColor = newValue.(string)
-	// case "quoteBackgroundOpacity":
-	// 	ConfigInstance.QuoteBackgroundOpacity = newValue.(string)
-	// case "wallpaperImageSizing":
-	// 	ConfigInstance.WallpaperImageSizing = newValue.(string)
-	// case "wallpaperFilterOriginal":
-	// 	ConfigInstance.WallpaperFilterOriginal = zutil.AsBool(fmt.Sprintf("%v", newValue))
-	// case "wallpaperFilterBlurSoft":
-	// 	ConfigInstance.WallpaperFilterBlurSoft = zutil.AsBool(fmt.Sprintf("%v", newValue))
-	// case "wallpaperFilterBlurHard":
-	// 	ConfigInstance.WallpaperFilterBlurHard = zutil.AsBool(fmt.Sprintf("%v", newValue))
-	// case "wallpaperFilterPixelate":
-	// 	ConfigInstance.WallpaperFilterPixelate = zutil.AsBool(fmt.Sprintf("%v", newValue))
-	// case "wallpaperFilterOilify":
-	// 	ConfigInstance.WallpaperFilterOilify = zutil.AsBool(fmt.Sprintf("%v", newValue))
-	// case "wallpaperFilterWavy":
-	// 	ConfigInstance.WallpaperFilterWavy = zutil.AsBool(fmt.Sprintf("%v", newValue))
-	// case "wallpaperFilterVortex":
-	// 	ConfigInstance.WallpaperFilterVortex = zutil.AsBool(fmt.Sprintf("%v", newValue))
-	// case "wallpaperFilterMosaic":
-	// 	ConfigInstance.WallpaperFilterMosaic = zutil.AsBool(fmt.Sprintf("%v", newValue))
-	// case "wallpaperFilterMonochrome":
-	// 	ConfigInstance.WallpaperFilterMonochrome = zutil.AsBool(fmt.Sprintf("%v", newValue))
-	// default:
-	// 	fmt.Printf("invalid field name: %s", propertyName)
-	// 	return fmt.Errorf("invalid field name: %s", propertyName)
-	// }
-	//fmt.Println("Config-AFTER")
-	//fmt.Println(ConfigInstance)
 	return SaveConfig(ConfigInstance)
 }
 
 func SetConfigField(fieldName string, value interface{}) error {
-
 	v := reflect.ValueOf(ConfigInstance).Elem()
 	f := CaseInsensitiveFieldByName(v, fieldName)
 	if !f.IsValid() {
@@ -291,14 +198,48 @@ func SetConfigField(fieldName string, value interface{}) error {
 	if !f.CanSet() {
 		return fmt.Errorf("cannot set field: %s", fieldName)
 	}
+
 	val := reflect.ValueOf(value)
-	// Convert value to the correct type if needed
-	if val.Type() != f.Type() {
-		val = val.Convert(f.Type())
+
+	// Handle string → numeric conversion
+	if f.Kind() == reflect.Int32 && val.Kind() == reflect.String {
+		parsed, err := strconv.Atoi(val.String())
+		if err != nil {
+			return fmt.Errorf("invalid int32 value for %s: %v", fieldName, err)
+		}
+		val = reflect.ValueOf(int32(parsed))
 	}
+	// Handle other type mismatches
+	if val.Type() != f.Type() {
+		if val.Type().ConvertibleTo(f.Type()) {
+			val = val.Convert(f.Type())
+		} else {
+			return fmt.Errorf("cannot convert %s to %s", val.Type(), f.Type())
+		}
+	}
+
 	f.Set(val)
 	return nil
 }
+
+// func SetConfigField(fieldName string, value interface{}) error {
+
+// 	v := reflect.ValueOf(ConfigInstance).Elem()
+// 	f := CaseInsensitiveFieldByName(v, fieldName)
+// 	if !f.IsValid() {
+// 		return fmt.Errorf("no such field: %s", fieldName)
+// 	}
+// 	if !f.CanSet() {
+// 		return fmt.Errorf("cannot set field: %s", fieldName)
+// 	}
+// 	val := reflect.ValueOf(value)
+// 	// Convert value to the correct type if needed
+// 	if val.Type() != f.Type() {
+// 		val = val.Convert(f.Type())
+// 	}
+// 	f.Set(val)
+// 	return nil
+// }
 
 // CaseInsensitiveFieldByName returns the struct field with the given name (case-insensitive).
 func CaseInsensitiveFieldByName(v reflect.Value, name string) reflect.Value {
@@ -457,6 +398,9 @@ func CreateConfig() error {
 	wallpaperDir := GetFolderPath(enum.PathLoc.Pictures)
 	wallpaperFavs := GetFolderPath(enum.PathLoc.Favorites) //filep@th.Join(usr.HomeDir, ".Metamorphoun", "Favorites")
 	wallpaperFS := GetFolderPath(enum.PathLoc.Executable)  //filep@th.Join(exeDir, "static", "images")
+	_ = wallpaperFS
+	wallpaperChristian := filepath.Join(wallpaperFS, "shared", "static", "images", "ChristianPD")
+	wallpaperJudaism := filepath.Join(wallpaperFS, "shared", "static", "images", "JudaismPD")
 	//staticWallpaperDir := shared.GetStaticImages()
 	cfg := Config{
 		Version:                         AppVersion,
@@ -485,9 +429,18 @@ func CreateConfig() error {
 			},
 			{
 				Use:          true,
-				Name:         "PDChristianArt",
-				Title:        "Christian Images",
-				Location:     wallpaperFS,
+				Name:         "Christian",
+				Title:        "Public Domain Christian Images",
+				Location:     wallpaperChristian,
+				Operation:    "Folder",
+				AllowDistort: false,
+				Inherent:     true,
+			},
+			{
+				Use:          true,
+				Name:         "Judaism",
+				Title:        "Public Domain Judaism Images",
+				Location:     wallpaperJudaism,
 				Operation:    "Folder",
 				AllowDistort: false,
 				Inherent:     true,
@@ -575,6 +528,16 @@ func CreateConfig() error {
 				Citation: "https://aruljohn.com/Bible/",
 				Creators: "Arul John",
 				Info:     "The King James Bible",
+				Inherent: true,
+			},
+			{
+				Use:      true,
+				Name:     "MBC Values",
+				Title:    "Manchester Baptist Church Core Values",
+				Location: "quotes/mbc.json",
+				Citation: "https://www.manchesterbaptist.org/",
+				Creators: "MBC",
+				Info:     "Manchester Baptist",
 				Inherent: true,
 			},
 			{
@@ -718,6 +681,9 @@ func CreateConfig() error {
 				Inherent: true,
 			},
 		},
+		MBCMonth:     0,     //set to current when MBCMode is enabled
+		MBCMode:      false, //When On the MBC traits will replace quotes
+		MBCValue:     0,
 		PicHistories: []PicHistory{},
 	}
 

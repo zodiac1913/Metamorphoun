@@ -610,6 +610,78 @@ func editImagesField(w http.ResponseWriter, r *http.Request) {
 
 func currentInfoApi(w http.ResponseWriter, r *http.Request) {
 	// Read the JSON file
+	// 	PicNum                int16              `json:"picNum"`
+	// OriginName            string             `json:"originName"`
+	// SaveName              string             `json:"saveName"`
+	// ImageItem             Image              `json:"imageItem"`
+	// Filter                string             `json:"filter"`
+	// FilterVortices        []PicHistoryVortex `json:"filterVortices"`
+	// FilterIntensity       float64            `json:"filterIntensity"`
+	// FilterX               float64            `json:"filterX"`
+	// FilterY               float64            `json:"filterY"`
+	// Sizing                string             `json:"sizing"`
+	// QuoteStatement        string             `json:"quoteStatement"`
+	// QuoteAuthor           string             `json:"quoteAuthor"`
+	// QuoteFont             string             `json:"quoteFont"`
+	// QuoteFontSize         float64            `json:"quoteFontSize"`
+	// QuoteTextColorR       uint8              `json:"quoteTextColorR"`
+	// QuoteTextColorG       uint8              `json:"quoteTextColorG"`
+	// QuoteTextColorB       uint8              `json:"quoteTextColorB"`
+	// QuoteBackgroundColorR uint8              `json:"quoteBackgroundColorR"`
+	// QuoteBackgroundColorG uint8              `json:"quoteBackgroundColorG"`
+	// QuoteBackgroundColorB uint8              `json:"quoteBackgroundColorB"`
+	// QuoteOpacity          uint64             `json:"quoteOpacity"`
+	// QuoteTextBoxWidth     float64            `json:"quoteTextBoxWidth"`
+	// QuoteTextBoxHeight    float64            `json:"quoteTextBoxHeight"`
+	// QuoteTextBoxX         float64            `json:"quoteTextBoxX"`
+	// QuoteTextBoxY         float64            `json:"quoteTextBoxY"`
+
+	if(len(config.ConfigInstance.PicHistories)<1){
+		http.Error(w, "No picture history available", http.StatusInternalServerError)
+		execDir:=GetFolderPath(enum.PathLoc.Executable);
+		picFile:=filepath.Join(execDir,"shared","static","images","ChristianPD","crux.jpg");
+		picFolder:=filepath.Join(execDir,"shared","static","images","ChristianPD");
+
+
+		theImageItem:=config.Image{
+			Name:         "ChristainPD",
+			Title:        "Christian Public Domain Images",
+			Location:     picFolder,
+			Use:          true,
+			Operation:    "ChristianPD",
+			AllowDistort: false,
+		}
+		// Create a new PicHistory struct
+		picHistory := config.PicHistory{
+			PicNum:               0,
+			OriginName:           picFile,
+			SaveName:             picFile,
+			ImageItem:           theImageItem,
+			Filter:              "original",
+			FilterVortices:      nil,
+			FilterIntensity:      0.0,
+			FilterX:              0.0,
+			FilterY:              0.0,
+			Sizing:              "stretch",
+			QuoteStatement:      "In the beginning God",
+			QuoteAuthor:         "Genesis 1",
+			QuoteFont:           "C:\\Windows\\Fonts\\Gabriola.ttf",
+			QuoteFontSize:       22.0,
+			QuoteTextColorR:      255,
+			QuoteTextColorG:      255,
+			QuoteTextColorB:      255,
+			QuoteBackgroundColorR: 70,
+			QuoteBackgroundColorG: 39,
+			QuoteBackgroundColorB:  4,
+			QuoteOpacity:         249,
+			QuoteTextBoxWidth:    364.0,
+			QuoteTextBoxHeight:   93.0,
+			QuoteTextBoxX:        364.0,
+			QuoteTextBoxY:        93.0,
+		}
+		// Add the new PicHistory struct to the slice
+		config.ConfigInstance.PicHistories = append(config.ConfigInstance.PicHistories, picHistory)
+	}
 	var rtnJson = config.ConfigInstance.PicHistories[0]
 	w.Header().Set("Content-Type", "application/json")
 

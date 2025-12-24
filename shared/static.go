@@ -25,21 +25,9 @@ func ListStaticFiles() {
 
 // A function to retrieve files from staticFS
 func GetStaticFSQuotes(filename string) ([]byte, error) {
-	fmt.Println("Embedded files:", StaticFiles)
-	filenameHasPrefixSlash := filename[0] == '/'
-	filenamePrefix := "static/"
-	if filenameHasPrefixSlash {
-		filenamePrefix = "static"
-	}
-	if strings.Contains(filenamePrefix, "quotes") {
-		filenamePrefix = "static/"
-	}
-	if strings.Contains(filenamePrefix, "/quotes") {
-		filenamePrefix = "static"
-	}
-	fmt.Println("filenamePrefix:", filenamePrefix)
-	fmt.Println("filename:", filename)
-	data, err := StaticFiles.ReadFile(filenamePrefix + filename)
+	// Ensure the path starts with "static/"
+	fullPath := "static/" + strings.TrimPrefix(filename, "static/")
+	data, err := StaticFiles.ReadFile(fullPath)
 	if err != nil {
 		return nil, err
 	}

@@ -48,7 +48,7 @@ func BackgroundGenerate(caller string, currentPic config.PicHistory) error {
 			//Failure to get image item
 			println("Failure to get image item..rerun")
 			config.ConfigInstance.BackgroundChangeAttempt++
-			BackgroundGenerate(caller, currentPic)
+			backgroundGenRandomSource(currentPic)
 			return nil
 		}
 		//Step 2: get image from source (web/local)
@@ -286,7 +286,9 @@ func backgroundGenRandomSource(currentPic config.PicHistory) (config.PicHistory,
 		img, url, err = GetBackgroundUnSplash(currentPic.ImageItem)
 	} else if currentPic.ImageItem.Name == "PicSum" {
 		img, url, err = GetBackgroundPicSum(currentPic.ImageItem)
-	} else if currentPic.ImageItem.Name == "PDChristianArt" {
+	} else if currentPic.ImageItem.Name == "ChristianPD" {
+		img, url, err = GetStaticImagesFolder(currentPic.ImageItem)
+	} else if currentPic.ImageItem.Name == "JudaismPD" {
 		img, url, err = GetStaticImagesFolder(currentPic.ImageItem)
 	} else {
 		//WallpapersLocal && Favorites
@@ -455,7 +457,7 @@ func picTypeAndFilter(currentPic config.PicHistory, img image.Image, filterChoic
 // }
 
 func GetQuote(currentPic config.PicHistory) (config.PicHistory, error) {
-
+	fmt.Println("GetQuote called")
 	config.GetConfig()
 	cfg := config.GetConfig()
 	usr, err := user.Current()
@@ -540,6 +542,8 @@ func GetQuote(currentPic config.PicHistory) (config.PicHistory, error) {
 		fmt.Println("No quotes found.")
 	}
 	// Set random quote
+	fmt.Println("--------------------LOG---------------------")
+	fmt.Println("Quote:", quotes)
 	quote := quotes[rand.Intn(len(quotes))]
 	config.UpdateConfigField("currentQuoteStatement", quote.Statement)
 	config.UpdateConfigField("currentQuoteAuthor", quote.Author)

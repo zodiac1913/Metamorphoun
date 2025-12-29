@@ -1,6 +1,7 @@
 {
     "version": "0.2.0",
     "configurations": [
+
         {
             "name": "gomm",
             "type": "go",
@@ -10,7 +11,8 @@
             "env": {},
             "args": [],
             "cwd": "${workspaceFolder}",
-            "showLog": true
+            "showLog": true,
+            "console": "integratedTerminal"
         }
     ]
 }

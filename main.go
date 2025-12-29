@@ -35,6 +35,9 @@ func main() {
 	// ff = append(ff, `/System/Library/Fonts/`)
 	// service.RenderFontsSample(ff)
 	//service.ChangeLockScreen = changeLockScreenImpl
+	// ed, errEP := os.Executable()
+	// _ = ed
+	// _ = errEP
 	config.GetFolderPath = getFolderPathImpl
 	morphLog.GetFolderPath = getFolderPathImpl
 	service.GetFolderPath = getFolderPathImpl
@@ -145,7 +148,7 @@ func main() {
 
 	//quote service
 	//quotes.SetQuote()
-	if cfg.ShowTextOverlay {
+	if cfg.ShowTextOverlay && !cfg.MBCMode {
 		go func() {
 			serveQuotes := service.StartChangeQuote(time.Duration(cfg.TextChangeMinutes) * time.Minute)
 			println("quotes started 0 and ", cfg.TextChangeMinutes, " min timer")

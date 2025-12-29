@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 )
-
+//TODO: Apparently I need to set the binary
 //              New Way
 
 func GetBackgroundFolder(imgItem config.Image) (image.Image, string, error) {

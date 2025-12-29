@@ -11,6 +11,7 @@ void DummyCaptureInit();
 import "C"
 
 import (
+	"encoding/json"
 	"fmt"
 	"image"
 	"log"
@@ -18,12 +19,44 @@ import (
 	"os/exec"
 	"os/user"
 	"path/filepath"
+	"time"
 
 	"Metamorphoun/config"
 	"Metamorphoun/service"
+	"Metamorphoun/shared"
 
 	"github.com/fogleman/gg"
 )
+
+var staticQuotes []string
+
+func init() {
+	loadMBCQuotes()
+}
+
+func loadMBCQuotes() {
+	mbcData, err := shared.GetStaticFSQuotes("quotes/mbc.json")
+	if err != nil {
+		fmt.Println("Error loading MBC quotes:", err)
+		return
+	}
+
+	var quotes []struct {
+		Statement string `json:"statement"`
+		Author    string `json:"author"`
+	}
+
+	err = json.Unmarshal(mbcData, &quotes)
+	if err != nil {
+		fmt.Println("Error unmarshaling MBC quotes:", err)
+		return
+	}
+
+	staticQuotes = make([]string, len(quotes))
+	for i, quote := range quotes {
+		staticQuotes[i] = quote.Statement
+	}
+}
 
 func initCapture() {
 	C.DummyCaptureInit()
@@ -37,10 +70,29 @@ func SetRandomQuote(currentPic config.PicHistory, img image.Image) (config.PicHi
 	screenWidth := screenInfo.Width
 	screenHeight := screenInfo.Height
 
-	currentPic, err := service.GetQuote(currentPic)
-	if err != nil {
-		fmt.Println("Error getting quote:", err)
-		return currentPic, img, err
+	if config.ConfigInstance.MBCMode {
+		fmt.Println("mbc mode active, skipping quote addition")
+		currentMonth := int(time.Now().Month())
+		if config.ConfigInstance.MBCMonth != currentMonth {
+			config.ConfigInstance.MBCMonth = currentMonth
+			config.ConfigInstance.MBCValue = 0
+			config.SaveConfig(config.ConfigInstance)
+		}
+		if len(staticQuotes) > 0 {
+			currentPic.QuoteStatement = staticQuotes[config.ConfigInstance.MBCValue%len(staticQuotes)]
+		} else {
+			currentPic.QuoteStatement = "MBC Quotes not loaded"
+		}
+		currentPic.QuoteAuthor = "MBC Values"
+		// Increment MBCValue for next time
+		config.ConfigInstance.MBCValue++
+		config.SaveConfig(config.ConfigInstance)
+	} else {
+		currentPic, err := service.GetQuote(currentPic)
+		if err != nil {
+			fmt.Println("Error getting quote:", err)
+			return currentPic, img, err
+		}
 	}
 
 	fmt.Println("Quote:", currentPic.QuoteStatement)

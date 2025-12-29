@@ -17,7 +17,7 @@ export default class comms{
         window.pic={};
         traffic.updatePicInfo();
 
-         // Perform any additional actions if the history is updated
+         // Perform any additiona333l actions if the history is updated
          // Set up a 1-minute timer to call on currentInfoApi
          setInterval(async () => {
             await traffic.updatePicInfo();
@@ -134,7 +134,7 @@ export default class comms{
             "sourceCurrentBackgroundName,sourceCurrentBackgroundFolder," +
             "originalCurrentBackgroundFolder,currentBackgroundName,currentBackgroundFolder" +
             ",backgroundChangingBlock,backgroundChangeAttempt,textLibraries,currentQuoteStatement" + 
-            ",currentQuoteAuthor,picHistories,picUpdateCalled,version,published".split(',');
+            ",currentQuoteAuthor,picHistories,picUpdateCalled,version,published,mbcMonth,mbcValue".split(',');
 //IF THE input value is null (below) it means the dontProcessFields is not used for a non-DOM config.
 //Add the fields not to process above            
         for (const [key, value] of Object.entries(traffic.config)) {
@@ -397,8 +397,10 @@ export default class comms{
             traffic.textLibs.appendChild(rowDiv);
             rowDiv.config=configItem;
             //wire
-            let useItem=document.querySelector("#TLUse" + configItem.name);
-            useItem.addEventListener("change",async (e)=>{await window.comms.textLibraryChanged(e);});
+            if(configItem.name!=="MBC Values"){
+                let useItem=document.querySelector("#TLUse" + configItem.name);
+                useItem.addEventListener("change",async (e)=>{await window.comms.textLibraryChanged(e);});
+            }
         }
  
 

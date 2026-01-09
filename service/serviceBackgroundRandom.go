@@ -79,6 +79,16 @@ func BackgroundGenerate(caller string, currentPic config.PicHistory) error {
 			}
 		}
 		//Step 4: Apply filters
+		if currentPic.ImageItem.Name == "PicSum" {
+			currentPicsFolder := GetFolderPath(enum.PathLoc.Config)
+			picSumCach := filepath.Join(currentPicsFolder, "imgPicSumCache.png")
+			err = os.Remove(picSumCach)
+			if err != nil {
+				fmt.Println("Error deleting pic0 file:", err)
+			}
+			//Picsum images are not saved in the cache
+			saveImage(img, "imgPicSumCache.png")
+		}
 		if specialCaseType != "WithQuotes" {
 			currentPic, img, err = picTypeAndFilter(currentPic, img, "")
 			if img == nil {
@@ -89,16 +99,6 @@ func BackgroundGenerate(caller string, currentPic config.PicHistory) error {
 				config.ConfigInstance.BackgroundChangeAttempt++
 				return BackgroundGenerate(caller, currentPic)
 			}
-		}
-		if currentPic.ImageItem.Name == "PicSum" {
-			currentPicsFolder := GetFolderPath(enum.PathLoc.Config)
-			picSumCach := filepath.Join(currentPicsFolder, "imgPicSumCache.png")
-			err = os.Remove(picSumCach)
-			if err != nil {
-				fmt.Println("Error deleting pic0 file:", err)
-			}
-			//Picsum images are not saved in the cache
-			saveImage(img, "imgPicSumCache.png")
 		}
 
 		//Step 5: Handle Quote
@@ -159,6 +159,18 @@ func BackgroundGenerate(caller string, currentPic config.PicHistory) error {
 				saveImg(img, fileLoc)
 
 			}
+		} else {
+			fileLoc = currentPic.SaveName
+			// Save the resulting image to the bufferPic path
+			fmt.Println(currentPic.OriginName)
+			if _, err := os.Stat(fileLoc); os.IsExist(err) {
+				os.Remove(fileLoc)
+			}
+			if img == nil {
+				fmt.Println("Image is Empty 7")
+			}
+			saveImg(img, fileLoc)
+
 		}
 		//_ = imgType
 

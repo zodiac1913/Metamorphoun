@@ -1,7 +1,0 @@
-#import <Foundation/Foundation.h>
-#import <ScreenCaptureKit/ScreenCaptureKit.h>
-
-// Add any minimal Objective-C code you need here
-void DummyCaptureInit() {
-    NSLog(@"ScreenCaptureKit initialized");
-}

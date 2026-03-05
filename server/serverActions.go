@@ -105,6 +105,9 @@ func saveFavoriteApi(w http.ResponseWriter, r *http.Request) {
 				if len(wqExt) > 5 {
 					wqExt = service.UnUnsplash(currImgWQ.OriginName)
 				}
+				if len(wqExt) < 1 {
+					wqExt = ".png"
+				}
 				currentPicFile := filepath.Join(wallpaperMain, "pic0"+wqExt)
 				picToSave := filepath.Join(favPicFolderWithQuote, dt+wqExt)
 				zutil.CopyFile(currentPicFile, picToSave)

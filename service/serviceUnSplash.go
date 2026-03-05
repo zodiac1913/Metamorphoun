@@ -20,8 +20,8 @@ func GetBackgroundUnSplash(imgItem config.Image) (image.Image, string, error) {
 	}
 	//choose image to use
 	if len(wppArray) < 1 {
-		fmt.Println("Error: No img links found on page ", imgItem.Location, " for ", imgItem.Operation, " on ", wppErr.Error())
-		return nil, "", nil
+		//fmt.Println("Error: No img links found on page ", imgItem.Location, " for ", imgItem.Operation, " on ", wppErr.Error())
+		return nil, "redirect", nil
 	}
 	wppRnd := rand.Intn(len(wppArray))
 	pic := wppArray[wppRnd]

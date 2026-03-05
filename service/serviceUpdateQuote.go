@@ -313,9 +313,9 @@ func CalculateBoxInfo(screenWidth int, screenHeight int, currentPic config.PicHi
 	quoteWidth, quoteHeight := dc.MeasureMultilineString(wrappedQuoteText, 2)
 	authorWidth, authorHeight := dc.MeasureString(authorText)
 
-	// Calculate the required width and height for the text box
-	textBoxWidth := math.Min(math.Max(quoteWidth, authorWidth)+40, maxTextBoxWidth) // Add some padding
-	textBoxHeight := math.Min(quoteHeight+authorHeight+60, maxTextBoxHeight)        // Add padding
+	// Calculate the required width and height for the text box /change 10 up H&W
+	textBoxWidth := math.Min(math.Max(quoteWidth, authorWidth)+50, maxTextBoxWidth) // Add some padding
+	textBoxHeight := math.Min(quoteHeight+authorHeight+70, maxTextBoxHeight)        // Add padding
 	currentPic.QuoteTextBoxWidth = textBoxWidth
 	currentPic.QuoteTextBoxHeight = textBoxHeight
 	currentPic.QuoteTextBoxX = textBoxWidth

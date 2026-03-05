@@ -609,41 +609,13 @@ func editImagesField(w http.ResponseWriter, r *http.Request) {
 }
 
 func currentInfoApi(w http.ResponseWriter, r *http.Request) {
-	// Read the JSON file
-	// 	PicNum                int16              `json:"picNum"`
-	// OriginName            string             `json:"originName"`
-	// SaveName              string             `json:"saveName"`
-	// ImageItem             Image              `json:"imageItem"`
-	// Filter                string             `json:"filter"`
-	// FilterVortices        []PicHistoryVortex `json:"filterVortices"`
-	// FilterIntensity       float64            `json:"filterIntensity"`
-	// FilterX               float64            `json:"filterX"`
-	// FilterY               float64            `json:"filterY"`
-	// Sizing                string             `json:"sizing"`
-	// QuoteStatement        string             `json:"quoteStatement"`
-	// QuoteAuthor           string             `json:"quoteAuthor"`
-	// QuoteFont             string             `json:"quoteFont"`
-	// QuoteFontSize         float64            `json:"quoteFontSize"`
-	// QuoteTextColorR       uint8              `json:"quoteTextColorR"`
-	// QuoteTextColorG       uint8              `json:"quoteTextColorG"`
-	// QuoteTextColorB       uint8              `json:"quoteTextColorB"`
-	// QuoteBackgroundColorR uint8              `json:"quoteBackgroundColorR"`
-	// QuoteBackgroundColorG uint8              `json:"quoteBackgroundColorG"`
-	// QuoteBackgroundColorB uint8              `json:"quoteBackgroundColorB"`
-	// QuoteOpacity          uint64             `json:"quoteOpacity"`
-	// QuoteTextBoxWidth     float64            `json:"quoteTextBoxWidth"`
-	// QuoteTextBoxHeight    float64            `json:"quoteTextBoxHeight"`
-	// QuoteTextBoxX         float64            `json:"quoteTextBoxX"`
-	// QuoteTextBoxY         float64            `json:"quoteTextBoxY"`
-
-	if(len(config.ConfigInstance.PicHistories)<1){
+	if len(config.ConfigInstance.PicHistories) < 1 {
 		http.Error(w, "No picture history available", http.StatusInternalServerError)
-		execDir:=GetFolderPath(enum.PathLoc.Executable);
-		picFile:=filepath.Join(execDir,"shared","static","images","ChristianPD","crux.jpg");
-		picFolder:=filepath.Join(execDir,"shared","static","images","ChristianPD");
+		execDir := GetFolderPath(enum.PathLoc.Executable)
+		picFile := filepath.Join(execDir, "shared", "static", "images", "ChristianPD", "crux.jpg")
+		picFolder := filepath.Join(execDir, "shared", "static", "images", "ChristianPD")
 
-
-		theImageItem:=config.Image{
+		theImageItem := config.Image{
 			Name:         "ChristainPD",
 			Title:        "Christian Public Domain Images",
 			Location:     picFolder,
@@ -653,31 +625,31 @@ func currentInfoApi(w http.ResponseWriter, r *http.Request) {
 		}
 		// Create a new PicHistory struct
 		picHistory := config.PicHistory{
-			PicNum:               0,
-			OriginName:           picFile,
-			SaveName:             picFile,
-			ImageItem:           theImageItem,
-			Filter:              "original",
-			FilterVortices:      nil,
-			FilterIntensity:      0.0,
-			FilterX:              0.0,
-			FilterY:              0.0,
-			Sizing:              "stretch",
-			QuoteStatement:      "In the beginning God",
-			QuoteAuthor:         "Genesis 1",
-			QuoteFont:           "C:\\Windows\\Fonts\\Gabriola.ttf",
-			QuoteFontSize:       22.0,
-			QuoteTextColorR:      255,
-			QuoteTextColorG:      255,
-			QuoteTextColorB:      255,
+			PicNum:                0,
+			OriginName:            picFile,
+			SaveName:              picFile,
+			ImageItem:             theImageItem,
+			Filter:                "original",
+			FilterVortices:        nil,
+			FilterIntensity:       0.0,
+			FilterX:               0.0,
+			FilterY:               0.0,
+			Sizing:                "stretch",
+			QuoteStatement:        "In the beginning God",
+			QuoteAuthor:           "Genesis 1",
+			QuoteFont:             "C:\\Windows\\Fonts\\Gabriola.ttf",
+			QuoteFontSize:         22.0,
+			QuoteTextColorR:       255,
+			QuoteTextColorG:       255,
+			QuoteTextColorB:       255,
 			QuoteBackgroundColorR: 70,
 			QuoteBackgroundColorG: 39,
-			QuoteBackgroundColorB:  4,
-			QuoteOpacity:         249,
-			QuoteTextBoxWidth:    364.0,
-			QuoteTextBoxHeight:   93.0,
-			QuoteTextBoxX:        364.0,
-			QuoteTextBoxY:        93.0,
+			QuoteBackgroundColorB: 4,
+			QuoteOpacity:          249,
+			QuoteTextBoxWidth:     364.0,
+			QuoteTextBoxHeight:    93.0,
+			QuoteTextBoxX:         364.0,
+			QuoteTextBoxY:         93.0,
 		}
 		// Add the new PicHistory struct to the slice
 		config.ConfigInstance.PicHistories = append(config.ConfigInstance.PicHistories, picHistory)
@@ -714,49 +686,6 @@ type FileUploadRequest struct {
 	Info     string `json:"info"`
 	FilePath string `json:"filePath"` // Assume this is the path to the file to be copied
 }
-
-// func uploadFile(w http.ResponseWriter, r *http.Request) {
-// 	if r.Method != "POST" {
-// 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-// 		return
-// 	}
-
-// 	var request FileUploadRequest
-
-// 	// Decode the JSON body into our struct
-// 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-// 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
-// 		return
-// 	}
-// 	defer r.Body.Close()
-
-// 	// Define the target directory path
-// 	configFolderPath := filepath.Join("path_to_config_folder") // Update with your config path
-// 	targetDir := filepath.Join(configFolderPath, "Quotes")
-// 	if err := os.MkdirAll(targetDir, os.ModePerm); err != nil {
-// 		http.Error(w, "Failed to create directories", http.StatusInternalServerError)
-// 		return
-// 	}
-
-// 	// Define the target file path
-// 	fileName := filepath.Base(request.FilePath) // Extract just the fileName from the filePath
-// 	targetFilePath := filepath.Join(targetDir, fileName)
-
-// 	// Copy the file
-// 	if err := zutil.CopyFile(request.FilePath, targetFilePath); err != nil {
-// 		http.Error(w, fmt.Sprintf("Failed to copy file: %v", err), http.StatusInternalServerError)
-// 		return
-// 	}
-
-// 	// Update request with new location
-// 	request.FilePath = targetFilePath
-
-// 	// Here you would update `TextLibraries` of config to add that new record as needed.
-// 	fmt.Println("File copied and updated:", request)
-
-// 	w.WriteHeader(http.StatusOK)
-// 	json.NewEncoder(w).Encode("File uploaded successfully")
-// }
 
 // Receives upload of form to add a new quote file
 func fileUploadForm(w http.ResponseWriter, r *http.Request) {

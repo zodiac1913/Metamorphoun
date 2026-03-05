@@ -1,6 +1,44 @@
-# Ignore exe
+# Binaries
 *.exe
-*on_exit_[0-9]+\.txt
+*.dll
+*.so
+*.dylib
 Metamorphoun
-*.txt
 __debug_bin*
+
+# Test and debug files
+*on_exit_*.txt
+*.test
+*.out
+
+# User configuration and runtime data
+config.json
+.Metamorphoun/
+path_to_config_folder/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Build artifacts
+dist/
+build/
+release/
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+rendered_page.html
+*.png
+*.jpg
+*.jpeg
+
+# OS specific
+Thumbs.db
+ehthumbs.db

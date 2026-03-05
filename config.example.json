@@ -1,0 +1,61 @@
+{
+  "changeWallpaperOnStartup": true,
+  "changeMinutes": 30,
+  "serverAddress": "localhost",
+  "serverPort": 8080,
+  "showTextOverlay": true,
+  "textChangeMinutes": 60,
+  "imageItems": [
+    {
+      "use": true,
+      "name": "Bing",
+      "title": "Bing Photo of the Day",
+      "location": "https://bing.gifposter.com",
+      "operation": "Webpage",
+      "allowDistort": true,
+      "inherent": true
+    },
+    {
+      "use": false,
+      "name": "NASA",
+      "title": "NASA Astronomy Picture of the Day",
+      "location": "https://apod.nasa.gov/apod/astropix.html",
+      "operation": "Webpage",
+      "allowDistort": true,
+      "inherent": true
+    },
+    {
+      "use": false,
+      "name": "Favorites",
+      "title": "Favorites",
+      "location": "~/.Metamorphoun/Favorites",
+      "operation": "Folder",
+      "allowDistort": true,
+      "inherent": true
+    }
+  ],
+  "quoteItems": [
+    {
+      "use": true,
+      "name": "Stoic",
+      "title": "Stoic Quotes",
+      "location": "/quotes/stoic.json",
+      "citation": "https://gist.github.com/ckib16/db8becc1f21d2a3c7c88",
+      "creators": "ckib16",
+      "info": "Stoic philosophy quotes",
+      "inherent": true
+    }
+  ],
+  "textFontFile": "DejaVuSans-Bold.ttf",
+  "textBoxLocation": "random",
+  "quoteAppearanceRandom": true,
+  "quoteFontRandom": true,
+  "quoteTextColor": "#FFFFFF",
+  "quoteBackgroundColor": "#000000",
+  "quoteBackgroundOpacity": "206",
+  "picHistories": [],
+  "picUpdateCalled": false,
+  "mbcMonth": 1,
+  "mbcMode": false,
+  "mbcValue": 8
+}

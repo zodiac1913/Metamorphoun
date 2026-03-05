@@ -15,8 +15,8 @@ import (
 	"sync"
 )
 
-const AppVersion = "2025.12.24"
-const PublishedOn = "2025-12-24"
+const AppVersion = "2026.03.05"
+const PublishedOn = "2026-03-05"
 
 var GetFolderPath func(string) string
 

@@ -173,14 +173,14 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📋 Version History
 
-**v1.0.0** (2025-01-XX)
+**v2025.12.24**
 - Initial public release
 - Multi-platform support (Windows, Linux, macOS)
 - Web-based configuration interface
 - Quote overlay system
 - Image filters and effects
 
-**2025-10-14**
+**v2024-10-14**
 - Made changes to avoid distortions to Christian PD pics. Vortex and Dali are not respecting to Adonai.
 
 ---

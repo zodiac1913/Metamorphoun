@@ -21,23 +21,7 @@ import (
 
 var updateSignal chan struct{}
 
-// var fontFldrs = []string{
-// 	"/usr/share/fonts",
-// 	"/usr/local/share/fonts",
-// 	"~/.local/share/fonts",
-// 	"~/.fonts",
-// 	"C:\\Windows\\Fonts",
-// }
-
 func main() {
-	//top!!!
-	// var ff []string
-	// ff = append(ff, `/System/Library/Fonts/`)
-	// service.RenderFontsSample(ff)
-	//service.ChangeLockScreen = changeLockScreenImpl
-	// ed, errEP := os.Executable()
-	// _ = ed
-	// _ = errEP
 	config.GetFolderPath = getFolderPathImpl
 	morphLog.GetFolderPath = getFolderPathImpl
 	service.GetFolderPath = getFolderPathImpl
@@ -56,13 +40,8 @@ func main() {
 	}
 	config.ConfigInstance = configData
 	//top!!!
-	// Common logic
 	PrintPlatformMessage()
 
-	//service.ChangeView()
-	//return
-	//Load config file
-	//Used to test fonts
 
 	cfg := configData // Now cfg points to the single loaded instance
 
@@ -87,20 +66,6 @@ func main() {
 	}()
 	println("start background change from main")
 
-	// // Start the server in a separate goroutine
-	// go func() {
-	// 	if !server.Serve(configData.ServerAddress, configData.ServerPort) {
-	// 		println("Server failed to start")
-	// 	}
-	// }() // Start background changing
-	// println("start background change from main")
-
-	// if cfg.ChangeWallpaperOnStartup {
-	// 	//service.ChangeBackground()
-	// 	//service.ChangeView("backgroundChange")
-	// 	pic := config.PicHistory{}
-	// 	service.BackgroundGenerate("ChangeOnStartup", pic)
-	// }
 	println("start background change from main")
 
 	if cfg.ChangeWallpaperOnStartup {
@@ -109,24 +74,6 @@ func main() {
 		service.BackgroundGenerate("ChangeOnStartup", pic)
 	}
 
-	// go func() {
-	// 	timer := time.NewTicker(time.Duration(configData.ChangeMinutes) * time.Minute)
-	// 	pic := config.PicHistory{}
-	// 	defer timer.Stop()
-	// 	for {
-	// 		select {
-	// 		case <-timer.C:
-	// 			//service.ChangeView("backgroundChange")
-	// 			service.BackgroundGenerate("ChangeOnStartup", pic)
-	// 		case <-updateSignal:
-	// 			//service.ChangeView("backgroundChange")
-	// 			service.BackgroundGenerate("ChangeOnStartup", pic)
-	// 			timer.Reset(time.Duration(configData.ChangeMinutes) * time.Minute)
-	// 		case <-ctx.Done():
-	// 			return
-	// 		}
-	// 	}
-	// }()
 
 	go func() {
 		timer := time.NewTicker(time.Duration(cfg.ChangeMinutes) * time.Minute)
@@ -157,41 +104,6 @@ func main() {
 			}
 		}()
 	}
-	// if cfg.ShowTextOverlay {
-	// 	go func() {
-	// 		serveQuotes := service.StartChangeQuote(time.Duration(configData.TextChangeMinutes) * time.Minute)
-	// 		println("quotes started 0 and ", configData.TextChangeMinutes, " min timer")
-	// 		// Start the service
-	// 		if err := serveQuotes.Start(); err != nil {
-	// 			println(err)
-	// 		}
-
-	// 	}()
-
-	// }
-
-	// if runtime.GOOS == "windows" {
-
-	// 	// System tray onExit function
-	// 	onExit := func() {
-	// 		now := time.Now()
-	// 		os.WriteFile(fmt.Sprintf(`on_exit_%d.txt`, now.UnixNano()), []byte(now.String()), 0644)
-	// 		// Signal all goroutines to stop
-	// 		cancel()
-	// 	}
-
-	// 	systray.Run(systemTray.MakeSystemTray, onExit)
-	// 	// Start the service
-	// 	// Prevent the main function from exiting
-	// 	<-ctx.Done()
-	// } else {
-	// 	//Linux
-	// 	go func() {
-	// 		linuxGui.MakeGui()
-	// 	}()
-	// }
-	//	service.ChangeLockScreen(config.ConfigInstance.PicHistories[0]) // Initialize the ChangeLockScreen function
-	//if runtime.GOOS == "windows" {
 	onExit := func() {
 		now := time.Now()
 		os.WriteFile(fmt.Sprintf(`on_exit_%d.txt`, now.UnixNano()), []byte(now.String()), 0644)
@@ -200,12 +112,6 @@ func main() {
 	server.OpenFolder("explorer", "http://localhost:"+strconv.Itoa(config.ConfigInstance.ServerPort))
 	systray.Run(systemTray.MakeSystemTray, onExit)
 	<-ctx.Done()
-	//Perhaps check if the systray fails via err and then run the gui
-	//} else {
-	//	go func() {
-	//		linuxGui.MakeGui()
-	//	}()
-	//}
 }
 func openFolder(title string, path string) error {
 	var cmd *exec.Cmd
@@ -213,9 +119,6 @@ func openFolder(title string, path string) error {
 	return cmd.Start()
 }
 
-//	func GetFolderPath(pathNeeded string) string {
-//		return GetFolderPath(pathNeeded)
-//	}
 func getFolderPathImpl(pathNeeded string) string {
 	return GetFolderPath(pathNeeded)
 }
@@ -224,6 +127,3 @@ func setRandomQuoteImpl(currentPic config.PicHistory, img image.Image) (config.P
 	return SetRandomQuote(currentPic, img)
 }
 
-// func changeLockScreenImpl(pic config.PicHistory) error {
-// 	return ChangeLockScreen(pic)
-// }

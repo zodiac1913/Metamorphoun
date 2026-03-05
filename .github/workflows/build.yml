@@ -35,6 +35,12 @@ jobs:
       with:
         go-version: '1.23'
 
+    - name: Install Linux dependencies
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libayatana-appindicator3-dev libgtk-3-dev
+
     - name: Get dependencies
       run: go mod download
 
@@ -47,6 +53,7 @@ jobs:
       run: go build -v -ldflags="-H=windowsgui" -o ${{ matrix.binary_name }}
 
     - name: Test
+      if: matrix.os != 'ubuntu-latest'
       run: go test -v ./...
 
     - name: Upload artifact

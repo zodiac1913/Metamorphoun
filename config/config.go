@@ -16,7 +16,8 @@ import (
 )
 
 const AppVersion = "2026.03.05"
-const PublishedOn = "2026-03-05"
+const PublishedOn = "2026-03-05" 
+//ugh
 
 var GetFolderPath func(string) string
 

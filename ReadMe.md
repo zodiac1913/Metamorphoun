@@ -173,7 +173,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📋 Version History
 
-**v2025.12.24** R
+**v2026.03.05** R
 - Initial public release
 - Multi-platform support (Windows, Linux, macOS)
 - Web-based configuration interface

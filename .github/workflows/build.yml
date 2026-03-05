@@ -14,7 +14,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest]
         include:
           - os: ubuntu-latest
             binary_name: metamorphoun
@@ -22,9 +22,6 @@ jobs:
           - os: windows-latest
             binary_name: Metamorphoun.exe
             asset_name: Metamorphoun-windows-amd64.exe
-          - os: macos-latest
-            binary_name: metamorphoun
-            asset_name: metamorphoun-macos-amd64
 
     steps:
     - name: Checkout code
@@ -81,7 +78,6 @@ jobs:
         files: |
           metamorphoun-linux-amd64/metamorphoun
           Metamorphoun-windows-amd64.exe/Metamorphoun.exe
-          metamorphoun-macos-amd64/metamorphoun
         draft: false
         prerelease: false
       env:

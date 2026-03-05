@@ -720,7 +720,7 @@ func CreateConfig() error {
 func SetupSystemFolders() {
 	usr, err := user.Current()
 	if err != nil {
-		fmt.Printf("failed to get user home directory: %w", err)
+		fmt.Println("failed to get user home directory:", err)
 	}
 	metamorphounDirs := []string{"Favorites", "Logs"}
 	for _, fldr := range metamorphounDirs {
@@ -731,7 +731,7 @@ func SetupSystemFolders() {
 			fmt.Println("Folder does not exist.")
 			err = os.MkdirAll(folderPath, 0755) // Adjust permissions as needed
 			if err != nil {
-				fmt.Printf("failed to create config directory: %w", err)
+				fmt.Println("failed to create config directory:", err)
 			}
 			if fldr == "Quotes" {
 				//copy in common quotes
@@ -768,15 +768,15 @@ func SetupSystemFolders() {
 
 	err = os.MkdirAll(filepath.Join(wallpaperFavs, "Pictures", "WithQuotes"), 0700) // Adjust permissions as needed
 	if err != nil {
-		fmt.Println("failed to create config directory: %w", err)
+		fmt.Println("failed to create config directory:", err)
 	}
 	err = os.MkdirAll(filepath.Join(wallpaperFavs, "Pictures", "WithOutQuotes"), 0700) // Adjust permissions as needed
 	if err != nil {
-		fmt.Println("failed to create config directory: %w", err)
+		fmt.Println("failed to create config directory:", err)
 
 		err = os.MkdirAll(filepath.Join(wallpaperFavs, "Quotes"), 0700) // Adjust permissions as needed
 		if err != nil {
-			fmt.Println("failed to create config directory: %w", err)
+			fmt.Println("failed to create config directory:", err)
 		}
 	}
 }

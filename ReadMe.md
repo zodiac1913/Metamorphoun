@@ -34,6 +34,11 @@ git clone https://github.com/zodiac1913/Metamorphoun.git
 cd Metamorphoun
 install-windows.bat
 ```
+## Windows SmartScreen Warning
+Windows Defender may block the download because the app isn't code-signed. This is normal for open source projects. To run:
+1. Click "More info" 
+2. Click "Run anyway"
+
 
 ### Linux
 

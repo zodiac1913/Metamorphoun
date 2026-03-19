@@ -1,0 +1,13 @@
+Permanent Marker Font
+=====================
+Designer: Font Diner
+License: Apache License, Version 2.0
+Source: https://fonts.google.com/specimen/Permanent+Marker
+
+This font is used exclusively for the Graffiti filter effect.
+
+Download the TTF from Google Fonts and place it in this directory as:
+  PermanentMarker-Regular.ttf
+
+Direct download link:
+  https://fonts.google.com/download?family=Permanent+Marker

@@ -224,6 +224,23 @@ func GetScreenInfo() []screenInfo {
 }
 func GetFontInfo(currentPic config.PicHistory) (float64, string, bool, config.PicHistory, error) {
 	initialFontSize := 22.0
+
+	// If graffiti filter is active, use the bundled Permanent Marker font
+	if currentPic.Filter == "graffiti" {
+		exePath, err := os.Executable()
+		if err == nil {
+			graffitiFont := filepath.Join(filepath.Dir(exePath), "shared", "static", "fonts", "PermanentMarker-Regular.ttf")
+			if _, statErr := os.Stat(graffitiFont); statErr == nil {
+				fmt.Println("Graffiti filter active — using Permanent Marker font:", graffitiFont)
+				currentPic.QuoteFont = graffitiFont
+				currentPic.QuoteStatement = config.ConfigInstance.CurrentQuoteStatement
+				currentPic.QuoteAuthor = config.ConfigInstance.CurrentQuoteAuthor
+				return initialFontSize, graffitiFont, false, currentPic, nil
+			}
+			fmt.Println("Graffiti font not found at:", graffitiFont, "— falling back to normal font selection")
+		}
+	}
+
 	fontPath := GetFolderPath(enum.PathLoc.Fonts) //filepath.Join(GetFolderPath(enum.PathLoc.Fonts), config.ConfigInstance.TextFontFile)
 	// List of substrings to exclude
 	excludedSubstrings := []string{

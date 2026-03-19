@@ -249,3 +249,78 @@ func MonochromeItNfo(currentPic config.PicHistory, img image.Image) (config.PicH
 	}
 	return currentPic, grayImg, nil
 }
+
+// posterize reduces a color channel to a limited number of levels
+func posterize(c uint8, levels int) uint8 {
+	step := 255.0 / float64(levels-1)
+	return uint8(math.Round(float64(c)/step) * step)
+}
+
+// sobelEdge computes the Sobel edge magnitude at a given pixel
+func sobelEdge(img image.Image, x, y, width, height int) float64 {
+	gray := func(px, py int) float64 {
+		if px < 0 || px >= width || py < 0 || py >= height {
+			return 0
+		}
+		r, g, b, _ := img.At(px, py).RGBA()
+		return float64(r*299+g*587+b*114) / 1000.0 / 256.0
+	}
+	gx := -gray(x-1, y-1) - 2*gray(x-1, y) - gray(x-1, y+1) +
+		gray(x+1, y-1) + 2*gray(x+1, y) + gray(x+1, y+1)
+	gy := -gray(x-1, y-1) - 2*gray(x, y-1) - gray(x+1, y-1) +
+		gray(x-1, y+1) + 2*gray(x, y+1) + gray(x+1, y+1)
+	return math.Sqrt(gx*gx + gy*gy)
+}
+
+// GraffitiItNfo applies a graffiti/street-art effect: bold edges + posterized colors + spray noise
+func GraffitiItNfo(currentPic config.PicHistory, img image.Image, intensity float64) (config.PicHistory, image.Image, error) {
+	if intensity == 0 {
+		intensity = float64(rand.Intn(3) + 3) // 3-5 color levels
+	}
+	currentPic.FilterIntensity = intensity
+	levels := int(intensity)
+
+	bounds := img.Bounds()
+	width, height := bounds.Dx(), bounds.Dy()
+	newImg := image.NewRGBA(bounds)
+
+	edgeThreshold := 80.0
+
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
+			edge := sobelEdge(img, x, y, width, height)
+
+			if edge > edgeThreshold {
+				// Bold dark outline like spray-paint strokes
+				newImg.Set(x, y, color.RGBA{20, 20, 20, 255})
+			} else {
+				r, g, b, a := img.At(x, y).RGBA()
+				pr := posterize(uint8(r>>8), levels)
+				pg := posterize(uint8(g>>8), levels)
+				pb := posterize(uint8(b>>8), levels)
+
+				// Boost saturation for vivid spray-paint colors
+				maxC := math.Max(float64(pr), math.Max(float64(pg), float64(pb)))
+				minC := math.Min(float64(pr), math.Min(float64(pg), float64(pb)))
+				if maxC > 0 && maxC != minC {
+					boost := 1.3
+					mid := (maxC + minC) / 2
+					pr = uint8(math.Min(255, mid+(float64(pr)-mid)*boost))
+					pg = uint8(math.Min(255, mid+(float64(pg)-mid)*boost))
+					pb = uint8(math.Min(255, mid+(float64(pb)-mid)*boost))
+				}
+
+				// Slight noise for spray-can overspray texture
+				if rand.Intn(100) < 5 {
+					noise := uint8(rand.Intn(30))
+					pr = uint8(math.Min(255, float64(pr)+float64(noise)))
+					pg = uint8(math.Min(255, float64(pg)+float64(noise)))
+					pb = uint8(math.Min(255, float64(pb)+float64(noise)))
+				}
+
+				newImg.Set(x, y, color.RGBA{pr, pg, pb, uint8(a >> 8)})
+			}
+		}
+	}
+	return currentPic, newImg, nil
+}

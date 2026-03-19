@@ -314,6 +314,8 @@ func filterCurrentPic(currentPic config.PicHistory, img image.Image) (image.Imag
 		img, err = MosaicSet(currentPic, img)
 	case "monochrome":
 		currentPic, img, err = MonochromeItNfo(currentPic, img)
+	case "graffiti":
+		img, err = GraffitiItSet(currentPic, img)
 	default: //Original
 		err = nil
 		//Do Nothing

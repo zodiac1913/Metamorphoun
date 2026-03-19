@@ -347,6 +347,9 @@ func picTypeAndFilter(currentPic config.PicHistory, img image.Image, filterChoic
 	if config.ConfigInstance.WallpaperFilterMonochrome {
 		filters = append(filters, "monochrome")
 	}
+	if config.ConfigInstance.WallpaperFilterGraffiti {
+		filters = append(filters, "graffiti")
+	}
 	if config.ConfigInstance.WallpaperFilterVortex {
 
 		if !currentPic.ImageItem.AllowDistort {
@@ -388,6 +391,8 @@ func picTypeAndFilter(currentPic config.PicHistory, img image.Image, filterChoic
 		img, err = MosaicSet(currentPic, img) //(img image.Image, tileMinSize int, tileMaxSize int)
 	case "monochrome":
 		currentPic, img, err = MonochromeItNfo(currentPic, img)
+	case "graffiti":
+		currentPic, img, err = GraffitiItNfo(currentPic, img, 0)
 	default: //Original
 		err = nil
 		//Do Nothing

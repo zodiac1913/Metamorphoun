@@ -16,7 +16,8 @@ import (
 )
 
 const AppVersion = "2026.03.05"
-const PublishedOn = "2026-03-05" 
+const PublishedOn = "2026-03-05"
+
 //ugh
 
 var GetFolderPath func(string) string
@@ -50,6 +51,7 @@ type Config struct {
 	WallpaperFilterWavy             bool    `json:"wallpaperFilterWavy"`
 	WallpaperFilterVortex           bool    `json:"wallpaperFilterVortex"`
 	WallpaperFilterMosaic           bool    `json:"wallpaperFilterMosaic"`
+	WallpaperFilterGraffiti         bool    `json:"wallpaperFilterGraffiti"`
 	//WallpaperFilterSpiral           bool          `json:"wallpaperFilterSpiral"`
 	WallpaperFilterMonochrome bool          `json:"wallpaperFilterMonochrome"`
 	ShowTextOverlay           bool          `json:"showTextOverlay"`
@@ -514,6 +516,7 @@ func CreateConfig() error {
 		WallpaperFilterOilify:     false,
 		WallpaperFilterWavy:       false,
 		WallpaperFilterVortex:     false,
+		WallpaperFilterGraffiti:   false,
 		WallpaperFilterMonochrome: false,
 		QuoteAppearanceRandom:     false,
 		QuoteFontRandom:           false,

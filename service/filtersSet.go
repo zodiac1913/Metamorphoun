@@ -302,3 +302,52 @@ func MosaicSet(currentPic config.PicHistory, img image.Image) (image.Image, erro
 	//saveImage(mosaic, "mosaicEnd.jpg")
 	return mosaic, nil
 }
+
+// GraffitiItSet applies a graffiti/street-art effect using stored intensity from PicHistory
+func GraffitiItSet(currentPic config.PicHistory, img image.Image) (image.Image, error) {
+	levels := int(currentPic.FilterIntensity)
+	if levels < 2 {
+		levels = 4
+	}
+
+	bounds := img.Bounds()
+	width, height := bounds.Dx(), bounds.Dy()
+	newImg := image.NewRGBA(bounds)
+
+	edgeThreshold := 80.0
+
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
+			edge := sobelEdge(img, x, y, width, height)
+
+			if edge > edgeThreshold {
+				newImg.Set(x, y, color.RGBA{20, 20, 20, 255})
+			} else {
+				r, g, b, a := img.At(x, y).RGBA()
+				pr := posterize(uint8(r>>8), levels)
+				pg := posterize(uint8(g>>8), levels)
+				pb := posterize(uint8(b>>8), levels)
+
+				maxC := math.Max(float64(pr), math.Max(float64(pg), float64(pb)))
+				minC := math.Min(float64(pr), math.Min(float64(pg), float64(pb)))
+				if maxC > 0 && maxC != minC {
+					boost := 1.3
+					mid := (maxC + minC) / 2
+					pr = uint8(math.Min(255, mid+(float64(pr)-mid)*boost))
+					pg = uint8(math.Min(255, mid+(float64(pg)-mid)*boost))
+					pb = uint8(math.Min(255, mid+(float64(pb)-mid)*boost))
+				}
+
+				if rand.Intn(100) < 5 {
+					noise := uint8(rand.Intn(30))
+					pr = uint8(math.Min(255, float64(pr)+float64(noise)))
+					pg = uint8(math.Min(255, float64(pg)+float64(noise)))
+					pb = uint8(math.Min(255, float64(pb)+float64(noise)))
+				}
+
+				newImg.Set(x, y, color.RGBA{pr, pg, pb, uint8(a >> 8)})
+			}
+		}
+	}
+	return newImg, nil
+}

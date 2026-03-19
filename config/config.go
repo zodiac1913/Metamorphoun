@@ -15,8 +15,8 @@ import (
 	"sync"
 )
 
-const AppVersion = "2026.03.05"
-const PublishedOn = "2026-03-05"
+const AppVersion = "2026.03.19"
+const PublishedOn = "2026-03-19"
 
 //ugh
 

@@ -49,9 +49,7 @@ export default class dynamite{
             document.querySelector("#quoteAppearanceOpacityEnvelope").classList.remove("d-none");
         }
         let mbcMode=document.querySelector("#mbcMode");
-        // if(mbcMode.checked){
-        // }else{
-        // }
+        bang.mbcModeWiring(mbcMode);
 
         quoteToolsButton.addEventListener("click",async (e)=>{ 
             let url = "quoteTools.html";
@@ -70,18 +68,27 @@ export default class dynamite{
                 if(e.target.id === "quoteAppearanceRandom") {
                     bang.quoteAppearanceRandomWiring(e);
                 }
+                if(e.target.id === "mbcMode") {
+                    bang.mbcModeWiring(e.target);
+                }
 
 			});
 		}
         //Web Actions (allow for web page instead of system tray)
         //Background Change
         document.querySelector("#callLastBackground").addEventListener("click",async (e)=>{
-            let apicallRtn=await bang.traffic.apiCall(bang.traffic.server + "/lastBackgroundApi",{})
-            console.log(apicallRtn);
+            bang.showBgProgress();
+            try {
+                let apicallRtn=await bang.traffic.apiCall(bang.traffic.server + "/lastBackgroundApi",{})
+                console.log(apicallRtn);
+            } finally { bang.hideBgProgress(); }
         });
         document.querySelector("#callNextBackground").addEventListener("click",async (e)=>{
-            let apicallRtn=await bang.traffic.apiCall(bang.traffic.server + "/nextBackgroundApi",{})
-            console.log(apicallRtn);
+            bang.showBgProgress();
+            try {
+                let apicallRtn=await bang.traffic.apiCall(bang.traffic.server + "/nextBackgroundApi",{})
+                console.log(apicallRtn);
+            } finally { bang.hideBgProgress(); }
         });
         //Favorites Menu
         document.querySelector("#FavsBGWith").addEventListener("click",async (e)=>{
@@ -552,6 +559,66 @@ export default class dynamite{
                 document.querySelector("#quoteAppearanceBackgroundColorEnvelope").classList.remove("d-none");
                 document.querySelector("#quoteAppearanceOpacityEnvelope").classList.remove("d-none");
             }
+        }
+    }
+
+    async mbcModeWiring(mbcModeEl) {
+        let bang = this;
+        let envelope = document.querySelector("#mbcValueEnvelope");
+        if (mbcModeEl.checked) {
+            envelope.classList.remove("d-none");
+            await bang.loadMbcSelect();
+        } else {
+            envelope.classList.add("d-none");
+        }
+    }
+
+    async loadMbcSelect() {
+        let bang = this;
+        let sel = document.querySelector("#mbcValueSelect");
+        if (sel.options.length > 0) {
+            // Already loaded, just sync selection
+            sel.selectedIndex = bang.config.mbcValue || 0;
+            return;
+        }
+        try {
+            let res = await fetch("/quotes/mbc.json");
+            let quotes = await res.json();
+            sel.innerHTML = "";
+            for (let i = 0; i < quotes.length; i++) {
+                let opt = document.createElement("option");
+                opt.value = i;
+                let display = quotes[i].statement;
+                opt.title = display;
+                opt.innerText = display.length > 20 ? display.substring(0, 20) + "…" : display;
+                sel.appendChild(opt);
+            }
+            sel.selectedIndex = bang.config.mbcValue || 0;
+            sel.addEventListener("change", async () => {
+                let json = { parameter: "mbcValue", value: parseInt(sel.value) };
+                await bang.traffic.apiCall(bang.traffic.server + "/inputApi", json);
+                await bang.traffic.fetchConfig();
+            });
+        } catch (err) {
+            console.error("Failed to load MBC quotes:", err);
+        }
+    }
+
+    showBgProgress() {
+        let el = document.querySelector("#bgProgressEnvelope");
+        if (el) {
+            el.classList.remove("d-none");
+            el.classList.add("d-flex");
+            console.log("showBgProgress — visible");
+        }
+    }
+
+    hideBgProgress() {
+        let el = document.querySelector("#bgProgressEnvelope");
+        if (el) {
+            el.classList.remove("d-flex");
+            el.classList.add("d-none");
+            console.log("hideBgProgress — hidden");
         }
     }
 

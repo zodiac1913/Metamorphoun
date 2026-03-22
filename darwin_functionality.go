@@ -28,7 +28,7 @@ import (
 	"github.com/fogleman/gg"
 )
 
-var staticQuotes []string
+var mbcQuotes []byte
 
 func init() {
 	loadMBCQuotes()
@@ -40,22 +40,7 @@ func loadMBCQuotes() {
 		fmt.Println("Error loading MBC quotes:", err)
 		return
 	}
-
-	var quotes []struct {
-		Statement string `json:"statement"`
-		Author    string `json:"author"`
-	}
-
-	err = json.Unmarshal(mbcData, &quotes)
-	if err != nil {
-		fmt.Println("Error unmarshaling MBC quotes:", err)
-		return
-	}
-
-	staticQuotes = make([]string, len(quotes))
-	for i, quote := range quotes {
-		staticQuotes[i] = quote.Statement
-	}
+	mbcQuotes = mbcData
 }
 
 func initCapture() {
@@ -64,6 +49,7 @@ func initCapture() {
 
 func SetRandomQuote(currentPic config.PicHistory, img image.Image) (config.PicHistory, image.Image, error) {
 	fmt.Println("running setRandomQuote")
+	var err error
 
 	//if(len(service.GetScreenInfo())==0) return currentPic, img, nil
 	screenInfo := service.GetScreenInfo()[0]
@@ -71,24 +57,46 @@ func SetRandomQuote(currentPic config.PicHistory, img image.Image) (config.PicHi
 	screenHeight := screenInfo.Height
 
 	if config.ConfigInstance.MBCMode {
-		fmt.Println("mbc mode active, skipping quote addition")
-		currentMonth := int(time.Now().Month())
-		if config.ConfigInstance.MBCMonth != currentMonth {
-			config.ConfigInstance.MBCMonth = currentMonth
-			config.ConfigInstance.MBCValue = 0
-			config.SaveConfig(config.ConfigInstance)
-		}
-		if len(staticQuotes) > 0 {
-			currentPic.QuoteStatement = staticQuotes[config.ConfigInstance.MBCValue%len(staticQuotes)]
-		} else {
+		fmt.Println("mbc mode active, using MBC quotes")
+		if len(mbcQuotes) == 0 {
 			currentPic.QuoteStatement = "MBC Quotes not loaded"
+			currentPic.QuoteAuthor = ""
+		} else {
+			var quotes []struct {
+				Statement string `json:"statement"`
+				Author    string `json:"author"`
+			}
+			err = json.Unmarshal(mbcQuotes, &quotes)
+			if err != nil {
+				fmt.Printf("JSON unmarshal failed: %v\n", err)
+				currentPic.QuoteStatement = "MBC Quotes unmarshal failed"
+				currentPic.QuoteAuthor = ""
+			} else if len(quotes) > 0 {
+				currentMonth := int(time.Now().Month())
+				if config.ConfigInstance.MBCMonth != currentMonth {
+					config.ConfigInstance.MBCMonth = currentMonth
+					config.ConfigInstance.MBCValue++
+					if config.ConfigInstance.MBCValue >= len(quotes) {
+						config.ConfigInstance.MBCValue = 0
+					}
+					fmt.Println("Month changed — MBCValue now:", config.ConfigInstance.MBCValue)
+				}
+				idx := config.ConfigInstance.MBCValue % len(quotes)
+				currentPic.QuoteStatement = quotes[idx].Statement
+				currentPic.QuoteAuthor = quotes[idx].Author
+				fmt.Println("Quote set to:", currentPic.QuoteStatement, "by", currentPic.QuoteAuthor)
+			} else {
+				currentPic.QuoteStatement = "MBC Quotes empty"
+				currentPic.QuoteAuthor = ""
+			}
 		}
-		currentPic.QuoteAuthor = "MBC Values"
-		// Increment MBCValue for next time
-		config.ConfigInstance.MBCValue++
-		config.SaveConfig(config.ConfigInstance)
+		config.UpdateConfigField("currentQuoteStatement", currentPic.QuoteStatement)
+		config.UpdateConfigField("currentQuoteAuthor", currentPic.QuoteAuthor)
+		if err := config.SaveConfig(config.ConfigInstance); err != nil {
+			fmt.Println("Failed to save MBC config:", err)
+		}
 	} else {
-		currentPic, err := service.GetQuote(currentPic)
+		currentPic, err = service.GetQuote(currentPic)
 		if err != nil {
 			fmt.Println("Error getting quote:", err)
 			return currentPic, img, err
@@ -113,7 +121,7 @@ func SetRandomQuote(currentPic config.PicHistory, img image.Image) (config.PicHi
 		return currentPic, img, err
 	}
 
-	authorText, wrappedQuoteText, quoteHeight, textBoxWidth, textBoxHeight, textBlockX, textBlockY, currentPic := service.CalculateBoxInfo(screenWidth, screenHeight, currentPic, dc)
+	authorText, wrappedQuoteText, _, textBoxWidth, textBoxHeight, textBlockX, textBlockY, currentPic := service.CalculateBoxInfo(screenWidth, screenHeight, currentPic, dc)
 
 	textBlockX, textBlockY = service.LocateBox(textBlockX, screenWidth, textBlockY, screenHeight, textBoxWidth, textBoxHeight)
 
@@ -134,11 +142,7 @@ func SetRandomQuote(currentPic config.PicHistory, img image.Image) (config.PicHi
 	}
 	currentPic = currPic2
 
-	dc.DrawStringWrapped(wrappedQuoteText, textBlockX+10, textBlockY+30, 0, 0, textBoxWidth-20, 1.5, gg.AlignLeft)
-
-	lineHeight := 48.0
-	authorY := textBlockY + 30 + quoteHeight + lineHeight
-	dc.DrawString(authorText, textBlockX+10, authorY+30)
+	service.DrawQuoteText(dc, wrappedQuoteText, authorText, textBlockX, textBlockY, textBoxWidth)
 
 	imgWithQuote := dc.Image()
 	return currentPic, imgWithQuote, err

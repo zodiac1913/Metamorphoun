@@ -223,7 +223,21 @@ func GetScreenInfo() []screenInfo {
 	return screenInfoRange
 }
 func GetFontInfo(currentPic config.PicHistory) (float64, string, bool, config.PicHistory, error) {
-	initialFontSize := 22.0
+	// Use configured font size range; fall back to sensible defaults
+	minSize := config.ConfigInstance.QuoteFontSizeMin
+	maxSize := config.ConfigInstance.QuoteFontSizeMax
+	if minSize < 8 {
+		minSize = 16
+	}
+	if maxSize < minSize {
+		maxSize = minSize
+	}
+	// Pick a random size in the range
+	initialFontSize := minSize
+	if maxSize > minSize {
+		initialFontSize = minSize + float64(rand.Intn(int(maxSize-minSize+1)))
+	}
+	fmt.Printf("Font size range: %.0f–%.0f, picked: %.0f\n", minSize, maxSize, initialFontSize)
 
 	// If graffiti filter is active, use the bundled Permanent Marker font
 	if currentPic.Filter == "graffiti" {
@@ -316,30 +330,94 @@ func GetFontInfo(currentPic config.PicHistory) (float64, string, bool, config.Pi
 	return initialFontSize, fontPath, false, currentPic, nil
 }
 
-func CalculateBoxInfo(screenWidth int, screenHeight int, currentPic config.PicHistory, dc *gg.Context) (string, string, float64, float64, float64, float64, float64, config.PicHistory) {
-	maxTextBoxWidth := float64(screenWidth) * 0.4   // 60% of half the screen width
-	maxTextBoxHeight := float64(screenHeight) * 0.9 // 60% of half the screen height
+func CalculateBoxInfo(screenWidth int, screenHeight int, currentPic config.PicHistory, dc *gg.Context) (string, []string, float64, float64, float64, float64, float64, config.PicHistory) {
+	// A quadrant is one quarter of the screen
+	quadW := float64(screenWidth) / 2.0
+	quadH := float64(screenHeight) / 2.0
 
-	// Split the quote text into lines based on the estimated number of characters per line
 	quoteText := `"` + currentPic.QuoteStatement + `"`
 	authorText := currentPic.QuoteAuthor
+	lineSpacing := 1.5
+	padX := 20.0
+	padY := 20.0
 
-	wrappedQuoteText := wordWrap(quoteText, maxTextBoxWidth, dc)
+	// The maximum width text can occupy inside the box
+	boxInterior := quadW - (padX * 2)
 
-	// Measure the dimensions of the wrapped quote and author text
-	quoteWidth, quoteHeight := dc.MeasureMultilineString(wrappedQuoteText, 2)
-	authorWidth, authorHeight := dc.MeasureString(authorText)
+	// MeasureString can underreport by up to ~65% for certain fonts
+	// (italic, monospace, decorative). We apply a safety multiplier so that
+	// our wrap decisions are based on a pessimistic width estimate.
+	const measureFudge = 1.8
 
-	// Calculate the required width and height for the text box /change 10 up H&W
-	textBoxWidth := math.Min(math.Max(quoteWidth, authorWidth)+50, maxTextBoxWidth) // Add some padding
-	textBoxHeight := math.Min(quoteHeight+authorHeight+70, maxTextBoxHeight)        // Add padding
+	// safeWidth returns the fudged width of a string
+	safeWidth := func(s string) float64 {
+		w, _ := dc.MeasureString(s)
+		return w * measureFudge
+	}
+
+	// wrapText splits text into lines that fit within boxInterior
+	wrapText := func(text string) []string {
+		words := strings.Fields(text)
+		var lines []string
+		current := ""
+		for _, word := range words {
+			candidate := current
+			if candidate != "" {
+				candidate += " "
+			}
+			candidate += word
+			if safeWidth(candidate) > boxInterior && current != "" {
+				lines = append(lines, current)
+				current = word
+			} else {
+				current = candidate
+			}
+		}
+		if current != "" {
+			lines = append(lines, current)
+		}
+		return lines
+	}
+
+	// Wrap both quote and author
+	quoteLines := wrapText(quoteText)
+	authorLines := wrapText(authorText)
+
+	// Build the full text block: quote + blank gap + author
+	var allLines []string
+	allLines = append(allLines, quoteLines...)
+	allLines = append(allLines, "") // gap
+	allLines = append(allLines, authorLines...)
+	fullText := strings.Join(allLines, "\n")
+
+	// Measure the full text block height
+	_, measuredH := dc.MeasureMultilineString(fullText, lineSpacing)
+
+	// Find the widest line (using fudged measurement) to size the box snugly
+	widest := 0.0
+	for _, line := range allLines {
+		w := safeWidth(line)
+		if w > widest {
+			widest = w
+		}
+	}
+
+	// Box width = widest fudged line + padding, capped to quadrant
+	textBoxWidth := math.Min(widest+(padX*2), quadW)
+	textBoxHeight := math.Min(measuredH+(padY*2), quadH)
+
+	fmt.Printf("Quadrant: %.0fx%.0f | Interior: %.0f | Box: %.0fx%.0f | Lines: %d\n",
+		quadW, quadH, boxInterior, textBoxWidth, textBoxHeight, len(allLines))
+
 	currentPic.QuoteTextBoxWidth = textBoxWidth
 	currentPic.QuoteTextBoxHeight = textBoxHeight
 	currentPic.QuoteTextBoxX = textBoxWidth
 	currentPic.QuoteTextBoxY = textBoxHeight
-	// Define the position for the text block based on the selected quadrant
+
 	var textBlockX, textBlockY float64
-	return authorText, wrappedQuoteText, quoteHeight, textBoxWidth, textBoxHeight, textBlockX, textBlockY, currentPic
+	// Return all wrapped lines (quote + gap + author) as the second return value.
+	// authorText is kept for backward compat but DrawQuoteText will use allLines.
+	return authorText, allLines, measuredH, textBoxWidth, textBoxHeight, textBlockX, textBlockY, currentPic
 }
 
 func LocateBox(textBlockX float64, screenWidth int, textBlockY float64, screenHeight int, textBoxWidth float64, textBoxHeight float64) (float64, float64) {
@@ -350,28 +428,74 @@ func LocateBox(textBlockX float64, screenWidth int, textBlockY float64, screenHe
 		textBoxLoc = validLocs[locRnd]
 	}
 
+	sw := float64(screenWidth)
+	sh := float64(screenHeight)
+	halfW := sw / 2.0
+	halfH := sh / 2.0
+	// Center the box within its quadrant
+	margin := 20.0
+
 	switch textBoxLoc {
 	case "topLeft":
-		textBlockX = float64(screenWidth) * 0.05
-		textBlockY = float64(screenHeight) * 0.1
+		textBlockX = (halfW-textBoxWidth)/2.0 + margin
+		textBlockY = (halfH-textBoxHeight)/2.0 + margin
 	case "topRight":
-		textBlockX = float64(screenWidth)*0.9 - textBoxWidth
-		textBlockY = float64(screenHeight) * 0.1
+		textBlockX = halfW + (halfW-textBoxWidth)/2.0 - margin
+		textBlockY = (halfH-textBoxHeight)/2.0 + margin
 	case "bottomLeft":
-		textBlockX = float64(screenWidth) * 0.1
-		textBlockY = float64(screenHeight)*0.8 - textBoxHeight
+		textBlockX = (halfW-textBoxWidth)/2.0 + margin
+		textBlockY = halfH + (halfH-textBoxHeight)/2.0 - margin
 	case "bottomRight":
-		textBlockX = float64(screenWidth)*0.9 - textBoxWidth
-		textBlockY = float64(screenHeight)*0.8 - textBoxHeight
+		textBlockX = halfW + (halfW-textBoxWidth)/2.0 - margin
+		textBlockY = halfH + (halfH-textBoxHeight)/2.0 - margin
 	case "center":
-		textBlockX = (float64(screenWidth) - textBoxWidth) / 2
-		textBlockY = (float64(screenHeight) - textBoxHeight) / 2
+		textBlockX = (sw - textBoxWidth) / 2
+		textBlockY = (sh - textBoxHeight) / 2
 	}
 
-	// Debug prints to verify the calculated positions
+	// Clamp to screen bounds
+	if textBlockX < 0 {
+		textBlockX = margin
+	}
+	if textBlockY < 0 {
+		textBlockY = margin
+	}
+	if textBlockX+textBoxWidth > sw {
+		textBlockX = sw - textBoxWidth - margin
+	}
+	if textBlockY+textBoxHeight > sh {
+		textBlockY = sh - textBoxHeight - margin
+	}
+
 	fmt.Printf("Text block position: X=%.2f, Y=%.2f\n", textBlockX, textBlockY)
 	fmt.Printf("Text box dimensions: Width=%.2f, Height=%.2f\n", textBoxWidth, textBoxHeight)
 	return textBlockX, textBlockY
+}
+
+// DrawQuoteText draws all pre-wrapped lines (quote + gap + author) inside the box.
+// Lines are drawn one by one so no re-wrapping can occur.
+func DrawQuoteText(dc *gg.Context, allLines []string, authorText string, textBlockX, textBlockY float64, textBoxWidth float64) {
+	padX := 20.0
+	padY := 20.0
+	lineSpacing := 1.5
+
+	// Compute the exact line step
+	_, h1 := dc.MeasureMultilineString("Mg", lineSpacing)
+	_, h2 := dc.MeasureMultilineString("Mg\nMg", lineSpacing)
+	lineStep := h2 - h1
+	if lineStep < 1 {
+		lineStep = h1
+	}
+
+	// First baseline
+	_, ascent := dc.MeasureString("Mg")
+	x := textBlockX + padX
+	y := textBlockY + padY + ascent
+
+	for _, line := range allLines {
+		dc.DrawString(line, x, y)
+		y += lineStep
+	}
 }
 
 func GetBackgroundColor(currentPic config.PicHistory) (uint8, uint8, uint8, bool, config.PicHistory, error) {
@@ -422,7 +546,7 @@ func GetOpacityAndSetBoxBackground(currentPic config.PicHistory, dc *gg.Context,
 
 	//fmt.Println("opacity", opacity)
 	dc.SetColor(color.RGBA{redColorBackground, greenColorBackground, blueColorBackground, uint8(opacity)})
-	dc.DrawRoundedRectangle(textBlockX, textBlockY, textBoxWidth+20, textBoxHeight+50, 10)
+	dc.DrawRoundedRectangle(textBlockX, textBlockY, textBoxWidth, textBoxHeight, 10)
 	dc.Fill()
 	return false, currentPic, nil
 }

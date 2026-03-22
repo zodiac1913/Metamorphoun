@@ -9,7 +9,9 @@ import (
 	"Metamorphoun/enum"
 	"Metamorphoun/morphLog"
 	"Metamorphoun/service"
+	"Metamorphoun/shared"
 	"Metamorphoun/zutil"
+	"encoding/json"
 	"fmt"
 	"image"
 	"log"
@@ -22,6 +24,21 @@ import (
 
 	"github.com/fogleman/gg"
 )
+
+var mbcQuotes []byte
+
+func init() {
+	loadMBCQuotes()
+}
+
+func loadMBCQuotes() {
+	mbcData, err := shared.GetStaticFSQuotes("quotes/mbc.json")
+	if err != nil {
+		fmt.Println("Error loading MBC quotes:", err)
+		return
+	}
+	mbcQuotes = mbcData
+}
 
 func PrintPlatformMessage() {
 	fmt.Println("Running Linux-specific code")
@@ -97,7 +114,18 @@ var fontDirs = []string{
 
 func findFonts(currentPic config.PicHistory) (float64, string, bool, config.PicHistory, error) {
 	var foundFonts []string
-	initialFontSize := 22.0
+	minSize := config.ConfigInstance.QuoteFontSizeMin
+	maxSize := config.ConfigInstance.QuoteFontSizeMax
+	if minSize < 8 {
+		minSize = 16
+	}
+	if maxSize < minSize {
+		maxSize = minSize
+	}
+	initialFontSize := minSize
+	if maxSize > minSize {
+		initialFontSize = minSize + float64(rand.Intn(int(maxSize-minSize+1)))
+	}
 	fontPath := filepath.Join(GetFolderPath(enum.PathLoc.Fonts), config.ConfigInstance.TextFontFile)
 	for _, dir := range fontDirs {
 		expandedDir, err := filepath.Abs(dir)
@@ -152,11 +180,53 @@ func SetRandomQuote(currentPic config.PicHistory, img image.Image) (config.PicHi
 	screenInfo := service.GetScreenInfo()[0]
 	screenWidth := screenInfo.Width
 	screenHeight := screenInfo.Height
-	//Make Sure a Quote is loaded
-	currentPic, err = service.GetQuote(currentPic)
-	if err != nil {
-		fmt.Println("Error getting quote:", err)
-		return currentPic, img, err
+
+	if config.ConfigInstance.MBCMode {
+		fmt.Println("mbc mode active, using MBC quotes")
+		if len(mbcQuotes) == 0 {
+			currentPic.QuoteStatement = "MBC Quotes not loaded"
+			currentPic.QuoteAuthor = ""
+		} else {
+			var quotes []struct {
+				Statement string `json:"statement"`
+				Author    string `json:"author"`
+			}
+			err = json.Unmarshal(mbcQuotes, &quotes)
+			if err != nil {
+				fmt.Printf("JSON unmarshal failed: %v\n", err)
+				currentPic.QuoteStatement = "MBC Quotes unmarshal failed"
+				currentPic.QuoteAuthor = ""
+			} else if len(quotes) > 0 {
+				currentMonth := int(time.Now().Month())
+				if config.ConfigInstance.MBCMonth != currentMonth {
+					config.ConfigInstance.MBCMonth = currentMonth
+					config.ConfigInstance.MBCValue++
+					if config.ConfigInstance.MBCValue >= len(quotes) {
+						config.ConfigInstance.MBCValue = 0
+					}
+					fmt.Println("Month changed — MBCValue now:", config.ConfigInstance.MBCValue)
+				}
+				idx := config.ConfigInstance.MBCValue % len(quotes)
+				currentPic.QuoteStatement = quotes[idx].Statement
+				currentPic.QuoteAuthor = quotes[idx].Author
+				fmt.Println("Quote set to:", currentPic.QuoteStatement, "by", currentPic.QuoteAuthor)
+			} else {
+				currentPic.QuoteStatement = "MBC Quotes empty"
+				currentPic.QuoteAuthor = ""
+			}
+		}
+		config.UpdateConfigField("currentQuoteStatement", currentPic.QuoteStatement)
+		config.UpdateConfigField("currentQuoteAuthor", currentPic.QuoteAuthor)
+		if err := config.SaveConfig(config.ConfigInstance); err != nil {
+			fmt.Println("Failed to save MBC config:", err)
+		}
+	} else {
+		//Make Sure a Quote is loaded
+		currentPic, err = service.GetQuote(currentPic)
+		if err != nil {
+			fmt.Println("Error getting quote:", err)
+			return currentPic, img, err
+		}
 	}
 	fmt.Println("Quote:", currentPic.QuoteStatement)
 	fmt.Println("Author:", currentPic.QuoteAuthor)
@@ -177,7 +247,7 @@ func SetRandomQuote(currentPic config.PicHistory, img image.Image) (config.PicHi
 	}
 
 	// Set maximum dimensions for the text box (60% of the quadrant)
-	authorText, wrappedQuoteText, quoteHeight, textBoxWidth, textBoxHeight, textBlockX, textBlockY, currentPic := service.CalculateBoxInfo(screenWidth, screenHeight, currentPic, dc)
+	authorText, wrappedQuoteText, _, textBoxWidth, textBoxHeight, textBlockX, textBlockY, currentPic := service.CalculateBoxInfo(screenWidth, screenHeight, currentPic, dc)
 
 	textBlockX, textBlockY = service.LocateBox(textBlockX, screenWidth, textBlockY, screenHeight, textBoxWidth, textBoxHeight)
 
@@ -202,13 +272,8 @@ func SetRandomQuote(currentPic config.PicHistory, img image.Image) (config.PicHi
 	currentPic = currPic2
 	//dc.SetColor(color.White)
 
-	dc.DrawStringWrapped(wrappedQuoteText, textBlockX+10, textBlockY+30, 0, 0, textBoxWidth-20, 1.5, gg.AlignLeft)
+	service.DrawQuoteText(dc, wrappedQuoteText, authorText, textBlockX, textBlockY, textBoxWidth)
 
-	// Calculate a line height buffer between the quote and the author
-	lineHeight := 48.0                                    // Replace with the actual height of a line of text
-	authorY := textBlockY + 30 + quoteHeight + lineHeight // Add a buffer between quote and author
-	dc.DrawString(authorText, textBlockX+10, authorY+30)
-	// Get the resulting image (THIS IS THE MAGIC OF THE NEW PIC CONTEXT.  Started with dc := gg.NewContextForImage(img) )
 	imgWithQuote := dc.Image()
 	return currentPic, imgWithQuote, err
 

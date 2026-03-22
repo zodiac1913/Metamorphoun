@@ -15,8 +15,8 @@ import (
 	"sync"
 )
 
-const AppVersion = "2026.03.19"
-const PublishedOn = "2026-03-19"
+const AppVersion = "2026.03.21"
+const PublishedOn = "2026-03-21"
 
 //ugh
 
@@ -72,6 +72,8 @@ type Config struct {
 	MBCMonth               int          `json:"mbcMonth"`
 	MBCMode                bool         `json:"mbcMode"`
 	MBCValue               int          `json:"mbcValue"`
+	QuoteFontSizeMin       float64      `json:"quoteFontSizeMin"`
+	QuoteFontSizeMax       float64      `json:"quoteFontSizeMax"`
 	// Add other configuration fields here
 }
 type Image struct {
@@ -211,6 +213,20 @@ func SetConfigField(fieldName string, value interface{}) error {
 			return fmt.Errorf("invalid int32 value for %s: %v", fieldName, err)
 		}
 		val = reflect.ValueOf(int32(parsed))
+	}
+	if f.Kind() == reflect.Float64 && val.Kind() == reflect.String {
+		parsed, err := strconv.ParseFloat(val.String(), 64)
+		if err != nil {
+			return fmt.Errorf("invalid float64 value for %s: %v", fieldName, err)
+		}
+		val = reflect.ValueOf(parsed)
+	}
+	if f.Kind() == reflect.Int && val.Kind() == reflect.String {
+		parsed, err := strconv.Atoi(val.String())
+		if err != nil {
+			return fmt.Errorf("invalid int value for %s: %v", fieldName, err)
+		}
+		val = reflect.ValueOf(parsed)
 	}
 	// Handle other type mismatches
 	if val.Type() != f.Type() {
@@ -685,10 +701,12 @@ func CreateConfig() error {
 				Inherent: true,
 			},
 		},
-		MBCMonth:     0,     //set to current when MBCMode is enabled
-		MBCMode:      false, //When On the MBC traits will replace quotes
-		MBCValue:     0,
-		PicHistories: []PicHistory{},
+		MBCMonth:         0,     //set to current when MBCMode is enabled
+		MBCMode:          false, //When On the MBC traits will replace quotes
+		MBCValue:         0,
+		QuoteFontSizeMin: 16,
+		QuoteFontSizeMax: 28,
+		PicHistories:     []PicHistory{},
 	}
 
 	// Get the user's home directory

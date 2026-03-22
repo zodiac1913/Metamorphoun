@@ -183,12 +183,13 @@ func SetQuoteBlock(currentPic config.PicHistory, img image.Image) (config.PicHis
 	// Set maximum dimensions for the text box (60% of the quadrant)
 
 	authorText := currentPic.QuoteAuthor
-	//wrappedQuoteText?
-	//quoteHeight:=
 	textBoxWidth := currentPic.QuoteTextBoxWidth
-	//textBoxHeight := currentPic.QuoteTextBoxHeight
 	textBlockX := currentPic.QuoteTextBoxX
 	textBlockY := currentPic.QuoteTextBoxY
+
+	// Wrap quote using same padding as CalculateBoxInfo (padX=20 each side)
+	drawWidth := textBoxWidth - 40
+	wrappedLines := dc.WordWrap(`"`+currentPic.QuoteStatement+`"`, drawWidth)
 
 	// Set transparent background for text block
 	//Make Background color
@@ -205,15 +206,9 @@ func SetQuoteBlock(currentPic config.PicHistory, img image.Image) (config.PicHis
 		return currentPic, img, err
 	}
 	currentPic = currPic2
-	//dc.SetColor(color.White)
 
-	dc.DrawStringWrapped(currentPic.QuoteStatement, textBlockX, textBlockY, 0, 0, textBoxWidth, 1.5, gg.AlignLeft)
+	DrawQuoteText(dc, wrappedLines, authorText, textBlockX, textBlockY, textBoxWidth)
 
-	// Calculate a line height buffer between the quote and the author
-	lineHeight := 48.0                                                 // Replace with the actual height of a line of text
-	authorY := textBlockY + currentPic.QuoteTextBoxHeight + lineHeight // Add a buffer between quote and author
-	dc.DrawString(authorText, textBlockX+10, authorY+30)
-	// Get the resulting image (THIS IS THE MAGIC OF THE NEW PIC CONTEXT.  Started with dc := gg.NewContextForImage(img) )
 	imgWithQuote := dc.Image()
 	return currentPic, imgWithQuote, err
 }

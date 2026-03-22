@@ -42,6 +42,25 @@ func main() {
 	//top!!!
 	PrintPlatformMessage()
 
+	// Validate MBCMonth — if out of range, set to current month
+	if config.ConfigInstance.MBCMonth < 1 || config.ConfigInstance.MBCMonth > 12 {
+		config.ConfigInstance.MBCMonth = int(time.Now().Month())
+		config.SaveConfig(config.ConfigInstance)
+	}
+
+	// Ensure font size range has sensible values for existing configs
+	saveNeeded := false
+	if config.ConfigInstance.QuoteFontSizeMin < 8 {
+		config.ConfigInstance.QuoteFontSizeMin = 16
+		saveNeeded = true
+	}
+	if config.ConfigInstance.QuoteFontSizeMax < config.ConfigInstance.QuoteFontSizeMin {
+		config.ConfigInstance.QuoteFontSizeMax = 28
+		saveNeeded = true
+	}
+	if saveNeeded {
+		config.SaveConfig(config.ConfigInstance)
+	}
 
 	cfg := configData // Now cfg points to the single loaded instance
 
@@ -73,7 +92,6 @@ func main() {
 		config.ConfigInstance.BackgroundChangeAttempt = 0
 		service.BackgroundGenerate("ChangeOnStartup", pic)
 	}
-
 
 	go func() {
 		timer := time.NewTicker(time.Duration(cfg.ChangeMinutes) * time.Minute)
@@ -126,4 +144,3 @@ func getFolderPathImpl(pathNeeded string) string {
 func setRandomQuoteImpl(currentPic config.PicHistory, img image.Image) (config.PicHistory, image.Image, error) {
 	return SetRandomQuote(currentPic, img)
 }
-

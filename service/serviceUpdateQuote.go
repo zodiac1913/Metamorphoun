@@ -347,7 +347,7 @@ func CalculateBoxInfo(screenWidth int, screenHeight int, currentPic config.PicHi
 	// MeasureString can underreport by up to ~65% for certain fonts
 	// (italic, monospace, decorative). We apply a safety multiplier so that
 	// our wrap decisions are based on a pessimistic width estimate.
-	const measureFudge = 1.8
+	const measureFudge = 1.1
 
 	// safeWidth returns the fudged width of a string
 	safeWidth := func(s string) float64 {

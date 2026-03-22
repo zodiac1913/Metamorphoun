@@ -25,8 +25,10 @@ func ListStaticFiles() {
 
 // A function to retrieve files from staticFS
 func GetStaticFSQuotes(filename string) ([]byte, error) {
-	// Ensure the path starts with "static/"
-	fullPath := "static/" + strings.TrimPrefix(filename, "static/")
+	// Ensure the path starts with "static/" and has no double slashes
+	cleaned := strings.TrimPrefix(filename, "static/")
+	cleaned = strings.TrimPrefix(cleaned, "/")
+	fullPath := "static/" + cleaned
 	data, err := StaticFiles.ReadFile(fullPath)
 	if err != nil {
 		return nil, err

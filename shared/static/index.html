@@ -124,10 +124,10 @@
 				</div>
 				<div class="container-fluid ms-4">
 					<label class="form-label" for="wallpaperImageSizing">Filters</label>
-					<div id="wallpaperLibraries" class="container-fluid ms-4">
-						<div id="wallpaperFilterLibraries" class="w-75 border border-Aquamarine border-2">
-								<div id="wallpaperLibrariesRow1" class="row">
-									<div class="col">
+					<div id="wallpaperLibraries" class="d-flex ms-2">
+						<div id="wallpaperFilterLibraries" class="mx-5 d-flex border border-Aquamarine border-2 rounded-2 p-2">
+								<div id="wallpaperLibrariesCol1" class="flex-row flex-fill mx-2 my-1">
+									<div class="flex-col">
 										<div class="form-check form-switch">
 											<input class="form-check-input primaryInput" id="wallpaperFilterOriginal" 
 												type="checkbox" role="switch" aria-checked="true"
@@ -136,7 +136,7 @@
 												title="Leave the picture alone.  Use original appearance">Original</label>
 										</div>
 									</div>
-									<div class="col">
+									<div class="flex-col">
 										<div class="form-check form-switch">
 											<input class="form-check-input primaryInput" id="wallpaperFilterBlurSoft" 
 												type="checkbox" role="switch" aria-checked="false"
@@ -145,7 +145,7 @@
 												title="Slightly blur the picture">Soft Blur</label>
 										</div>
 									</div>
-									<div class="col">
+									<div class="flex-col">
 										<div class="form-check form-switch">
 											<input class="form-check-input primaryInput" id="wallpaperFilterBlurHard" 
 												type="checkbox" role="switch" aria-checked="false"
@@ -154,7 +154,9 @@
 												title="Heavy blur the picture">Hard Blur</label>
 										</div>
 									</div>
-									<div class="col">
+								</div>
+								<div id="wallpaperLibrariesCol2" class="flex-row flex-fill mx-2 my-1">
+									<div class="flex-col">
 										<div class="form-check form-switch">
 											<input class="form-check-input primaryInput" id="wallpaperFilterPixelate" 
 												type="checkbox" role="switch" aria-checked="false"
@@ -163,48 +165,7 @@
 												title="Pixelate the picture in random pixel size">Pixelate</label>
 										</div>
 									</div>
-								</div>
-								<div id="wallpaperLibrariesRow2" class="row">
-									<div class="col">
-										<div class="form-check form-switch">
-											<input class="form-check-input primaryInput" id="wallpaperFilterOilify" 
-												type="checkbox" role="switch" aria-checked="false"
-												title="Change the picture to appear as an oil painting"/>
-											<label class="form-check-label" for="wallpaperFilterOilify"
-												title="Change the picture to appear as an oil painting">Oilify</label>
-										</div>
-									</div>									
-									<div class="col">
-										<div class="form-check form-switch">
-											<input class="form-check-input primaryInput" id="wallpaperFilterWavy" 
-												type="checkbox" role="switch" aria-checked="false"
-												title="Change the picture to appear as a Dali"/>
-											<label class="form-check-label" for="wallpaperFilterWavy"
-												title="Change the picture to appear as a Dali">Dali</label>
-										</div>
-									</div>
-
-									<div class="col">
-										<div class="form-check form-switch">
-											<input class="form-check-input primaryInput" id="wallpaperFilterMosaic" 
-												type="checkbox" role="switch" aria-checked="false"
-												title="Change the picture to appear as a Mosaic"/>
-											<label class="form-check-label" for="wallpaperFilterMosaic"
-												title="Change the picture to appear as a Mosaic">Mosaic</label>
-										</div>
-									</div>
-
-									<div class="col">
-										<div class="form-check form-switch">
-											<input class="form-check-input primaryInput" id="wallpaperFilterJigsawPuzzle" 
-												type="checkbox" role="switch" aria-checked="false"
-												title="Change the picture to appear as a Jigsaw Puzzle"/>
-											<label class="form-check-label" for="wallpaperFilterJigsawPuzzle"
-												title="Change the picture to appear as a Jigsaw Puzzle">Jigsaw Puzzle</label>
-										</div>
-									</div>
-
-									<div class="col">
+									<div class="flex-col">
 										<div class="form-check form-switch">
 											<input class="form-check-input primaryInput" id="wallpaperFilterMonochrome" 
 												type="checkbox" role="switch" aria-checked="false"
@@ -213,24 +174,65 @@
 												title="Change the picture to appear as grayscale">Monochrome</label>
 										</div>
 									</div>
-									<div class="col">
-										<div class="form-check form-switch">
-											<input class="form-check-input primaryInput" id="wallpaperFilterVortex" 
-												type="checkbox" role="switch" aria-checked="false"
-												title="Spins, twists, the vortex creates anew"/>
-											<label class="form-check-label" for="wallpaperFilterVortex"
-												title="Put your image through the vortex">The Vortex</label>
+								</div>
+								<div id="wallpaperLibrariesCol3" class="flex-row flex-fill mx-2 my-1">
+										<div class="flex-col">
+											<div class="form-check form-switch">
+												<input class="form-check-input primaryInput" id="wallpaperFilterMosaic" 
+													type="checkbox" role="switch" aria-checked="false"
+													title="Change the picture to appear as a Mosaic"/>
+												<label class="form-check-label" for="wallpaperFilterMosaic"
+													title="Change the picture to appear as a Mosaic">Mosaic</label>
+											</div>
 										</div>
-									</div>
-									<div class="col">
-										<div class="form-check form-switch">
-											<input class="form-check-input primaryInput" id="wallpaperFilterGraffiti" 
-												type="checkbox" role="switch" aria-checked="false"
-												title="Transform the picture into street art with bold edges and vivid colors"/>
-											<label class="form-check-label" for="wallpaperFilterGraffiti"
-												title="Transform the picture into street art with bold edges and vivid colors">Graffiti</label>
+										<div class="flex-col">
+											<div class="form-check form-switch">
+												<input class="form-check-input primaryInput" id="wallpaperFilterJigsawPuzzle" 
+													type="checkbox" role="switch" aria-checked="false"
+													title="Change the picture to appear as a Jigsaw Puzzle"/>
+												<label class="form-check-label" for="wallpaperFilterJigsawPuzzle"
+													title="Change the picture to appear as a Jigsaw Puzzle">Jigsaw Puzzle</label>
+											</div>
 										</div>
+										<div class="flex-col">
+											<div class="form-check form-switch">
+												<input class="form-check-input primaryInput" id="wallpaperFilterOilify" 
+													type="checkbox" role="switch" aria-checked="false"
+													title="Change the picture to appear as an oil painting"/>
+												<label class="form-check-label" for="wallpaperFilterOilify"
+													title="Change the picture to appear as an oil painting">Oilify</label>
+											</div>
+										</div>									
 									</div>
+									<div id="wallpaperLibrariesCol4" class="flex-row flex-fill mx-2 my-1">
+										<div class="flex-col">
+											<div class="form-check form-switch">
+												<input class="form-check-input primaryInput" id="wallpaperFilterVortex" 
+													type="checkbox" role="switch" aria-checked="false"
+													title="Spins, twists, the vortex creates anew"/>
+												<label class="form-check-label" for="wallpaperFilterVortex"
+													title="Put your image through the vortex">The Vortex</label>
+											</div>
+										</div>
+										<div class="flex-col">
+											<div class="form-check form-switch">
+												<input class="form-check-input primaryInput" id="wallpaperFilterGraffiti" 
+													type="checkbox" role="switch" aria-checked="false"
+													title="Transform the picture into street art with bold edges and vivid colors"/>
+												<label class="form-check-label" for="wallpaperFilterGraffiti"
+													title="Transform the picture into street art with bold edges and vivid colors">Graffiti</label>
+											</div>
+										</div>
+										<div class="flex-col">
+											<div class="form-check form-switch">
+												<input class="form-check-input primaryInput" id="wallpaperFilterWavy" 
+													type="checkbox" role="switch" aria-checked="false"
+													title="Change the picture to appear as a Dali"/>
+												<label class="form-check-label" for="wallpaperFilterWavy"
+													title="Change the picture to appear as a Dali">Dali</label>
+											</div>
+										</div>
+									</div>	
 								</div>
 							</div>
 					</div>

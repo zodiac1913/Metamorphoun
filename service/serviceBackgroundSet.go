@@ -307,6 +307,8 @@ func filterCurrentPic(currentPic config.PicHistory, img image.Image) (image.Imag
 		img, err = applyVortexToQuadrantsSet(currentPic, img) //, pullDistance, maxAngle, maxDistance
 	case "mosaic":
 		img, err = MosaicSet(currentPic, img)
+	case "jigsawpuzzle":
+		img, err = JigsawPuzzleSet(currentPic, img)
 	case "monochrome":
 		currentPic, img, err = MonochromeItNfo(currentPic, img)
 	case "graffiti":

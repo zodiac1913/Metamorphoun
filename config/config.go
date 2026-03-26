@@ -51,6 +51,7 @@ type Config struct {
 	WallpaperFilterWavy             bool    `json:"wallpaperFilterWavy"`
 	WallpaperFilterVortex           bool    `json:"wallpaperFilterVortex"`
 	WallpaperFilterMosaic           bool    `json:"wallpaperFilterMosaic"`
+	WallpaperFilterJigsawPuzzle     bool    `json:"wallpaperFilterJigsawPuzzle"`
 	WallpaperFilterGraffiti         bool    `json:"wallpaperFilterGraffiti"`
 	//WallpaperFilterSpiral           bool          `json:"wallpaperFilterSpiral"`
 	WallpaperFilterMonochrome bool          `json:"wallpaperFilterMonochrome"`
@@ -568,6 +569,16 @@ func CreateConfig() error {
 				Citation: "https://gracequotes.org/author-quote/augustine/",
 				Creators: "Grace Quotes",
 				Info:     "‘Grace Quotes’ is a growing database containing over 10,000 great Christian quotes arranged over hundreds of topics. The material is from theologically sound, well-respected pastors, authors and Christian heroes from across the centuries.",
+				Inherent: true,
+			},
+			{
+				Use:      true,
+				Name:     "CharlesSpurgeonQuotes",
+				Title:    "Charles Spurgeon Quotes",
+				Location: "quotes/charlesSpurgeon.json",
+				Citation: "https://www.goodreads.com/author/quotes/2876959.Charles_Haddon_Spurgeon",
+				Creators: "GoodReads Quotes",
+				Info:     "Goodreads is the world’s largest site for readers and book recommendations. Our mission is to help readers discover books they love and get more out of reading. Goodreads launched in January 2007",
 				Inherent: true,
 			},
 			{

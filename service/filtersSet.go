@@ -351,3 +351,166 @@ func GraffitiItSet(currentPic config.PicHistory, img image.Image) (image.Image, 
 	}
 	return newImg, nil
 }
+
+// JigsawPuzzleSet applies a jigsaw puzzle effect with realistic interlocking pieces
+// JigsawPuzzleSet overlays black interlocking jigsaw-puzzle lines on the image.
+// Each interior edge gets a smooth tab (bump) that alternates direction so
+// neighbouring pieces interlock.  The grid targets roughly 30–50 pieces per
+// axis depending on FilterIntensity (low = fewer/bigger, high = more/smaller).
+func JigsawPuzzleSet(currentPic config.PicHistory, img image.Image) (image.Image, error) {
+	bounds := img.Bounds()
+	W := float64(bounds.Dx())
+	H := float64(bounds.Dy())
+
+	// --- grid size ----------------------------------------------------------
+	// Map FilterIntensity (typically 1-10) to columns in the 30-50 range.
+	cols := int(30 + currentPic.FilterIntensity*2)
+	if cols < 20 {
+		cols = 20
+	}
+	if cols > 60 {
+		cols = 60
+	}
+	pieceW := W / float64(cols)
+	rows := int(math.Round(H / pieceW)) // keep pieces roughly square
+	if rows < 10 {
+		rows = 10
+	}
+	pieceH := H / float64(rows)
+
+	// --- line thickness -----------------------------------------------------
+	lineW := 3.0 + rand.Float64()*3.0 // 3-6 px, varies per image
+
+	// --- deterministic tab directions per edge ------------------------------
+	// hTabs[row][col] = true means the tab on the horizontal edge between
+	// row-1 and row bumps downward; false = upward.  Similar for vTabs.
+	hTabs := make([][]bool, rows+1)
+	for r := range hTabs {
+		hTabs[r] = make([]bool, cols)
+		for c := range hTabs[r] {
+			hTabs[r][c] = rand.Intn(2) == 0
+		}
+	}
+	vTabs := make([][]bool, rows)
+	for r := range vTabs {
+		vTabs[r] = make([]bool, cols+1)
+		for c := range vTabs[r] {
+			vTabs[r][c] = rand.Intn(2) == 0
+		}
+	}
+
+	// --- draw on a gg context -----------------------------------------------
+	dc := gg.NewContextForImage(img)
+	dc.SetColor(color.Black)
+	dc.SetLineWidth(lineW)
+	dc.SetLineCapButt()
+
+	// drawHTab draws a classic jigsaw nub on a horizontal edge.
+	// Each nub gets randomized proportions for a natural look.
+	drawHEdge := func(col, row int, down bool) {
+		x0 := float64(col) * pieceW
+		y0 := float64(row) * pieceH
+		seg := pieceW
+		d := 1.0
+		if !down {
+			d = -1.0
+		}
+
+		// Randomize nub position along the edge (30-45% from left)
+		neckStart := seg * (0.30 + rand.Float64()*0.15)
+		nubWidth := seg * (0.22 + rand.Float64()*0.10) // nub spans 22-32% of edge
+		neckEnd := neckStart + nubWidth
+
+		// Randomize how far the nub sticks out (25-38% of piece height)
+		nubH := pieceH * (0.25 + rand.Float64()*0.13)
+		// Randomize neck pinch (3-8% of segment)
+		neckW := seg * (0.03 + rand.Float64()*0.05)
+
+		dc.MoveTo(x0, y0)
+		dc.LineTo(x0+neckStart, y0)
+
+		dc.CubicTo(
+			x0+neckStart+neckW, y0,
+			x0+neckStart-neckW, y0+d*nubH*0.4,
+			x0+neckStart-neckW, y0+d*nubH*0.6,
+		)
+		dc.CubicTo(
+			x0+neckStart-neckW, y0+d*nubH,
+			x0+neckEnd+neckW, y0+d*nubH,
+			x0+neckEnd+neckW, y0+d*nubH*0.6,
+		)
+		dc.CubicTo(
+			x0+neckEnd+neckW, y0+d*nubH*0.4,
+			x0+neckEnd-neckW, y0,
+			x0+neckEnd, y0,
+		)
+
+		dc.LineTo(x0+seg, y0)
+	}
+
+	// drawVTab draws a classic jigsaw nub on a vertical edge.
+	// Same mushroom shape rotated 90°, with per-tab randomization.
+	drawVEdge := func(col, row int, right bool) {
+		x0 := float64(col) * pieceW
+		y0 := float64(row) * pieceH
+		seg := pieceH
+		d := 1.0
+		if !right {
+			d = -1.0
+		}
+
+		// Randomize nub position along the edge (30-45% from top)
+		neckStart := seg * (0.30 + rand.Float64()*0.15)
+		nubHeight := seg * (0.22 + rand.Float64()*0.10)
+		neckEnd := neckStart + nubHeight
+
+		// Randomize protrusion (25-38% of piece width)
+		nubW := pieceW * (0.25 + rand.Float64()*0.13)
+		// Randomize neck pinch
+		neckH := seg * (0.03 + rand.Float64()*0.05)
+
+		dc.MoveTo(x0, y0)
+		dc.LineTo(x0, y0+neckStart)
+
+		dc.CubicTo(
+			x0, y0+neckStart+neckH,
+			x0+d*nubW*0.4, y0+neckStart-neckH,
+			x0+d*nubW*0.6, y0+neckStart-neckH,
+		)
+		dc.CubicTo(
+			x0+d*nubW, y0+neckStart-neckH,
+			x0+d*nubW, y0+neckEnd+neckH,
+			x0+d*nubW*0.6, y0+neckEnd+neckH,
+		)
+		dc.CubicTo(
+			x0+d*nubW*0.4, y0+neckEnd+neckH,
+			x0, y0+neckEnd-neckH,
+			x0, y0+neckEnd,
+		)
+
+		dc.LineTo(x0, y0+seg)
+	}
+
+	// Interior horizontal edges (skip top=0 and bottom=rows)
+	for row := 1; row < rows; row++ {
+		for col := 0; col < cols; col++ {
+			drawHEdge(col, row, hTabs[row][col])
+		}
+	}
+	dc.Stroke()
+
+	// Interior vertical edges (skip left=0 and right=cols)
+	for row := 0; row < rows; row++ {
+		for col := 1; col < cols; col++ {
+			drawVEdge(col, row, vTabs[row][col])
+		}
+	}
+	dc.Stroke()
+
+	// Outer border
+	border := lineW / 2.0
+	dc.DrawRectangle(border, border, W-lineW, H-lineW)
+	dc.Stroke()
+
+	return dc.Image(), nil
+}

@@ -15,8 +15,8 @@ import (
 	"sync"
 )
 
-const AppVersion = "2026.03.21"
-const PublishedOn = "2026-03-21"
+const AppVersion = "2026.03.26"
+const PublishedOn = "2026-03-26"
 
 //ugh
 
@@ -397,6 +397,95 @@ func LoadConfig() (*Config, error) {
 		loadedConfig = &config
 	})
 	return loadedConfig, loadError
+}
+
+// MigrateConfig ensures the loaded config has all inherent items that a fresh
+// install would have (new filters, text libraries, image sources, etc.).
+// Call this once after LoadConfig so existing users pick up new additions.
+func MigrateConfig(cfg *Config) bool {
+	changed := false
+
+	// --- Inherent TextLibraries -------------------------------------------
+	canonical := canonicalTextLibraries()
+	existingLibs := make(map[string]bool)
+	for _, tl := range cfg.TextLibraries {
+		existingLibs[tl.Name] = true
+	}
+	for _, tl := range canonical {
+		if !existingLibs[tl.Name] {
+			fmt.Println("MigrateConfig: adding missing text library:", tl.Name)
+			cfg.TextLibraries = append(cfg.TextLibraries, tl)
+			changed = true
+		}
+	}
+
+	// --- Inherent Images --------------------------------------------------
+	canonImgs := canonicalImages()
+	existingImgs := make(map[string]bool)
+	for _, img := range cfg.Images {
+		existingImgs[img.Name] = true
+	}
+	for _, img := range canonImgs {
+		if !existingImgs[img.Name] {
+			fmt.Println("MigrateConfig: adding missing image source:", img.Name)
+			cfg.Images = append(cfg.Images, img)
+			changed = true
+		}
+	}
+
+	// --- Version stamp ----------------------------------------------------
+	if cfg.Version != AppVersion {
+		cfg.Version = AppVersion
+		cfg.Published = PublishedOn
+		changed = true
+	}
+
+	return changed
+}
+
+// canonicalTextLibraries returns the full set of inherent text libraries
+// that a fresh install would have. Keep this in sync with CreateConfig.
+func canonicalTextLibraries() []TextLibrary {
+	return []TextLibrary{
+		{Use: true, Name: "BibleVerses", Title: "King James Bible Verses", Location: "quotes/biblekjv.json", Citation: "https://aruljohn.com/Bible/", Creators: "Arul John", Info: "The King James Bible", Inherent: true},
+		{Use: true, Name: "MBC Values", Title: "Manchester Baptist Church Core Values", Location: "quotes/mbc.json", Citation: "https://www.manchesterbaptist.org/", Creators: "MBC", Info: "Manchester Baptist", Inherent: true},
+		{Use: true, Name: "AugustineQuotes", Title: "Augustine Quotes", Location: "quotes/augustine.json", Citation: "https://gracequotes.org/author-quote/augustine/", Creators: "Grace Quotes", Info: "Grace Quotes", Inherent: true},
+		{Use: true, Name: "CharlesSpurgeonQuotes", Title: "Charles Spurgeon Quotes", Location: "quotes/charlesSpurgeon.json", Citation: "https://www.goodreads.com/author/quotes/2876959.Charles_Haddon_Spurgeon", Creators: "GoodReads Quotes", Info: "Goodreads", Inherent: true},
+		{Use: true, Name: "RichardBaxterQuotes", Title: "Richard Baxter Quotes", Location: "quotes/richardBaxter.json", Citation: "https://gracequotes.org/author-quote/richard-baxter/", Creators: "Grace Quotes", Info: "Grace Quotes", Inherent: true},
+		{Use: true, Name: "JohnCalvinQuotes", Title: "John Calvin Quotes", Location: "quotes/johnCalvin.json", Citation: "https://gracequotes.org/author-quote/john-calvin/", Creators: "Grace Quotes", Info: "Grace Quotes", Inherent: true},
+		{Use: true, Name: "CSLewisQuotes", Title: "C.S. Lewis Quotes", Location: "quotes/csLewis.json", Citation: "https://gracequotes.org/author-quote/c-s-lewis/", Creators: "Grace Quotes", Info: "Grace Quotes", Inherent: true},
+		{Use: true, Name: "MartinLutherQuotes", Title: "Martin Luther Quotes", Location: "quotes/martinLuther.json", Citation: "https://gracequotes.org/author-quote/martin-luther/", Creators: "Grace Quotes", Info: "Grace Quotes", Inherent: true},
+		{Use: true, Name: "ChristianInspirations", Title: "Christian Inspirations", Location: "quotes/inspirations.json", Citation: "????", Creators: "Multiple", Info: "Multiple Sources", Inherent: true},
+		{Use: true, Name: "TalmudQuotes", Title: "Talmud Quotes", Location: "quotes/21TalmudQuotes.json", Citation: "https://www.chabad.org", Creators: "Multiple", Info: "Multiple Sources", Inherent: true},
+		{Use: false, Name: "GeneralMacArthurQuotes", Title: "General Douglas MacArthur Quotes", Location: "quotes/macarthur.json", Citation: "https://www.goodreads.com/author/quotes/317613.Douglas_MacArthur", Creators: "GoodReads.com", Info: "GoodReads", Inherent: true},
+		{Use: false, Name: "GeneralPattonQuotes", Title: "General George S. Patton Quotes", Location: "quotes/patton.json", Citation: "https://www.wearethemighty.com/lists/general-george-patton-quotes/", Creators: "We Are The Mighty", Info: "We Are The Mighty", Inherent: true},
+		{Use: false, Name: "MarkTwainQuotes", Title: "Quotes by Samuel Clemens (Mark Twain)", Location: "quotes/markTwain.json", Citation: "https://parade.com/1216401/jessicasager/mark-twain-quotes/", Creators: "Parade", Info: "Parade", Inherent: true},
+		{Use: false, Name: "WillRogers", Title: "Will Rogers Quotes", Location: "quotes/willRogers.json", Citation: "https://www.willrogers.com/quotes", Creators: "Will Rogers Memorial Museum", Info: "Will Rogers Memorial Museum", Inherent: true},
+		{Use: false, Name: "DatabaseQuotes", Title: "5000+ Famous Quotes", Location: "quotes/JamesFTquotes.json", Citation: "https://github.com/JamesFT/Database-Quotes-JSON", Creators: "James F Thompson (JamesFT)", Info: "Database Quotes JSON", Inherent: true},
+		{Use: false, Name: "CelebrityQuotes", Title: "Celebrity Quotes", Location: "quotes/NasrulHazimQuotes.json", Citation: "https://gist.github.com/nasrulhazim/54b659e43b1035215cd0ba1d4577ee80", Creators: "Nasrul Hazim", Info: "Celebrity Quotes", Inherent: true},
+		{Use: false, Name: "CallOfDuty", Title: "Quoted sayings in the Call of Duty series", Location: "quotes/callOfDuty.json", Citation: "https://callofduty.fandom.com/wiki/Quoted_sayings_in_the_Call_of_Duty_series", Creators: "Fandom", Info: "Fandom", Inherent: true},
+	}
+}
+
+// canonicalImages returns the full set of inherent image sources.
+// Keep this in sync with CreateConfig.
+func canonicalImages() []Image {
+	wallpaperDir := GetFolderPath(enum.PathLoc.Pictures)
+	wallpaperFavs := GetFolderPath(enum.PathLoc.Favorites)
+	wallpaperFS := GetFolderPath(enum.PathLoc.Executable)
+	wallpaperChristian := filepath.Join(wallpaperFS, "shared", "static", "images", "ChristianPD")
+	wallpaperJudaism := filepath.Join(wallpaperFS, "shared", "static", "images", "JudaismPD")
+	return []Image{
+		{Use: false, Name: "Favorites", Title: "Favorites", Location: wallpaperFavs, Operation: "Folder", AllowDistort: true, Inherent: true},
+		{Use: true, Name: "Christian", Title: "Public Domain Christian Images", Location: wallpaperChristian, Operation: "Folder", AllowDistort: false, Inherent: true},
+		{Use: true, Name: "Judaism", Title: "Public Domain Judaism Images", Location: wallpaperJudaism, Operation: "Folder", AllowDistort: false, Inherent: true},
+		{Use: false, Name: "Bing", Title: "Bing Photo of the Day", Location: "https://bing.gifposter.com", Operation: "Webpage", AllowDistort: true, Inherent: true},
+		{Use: false, Name: "Flickr", Title: "DR Flickr Photos", Location: "https://www.flickr.com/photos/202229109@N02", Operation: "WebPicPage", AllowDistort: true, Inherent: true},
+		{Use: false, Name: "NASA", Title: "NASA's Astronomy Random Picture of the Day", Location: "https://apod.nasa.gov/apod/random_apod.html", Operation: "Webpage", AllowDistort: true, Inherent: true},
+		{Use: false, Name: "UnSplash", Title: "Photos from Unsplash.com", Location: "https://unsplash.com", Operation: "WebPicPage", AllowDistort: true, Inherent: true},
+		{Use: false, Name: "PicSum", Title: "Pictures from PicSum random photos API", Location: "https://picsum.photos/1920/1080", Operation: "WebPicPage", AllowDistort: true, Inherent: true},
+		{Use: true, Name: "WallpapersLocal", Title: "Wallpapers", Location: wallpaperDir, Operation: "Folder", AllowDistort: true, Inherent: true},
+	}
 }
 
 // SaveConfig writes the configuration to the JSON file

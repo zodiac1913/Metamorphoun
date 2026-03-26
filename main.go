@@ -39,6 +39,11 @@ func main() {
 		}
 	}
 	config.ConfigInstance = configData
+	// Migrate config: backfill any new inherent items (filters, quote libs, etc.)
+	if config.MigrateConfig(config.ConfigInstance) {
+		config.SaveConfig(config.ConfigInstance)
+		fmt.Println("Config migrated to", config.AppVersion)
+	}
 	//top!!!
 	PrintPlatformMessage()
 

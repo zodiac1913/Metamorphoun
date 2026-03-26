@@ -259,7 +259,7 @@ func GetFontInfo(currentPic config.PicHistory) (float64, string, bool, config.Pi
 	// List of substrings to exclude
 	excludedSubstrings := []string{
 		"AmiriQuran.ttf", "EmojiOneColor-SVGinOT.ttf", "KacstBook.ttf", "KacstOffice.ttf", "constani.ttf",
-		"MiriamCLM-Bold.ttf", "MiriamCLM-Book.ttf", "NotoKufi", "NotoNaskh", "NotoSans", "NotoSansArabic",
+		"MiriamCLM", "NotoKufi", "NotoNaskh", "NotoSans", "NotoSansArabic",
 		"Noto", "SegoeIcons", "Marlett.ttf", "opens__", "segmdl2", "symbol.ttf", "webdings", "wingding",
 		"Gubbi.ttf", "Navilu.ttf", "DroidSansFallbackFull.ttf", "Mukti.ttf", "Muktibold.ttf",
 		"padmaa-Medium-0.5.ttf", "Saab.ttf", "Kalapi.ttf", "utkal.ttf", "Pothana2000.ttf",
@@ -301,9 +301,26 @@ func GetFontInfo(currentPic config.PicHistory) (float64, string, bool, config.Pi
 
 	if config.ConfigInstance.QuoteFontRandom {
 
-		// Select a random valid font
-		fileRnd := rand.Intn(len(validFontFiles))
-		fontPath = validFontFiles[fileRnd]
+		// Select a random valid font, retrying if it can't be loaded
+		maxAttempts := 10
+		for attempt := 0; attempt < maxAttempts; attempt++ {
+			fileRnd := rand.Intn(len(validFontFiles))
+			fontPath = validFontFiles[fileRnd]
+
+			// Validate the font actually loads before committing
+			dc := gg.NewContext(1, 1)
+			if err := dc.LoadFontFace(fontPath, 12); err != nil {
+				fmt.Printf("Font failed to load (attempt %d): %s — %v\n", attempt+1, fontPath, err)
+				// Remove this bad font so we don't pick it again
+				validFontFiles = append(validFontFiles[:fileRnd], validFontFiles[fileRnd+1:]...)
+				if len(validFontFiles) == 0 {
+					return 0, "", true, currentPic, fmt.Errorf("no loadable fonts found")
+				}
+				continue
+			}
+			break
+		}
+
 		lEntry := morphLog.LogItem{
 			TimeStamp: time.Now().Format("20060102 15:04:05"),
 			Message:   "Random Font Picked:" + fontPath,

@@ -654,14 +654,19 @@ func currentInfoApi(w http.ResponseWriter, r *http.Request) {
 		// Add the new PicHistory struct to the slice
 		config.ConfigInstance.PicHistories = append(config.ConfigInstance.PicHistories, picHistory)
 	}
-	var rtnJson = config.ConfigInstance.PicHistories[0]
+	var picHist = config.ConfigInstance.PicHistories[0]
 	w.Header().Set("Content-Type", "application/json")
 
-	if rtnJson.ImageItem.Name == "PicSum" {
-
+	// Wrap response so the frontend can see picUpdateCalled for progress-bar sync
+	type currentInfoResponse struct {
+		config.PicHistory
+		PicUpdateCalled bool `json:"picUpdateCalled"`
+	}
+	rtnJson := currentInfoResponse{
+		PicHistory:      picHist,
+		PicUpdateCalled: config.ConfigInstance.PicUpdateCalled,
 	}
 
-	// Set Content-Type header
 	// Write JSON data to response
 	jsonBytes, err := json.Marshal(rtnJson)
 	if err != nil {

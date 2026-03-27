@@ -20,7 +20,7 @@ export default class dynamite{
         bang.quoteToolsButton=document.querySelector("#QuoteToolsButton");
         bang.selectedImageLibrary=undefined;
         bang.config=null;
-        bang.traffic=new traffic();
+        bang.traffic=new traffic({server: window.location.origin});
     }
 
     wireConfigProperties(config){

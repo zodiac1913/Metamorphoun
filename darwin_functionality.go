@@ -209,3 +209,47 @@ func GetFolderPath(pathNeeded string) string {
 		return filepath.Join("/usr", "local", "bin", "ZodiSoft", "Metamorphoun") // Local custom install path
 	}
 }
+
+func AddToStartup() error {
+	usr, err := user.Current()
+	if err != nil {
+		return fmt.Errorf("failed to get user home directory: %w", err)
+	}
+	plistPath := filepath.Join(usr.HomeDir, "Library", "LaunchAgents", "com.zodisoft.metamorphoun.plist")
+	exePath, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("failed to get executable path: %w", err)
+	}
+	plist := fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.zodisoft.metamorphoun</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>%s</string>
+	</array>
+	<key>RunAtLoad</key>
+	<true/>
+</dict>
+</plist>`, exePath)
+	if err := os.WriteFile(plistPath, []byte(plist), 0644); err != nil {
+		return fmt.Errorf("failed to write launch agent plist: %w", err)
+	}
+	log.Println("Application added to macOS startup via LaunchAgent.")
+	return nil
+}
+
+func RemoveFromStartup() error {
+	usr, err := user.Current()
+	if err != nil {
+		return fmt.Errorf("failed to get user home directory: %w", err)
+	}
+	plistPath := filepath.Join(usr.HomeDir, "Library", "LaunchAgents", "com.zodisoft.metamorphoun.plist")
+	if err := os.Remove(plistPath); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("failed to remove launch agent plist: %w", err)
+	}
+	log.Println("Application removed from macOS startup.")
+	return nil
+}

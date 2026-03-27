@@ -278,3 +278,16 @@ func SetRandomQuote(currentPic config.PicHistory, img image.Image) (config.PicHi
 	return currentPic, imgWithQuote, err
 
 }
+
+func ChangeLockScreen(pic config.PicHistory) error {
+	lockScreenPath := pic.SaveName
+	// On Linux, changing the lock screen varies by desktop environment.
+	// This uses gsettings for GNOME-based desktops.
+	cmd := exec.Command("gsettings", "set", "org.gnome.desktop.screensaver", "picture-uri", "file://"+lockScreenPath)
+	if err := cmd.Run(); err != nil {
+		log.Printf("Failed to change lock screen image: %v", err)
+		return err
+	}
+	log.Println("Lock screen image changed successfully.")
+	return nil
+}

@@ -10,7 +10,7 @@ export default class comms{
         let traffic=this;
         traffic.controller=new AbortController();
         traffic.signal=this.controller.signal;
-        traffic.server=cfg?.server||"http://localhost:3000";
+        traffic.server=cfg?.server||window.location.origin;
         traffic.imagesDiv=document.querySelector("#ImagesDiv");
         traffic.textLibs=document.querySelector("#textLibraries");
         traffic.picSumSave="";
@@ -42,6 +42,19 @@ export default class comms{
                 let currInfoLoading = document.querySelector("#currentInfoLoading");
                 if (currInfoLoading) currInfoLoading.remove();
                 traffic.currentInfoUpdate();
+
+                // Sync progress bar with backend picUpdateCalled (e.g. systray-triggered changes)
+                let bgEl = document.querySelector("#bgProgressEnvelope");
+                if (bgEl) {
+                    if (response.picUpdateCalled) {
+                        bgEl.classList.remove("d-none");
+                        bgEl.classList.add("d-flex");
+                    } else {
+                        bgEl.classList.remove("d-flex");
+                        bgEl.classList.add("d-none");
+                    }
+                }
+
                 // Perform any additional actions if the history is updated
             // }else{
             //     console.log("No change in pic history.");

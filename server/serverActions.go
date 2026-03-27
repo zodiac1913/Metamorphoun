@@ -54,7 +54,7 @@ func nextBackgroundApi(w http.ResponseWriter, r *http.Request) {
 	}
 	// Set Content-Type header
 	w.Header().Set("Content-Type", "application/json")
-	config.ConfigInstance.BackgroundChangeAttempt++
+	config.ConfigInstance.BackgroundChangeAttempt = 0
 	service.BackgroundGenerate("WebServerNext", config.PicHistory{})
 	// Write JSON data to response
 	_, err = w.Write(jsonData)

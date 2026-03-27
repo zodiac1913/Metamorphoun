@@ -21,5 +21,6 @@
         "titleBar.inactiveBackground": "#b2222299",
         "titleBar.inactiveForeground": "#e7e7e799"
     },
-    "peacock.color": "firebrick"
+    "peacock.color": "firebrick",
+    "kiroAgent.configureMCP": "Disabled"
 }

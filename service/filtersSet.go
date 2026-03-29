@@ -352,6 +352,91 @@ func GraffitiItSet(currentPic config.PicHistory, img image.Image) (image.Image, 
 	return newImg, nil
 }
 
+// CartoonSet applies a cartoon / cel-shading effect to the image.
+// It posterizes the colours to a small number of levels for that flat,
+// hand-painted look, then overlays dark edge lines detected via a Sobel filter.
+func CartoonSet(currentPic config.PicHistory, img image.Image) (image.Image, error) {
+	// Slight blur first to reduce noise before edge detection
+	smoothed := imaging.Blur(img, 2.0)
+
+	bounds := smoothed.Bounds()
+	W := bounds.Dx()
+	H := bounds.Dy()
+
+	// --- Posterize: reduce each channel to a handful of levels -------------
+	levels := 6 + rand.Intn(4) // 6-9 colour levels per channel
+	step := 256.0 / float64(levels)
+
+	posterized := image.NewRGBA(bounds)
+	for y := 0; y < H; y++ {
+		for x := 0; x < W; x++ {
+			r, g, b, a := smoothed.At(x+bounds.Min.X, y+bounds.Min.Y).RGBA()
+			pr := uint8(math.Floor(float64(r>>8)/step) * step)
+			pg := uint8(math.Floor(float64(g>>8)/step) * step)
+			pb := uint8(math.Floor(float64(b>>8)/step) * step)
+			posterized.SetRGBA(x+bounds.Min.X, y+bounds.Min.Y, color.RGBA{pr, pg, pb, uint8(a >> 8)})
+		}
+	}
+
+	// --- Edge detection (Sobel) on the smoothed greyscale -----------------
+	grey := imaging.Grayscale(smoothed)
+	edges := image.NewRGBA(bounds)
+
+	// Sobel kernels
+	pixel := func(px, py int) float64 {
+		if px < bounds.Min.X {
+			px = bounds.Min.X
+		}
+		if py < bounds.Min.Y {
+			py = bounds.Min.Y
+		}
+		if px >= bounds.Min.X+W {
+			px = bounds.Min.X + W - 1
+		}
+		if py >= bounds.Min.Y+H {
+			py = bounds.Min.Y + H - 1
+		}
+		r, _, _, _ := grey.At(px, py).RGBA()
+		return float64(r >> 8)
+	}
+
+	edgeThreshold := 28.0 + rand.Float64()*20.0 // 28-48, varies per image
+	for y := 0; y < H; y++ {
+		for x := 0; x < W; x++ {
+			ox := x + bounds.Min.X
+			oy := y + bounds.Min.Y
+			// Gx
+			gx := -pixel(ox-1, oy-1) - 2*pixel(ox-1, oy) - pixel(ox-1, oy+1) +
+				pixel(ox+1, oy-1) + 2*pixel(ox+1, oy) + pixel(ox+1, oy+1)
+			// Gy
+			gy := -pixel(ox-1, oy-1) - 2*pixel(ox, oy-1) - pixel(ox+1, oy-1) +
+				pixel(ox-1, oy+1) + 2*pixel(ox, oy+1) + pixel(ox+1, oy+1)
+
+			mag := math.Sqrt(gx*gx + gy*gy)
+			if mag > edgeThreshold {
+				edges.SetRGBA(ox, oy, color.RGBA{0, 0, 0, 255})
+			}
+		}
+	}
+
+	// --- Composite: posterized image with edge overlay --------------------
+	result := image.NewRGBA(bounds)
+	draw.Draw(result, bounds, posterized, bounds.Min, draw.Src)
+	// Draw edges on top (only black pixels)
+	for y := 0; y < H; y++ {
+		for x := 0; x < W; x++ {
+			ox := x + bounds.Min.X
+			oy := y + bounds.Min.Y
+			er, _, _, ea := edges.At(ox, oy).RGBA()
+			if ea > 0 && er == 0 {
+				result.SetRGBA(ox, oy, color.RGBA{0, 0, 0, 255})
+			}
+		}
+	}
+
+	return result, nil
+}
+
 // JigsawPuzzleSet applies a jigsaw puzzle effect with realistic interlocking pieces
 // JigsawPuzzleSet overlays black interlocking jigsaw-puzzle lines on the image.
 // Each interior edge gets a smooth tab (bump) that alternates direction so

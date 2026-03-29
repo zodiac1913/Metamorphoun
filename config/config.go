@@ -15,8 +15,8 @@ import (
 	"sync"
 )
 
-const AppVersion = "2026.03.26"
-const PublishedOn = "2026-03-26"
+const AppVersion = "2026.03.28"
+const PublishedOn = "2026-03-28"
 
 //ugh
 
@@ -53,6 +53,7 @@ type Config struct {
 	WallpaperFilterMosaic           bool    `json:"wallpaperFilterMosaic"`
 	WallpaperFilterJigsawPuzzle     bool    `json:"wallpaperFilterJigsawPuzzle"`
 	WallpaperFilterGraffiti         bool    `json:"wallpaperFilterGraffiti"`
+	WallpaperFilterCartoon          bool    `json:"wallpaperFilterCartoon"`
 	//WallpaperFilterSpiral           bool          `json:"wallpaperFilterSpiral"`
 	WallpaperFilterMonochrome bool          `json:"wallpaperFilterMonochrome"`
 	ShowTextOverlay           bool          `json:"showTextOverlay"`

@@ -309,6 +309,8 @@ func filterCurrentPic(currentPic config.PicHistory, img image.Image) (image.Imag
 		img, err = MosaicSet(currentPic, img)
 	case "jigsawpuzzle":
 		img, err = JigsawPuzzleSet(currentPic, img)
+	case "cartoon":
+		img, err = CartoonSet(currentPic, img)
 	case "monochrome":
 		currentPic, img, err = MonochromeItNfo(currentPic, img)
 	case "graffiti":

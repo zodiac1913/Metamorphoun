@@ -347,6 +347,9 @@ func picTypeAndFilter(currentPic config.PicHistory, img image.Image, filterChoic
 	if config.ConfigInstance.WallpaperFilterJigsawPuzzle {
 		filters = append(filters, "jigsawpuzzle")
 	}
+	if config.ConfigInstance.WallpaperFilterCartoon {
+		filters = append(filters, "cartoon")
+	}
 	if config.ConfigInstance.WallpaperFilterMonochrome {
 		filters = append(filters, "monochrome")
 	}
@@ -394,6 +397,8 @@ func picTypeAndFilter(currentPic config.PicHistory, img image.Image, filterChoic
 		img, err = MosaicSet(currentPic, img) //(img image.Image, tileMinSize int, tileMaxSize int)
 	case "jigsawpuzzle":
 		img, err = JigsawPuzzleSet(currentPic, img)
+	case "cartoon":
+		img, err = CartoonSet(currentPic, img)
 	case "monochrome":
 		currentPic, img, err = MonochromeItNfo(currentPic, img)
 	case "graffiti":

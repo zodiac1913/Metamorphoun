@@ -503,7 +503,7 @@ func GetQuote(currentPic config.PicHistory) (config.PicHistory, error) {
 		}
 	}
 
-	favQuoteFolder := filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites", "Quotes", "quoteFavorites.json")
+	favQuoteFolder := filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites", "Quotes") //, "quoteFavorites.json"
 	if _, err := os.Stat(favQuoteFolder); os.IsNotExist(err) {
 		//Ignore
 	} else {

@@ -114,7 +114,11 @@ export default class comms{
     async fetchConfig(){
         let traffic=this;
         let cfgData=await traffic.apiCall(traffic.server + "/configApi","");
-        traffic.picSumSave=cfgData.picHistories[0].saveName.replaceAll("pic0","picSumCache")
+        if (cfgData.picHistories && cfgData.picHistories.length > 0) {
+            traffic.picSumSave=cfgData.picHistories[0].saveName.replaceAll("pic0","picSumCache")
+        } else {
+            traffic.picSumSave="";
+        }
         traffic.config=cfgData;
         // if(traffic.imagesDiv.innerText.length<3){
         //     traffic.makeImagesItems();
@@ -595,9 +599,9 @@ export default class comms{
         }
         let json={parameter: id, value: val};
         let jsonString=json;
-        console.log(json);
-        console.log(jsonString);
-        await traffic.apiCall(traffic.server + "/inputApi",jsonString)
+        console.log("formFieldChanged -> sending", traffic.server + "/inputApi", json);
+        const response = await traffic.apiCall(traffic.server + "/inputApi",jsonString)
+        console.log("formFieldChanged response", response);
         await traffic.fetchConfig();
     }
     //====================================================================

@@ -6,7 +6,6 @@ package main
 /*
 #cgo CFLAGS: -x objective-c -fobjc-arc -framework Foundation -framework ScreenCaptureKit
 #cgo LDFLAGS: -framework Foundation -framework ScreenCaptureKit
-void DummyCaptureInit();
 */
 import "C"
 
@@ -41,10 +40,6 @@ func loadMBCQuotes() {
 		return
 	}
 	mbcQuotes = mbcData
-}
-
-func initCapture() {
-	C.DummyCaptureInit()
 }
 
 func SetRandomQuote(currentPic config.PicHistory, img image.Image) (config.PicHistory, image.Image, error) {
@@ -204,7 +199,17 @@ func GetFolderPath(pathNeeded string) string {
 		if errEP != nil {
 			fmt.Println("Error:", errEP)
 		}
-		return filepath.Dir(exePath)
+		exeDir := filepath.Dir(exePath)
+		staticImagesPath := filepath.Join(exeDir, "shared", "static", "images")
+		if _, err := os.Stat(staticImagesPath); os.IsNotExist(err) {
+			if cwd, err := os.Getwd(); err == nil {
+				cwdStatic := filepath.Join(cwd, "shared", "static", "images")
+				if _, err := os.Stat(cwdStatic); err == nil {
+					return cwd
+				}
+			}
+		}
+		return exeDir
 	default:
 		return filepath.Join("/usr", "local", "bin", "ZodiSoft", "Metamorphoun") // Local custom install path
 	}

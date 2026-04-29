@@ -97,6 +97,15 @@ func GetFolderPath(pathNeeded string) string {
 			fmt.Println("Error:", errEP)
 		}
 		exeDir := filepath.Dir(exePath)
+		staticImagesPath := filepath.Join(exeDir, "shared", "static", "images")
+		if _, err := os.Stat(staticImagesPath); os.IsNotExist(err) {
+			if cwd, err := os.Getwd(); err == nil {
+				cwdStatic := filepath.Join(cwd, "shared", "static", "images")
+				if _, err := os.Stat(cwdStatic); err == nil {
+					return cwd
+				}
+			}
+		}
 		return exeDir
 	} else {
 		return filepath.Join("usr", "bin", "ZodiSoft", "Metamorphoun")

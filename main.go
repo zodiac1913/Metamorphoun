@@ -28,46 +28,9 @@ func main() {
 	server.GetFolderPath = getFolderPathImpl
 	systemTray.GetFolderPath = getFolderPathImpl
 	service.SetRandomQuote = setRandomQuoteImpl
-	configData, err := config.LoadConfig()
-	if err != nil {
-		fmt.Println("Error loading config:", err)
-		config.CreateConfig()
-		configData, err = config.LoadConfig()
-		if err != nil {
-			fmt.Println("Error loading config complete failure:", err)
-			panic("Bad")
-		}
-	}
-	config.ConfigInstance = configData
-	// Migrate config: backfill any new inherent items (filters, quote libs, etc.)
-	if config.MigrateConfig(config.ConfigInstance) {
-		config.SaveConfig(config.ConfigInstance)
-		fmt.Println("Config migrated to", config.AppVersion)
-	}
-	//top!!!
+	cfg := loadOrCreateConfig()
+	normalizeConfigDefaults(cfg)
 	PrintPlatformMessage()
-
-	// Validate MBCMonth — if out of range, set to current month
-	if config.ConfigInstance.MBCMonth < 1 || config.ConfigInstance.MBCMonth > 12 {
-		config.ConfigInstance.MBCMonth = int(time.Now().Month())
-		config.SaveConfig(config.ConfigInstance)
-	}
-
-	// Ensure font size range has sensible values for existing configs
-	saveNeeded := false
-	if config.ConfigInstance.QuoteFontSizeMin < 8 {
-		config.ConfigInstance.QuoteFontSizeMin = 16
-		saveNeeded = true
-	}
-	if config.ConfigInstance.QuoteFontSizeMax < config.ConfigInstance.QuoteFontSizeMin {
-		config.ConfigInstance.QuoteFontSizeMax = 28
-		saveNeeded = true
-	}
-	if saveNeeded {
-		config.SaveConfig(config.ConfigInstance)
-	}
-
-	cfg := configData // Now cfg points to the single loaded instance
 
 	config.SetupSystemFolders()
 	fmt.Println("Server Address:", cfg.ServerAddress)
@@ -81,17 +44,75 @@ func main() {
 
 	// Initialize the update signal channel
 	updateSignal = make(chan struct{})
+	startBackgroundServices(ctx, cfg)
+	onExit := func() {
+		now := time.Now()
+		os.WriteFile(fmt.Sprintf(`on_exit_%d.txt`, now.UnixNano()), []byte(now.String()), 0644)
+		cancel()
+	}
+	server.OpenFolder("explorer", "http://localhost:"+strconv.Itoa(config.ConfigInstance.ServerPort))
+	systray.Run(systemTray.MakeSystemTray, onExit)
+	<-ctx.Done()
+}
 
-	// Start the server in a separate goroutine
+func loadOrCreateConfig() *config.Config {
+	configData, err := config.LoadConfig()
+	if err != nil {
+		fmt.Println("Config not found, creating new config:", err)
+		configData, err = config.CreateConfig()
+		if err != nil {
+			fmt.Println("Error creating config:", err)
+			panic("Failed to create config")
+		}
+	}
+
+	config.ConfigInstance = configData
+	if config.MigrateConfig(config.ConfigInstance) {
+		config.SaveConfig(config.ConfigInstance)
+		fmt.Println("Config migrated to", config.AppVersion)
+	}
+
+	return configData
+}
+
+func normalizeConfigDefaults(cfg *config.Config) {
+	saveNeeded := false
+
+	if cfg.MBCMonth < 1 || cfg.MBCMonth > 12 {
+		cfg.MBCMonth = int(time.Now().Month())
+		saveNeeded = true
+	}
+	if cfg.QuoteFontSizeMin < 8 {
+		cfg.QuoteFontSizeMin = 16
+		saveNeeded = true
+	}
+	if cfg.QuoteFontSizeMax < cfg.QuoteFontSizeMin {
+		cfg.QuoteFontSizeMax = 28
+		saveNeeded = true
+	}
+
+	if saveNeeded {
+		config.SaveConfig(cfg)
+	}
+}
+
+func startBackgroundServices(ctx context.Context, cfg *config.Config) {
+	startServer(cfg)
+	startWallpaperScheduler(ctx, cfg)
+	startQuoteService(cfg)
+}
+
+func startServer(cfg *config.Config) {
 	go func() {
-		if !server.Serve(*cfg) { // Pass the config pointer
+		if !server.Serve(*cfg) {
 			println("Server failed to start")
 		}
 	}()
 	println("start background change from main")
-
 	println("start background change from main")
+}
 
+func startWallpaperScheduler(ctx context.Context, cfg *config.Config) {
 	if cfg.ChangeWallpaperOnStartup {
 		pic := config.PicHistory{}
 		config.ConfigInstance.BackgroundChangeAttempt = 0
@@ -115,9 +136,9 @@ func main() {
 			}
 		}
 	}()
+}
 
-	//quote service
-	//quotes.SetQuote()
+func startQuoteService(cfg *config.Config) {
 	if cfg.ShowTextOverlay && !cfg.MBCMode {
 		go func() {
 			serveQuotes := service.StartChangeQuote(time.Duration(cfg.TextChangeMinutes) * time.Minute)
@@ -127,15 +148,8 @@ func main() {
 			}
 		}()
 	}
-	onExit := func() {
-		now := time.Now()
-		os.WriteFile(fmt.Sprintf(`on_exit_%d.txt`, now.UnixNano()), []byte(now.String()), 0644)
-		cancel()
-	}
-	server.OpenFolder("explorer", "http://localhost:"+strconv.Itoa(config.ConfigInstance.ServerPort))
-	systray.Run(systemTray.MakeSystemTray, onExit)
-	<-ctx.Done()
 }
+
 func openFolder(title string, path string) error {
 	var cmd *exec.Cmd
 	cmd = exec.Command(title, path)

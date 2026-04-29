@@ -123,10 +123,13 @@ func BackgroundGenerate(caller string, currentPic config.PicHistory) error {
 			sourceExt = UnUnsplash(currentPic.OriginName)
 		}
 		if runtime.GOOS == "darwin" {
-			oldFn := config.ConfigInstance.PicHistories[1].SaveName
-			err = os.Remove(oldFn)
-			if err != nil {
-				fmt.Println("Error deleting pic0 file:", err)
+			// Only try to delete the previous image if there is one
+			if len(config.ConfigInstance.PicHistories) > 1 {
+				oldFn := config.ConfigInstance.PicHistories[1].SaveName
+				err = os.Remove(oldFn)
+				if err != nil {
+					fmt.Println("Error deleting pic0 file:", err)
+				}
 			}
 
 			fn := uuid.New()
@@ -367,6 +370,11 @@ func picTypeAndFilter(currentPic config.PicHistory, img image.Image, filterChoic
 	//if Original is on than weight it more
 	if config.ConfigInstance.WallpaperFilterOriginal {
 		filters = append(filters, "original")
+		filters = append(filters, "original")
+	}
+
+	// Ensure filters list is not empty; default to "original"
+	if len(filters) == 0 {
 		filters = append(filters, "original")
 	}
 

@@ -52,7 +52,9 @@ func Serve(cfg config.Config) bool { //serverUrl string, serverPort int
 	//mux := http.NewServeMux()
 	// Register API handlers first
 	http.HandleFunc("/inputApi", formApi)
+	http.HandleFunc("/inputapi", formApi)
 	http.HandleFunc("/configApi", configApi)
+	http.HandleFunc("/configapi", configApi)
 	http.HandleFunc("/imagesFieldChangeApi", imagesFieldChangeApi)
 	http.HandleFunc("/textFieldChangeApi", textFieldChangeApi)
 	http.HandleFunc("/openLocationApi", openLocationApi)
@@ -142,7 +144,7 @@ func errorHandler(w http.ResponseWriter, r *http.Request) {
 
 // Save Changes made on web page for configuration
 func formApi(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("Made it to formapi\r\n")
+	fmt.Printf("formApi hit: method=%s path=%s\n", r.Method, r.URL.Path)
 
 	// Read the request body
 	jsonData, err := io.ReadAll(r.Body)
@@ -189,13 +191,13 @@ func formApi(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to update configuration", http.StatusInternalServerError)
 		return
 	}
-	fmt.Printf("Made it to formApi end\r\n")
+	fmt.Printf("formApi completed: parameter=%s value=%v\n", parameterName, value)
 	jData, err := json.Marshal(jsonData)
 	if err != nil {
 		// handle error
 	}
-	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	w.Write(jData)
 
 }

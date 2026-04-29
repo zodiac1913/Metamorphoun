@@ -147,14 +147,21 @@ func init() {
 
 // GetConfig returns the current Config instance
 func GetConfig() *Config {
-	ConfigInstance.Version = AppVersion
-	ConfigInstance.Published = PublishedOn
-	if loadedConfig == nil {
-		// Handle the case where loading failed, perhaps return a default or panic
-		fmt.Println("Warning: Config not loaded yet. Call LoadConfig first.")
-		return &Config{} // Return a default empty config to avoid nil pointer
+	if loadedConfig != nil {
+		loadedConfig.Version = AppVersion
+		loadedConfig.Published = PublishedOn
+		return loadedConfig
 	}
-	return loadedConfig
+	if ConfigInstance != nil {
+		ConfigInstance.Version = AppVersion
+		ConfigInstance.Published = PublishedOn
+		loadedConfig = ConfigInstance
+		return ConfigInstance
+	}
+
+	// Handle the case where loading failed and no config exists yet.
+	fmt.Println("Warning: Config not loaded yet. Call LoadConfig first.")
+	return &Config{} // Return a default empty config to avoid nil pointer
 }
 
 // OLD
@@ -434,6 +441,21 @@ func MigrateConfig(cfg *Config) bool {
 		}
 	}
 
+	// Repair stale embedded image locations from old build-cache binaries.
+	for idx, img := range cfg.Images {
+		if img.Inherent && (img.Name == "Christian" || img.Name == "Judaism") {
+			expectedDir := filepath.Join(GetFolderPath(enum.PathLoc.Executable), "shared", "static", "images")
+			expectedFolder := filepath.Join(expectedDir, img.Name+"PD")
+			if _, err := os.Stat(expectedFolder); err == nil {
+				if img.Location != expectedFolder {
+					fmt.Println("MigrateConfig: repairing image location for", img.Name)
+					cfg.Images[idx].Location = expectedFolder
+					changed = true
+				}
+			}
+		}
+	}
+
 	// --- Version stamp ----------------------------------------------------
 	if cfg.Version != AppVersion {
 		cfg.Version = AppVersion
@@ -504,7 +526,7 @@ func SaveConfig(cfg *Config) error {
 	return nil
 }
 
-func CreateConfig() error {
+func CreateConfig() (*Config, error) {
 	wallpaperDir := GetFolderPath(enum.PathLoc.Pictures)
 	wallpaperFavs := GetFolderPath(enum.PathLoc.Favorites) //filep@th.Join(usr.HomeDir, ".Metamorphoun", "Favorites")
 	wallpaperFS := GetFolderPath(enum.PathLoc.Executable)  //filep@th.Join(exeDir, "static", "images")
@@ -816,27 +838,29 @@ func CreateConfig() error {
 	// Create the config directory if it doesn't exist
 	err := os.MkdirAll(GetFolderPath(enum.PathLoc.Config), 0700) // Adjust permissions as needed
 	if err != nil {
-		return fmt.Errorf("failed to create config directory: %w", err)
+		return nil, fmt.Errorf("failed to create config directory: %w", err)
 	}
 	err = os.MkdirAll(GetFolderPath(enum.PathLoc.Favorites), 0700) // Adjust permissions as needed
 	if err != nil {
-		return fmt.Errorf("failed to create config directory: %w", err)
+		return nil, fmt.Errorf("failed to create config directory: %w", err)
 	}
 
 	// Marshal the config struct to JSON
 	data, err := json.MarshalIndent(cfg, "", "    ")
 	if err != nil {
-		return fmt.Errorf("failed to marshal config: %w", err)
+		return nil, fmt.Errorf("failed to marshal config: %w", err)
 	}
 
 	// Write the JSON data to the file
 	//err = os.WriteFile(configPath, data, 0600) // Adjust permissions as needed
 	err = os.WriteFile(configPath, data, 0600) // Adjust permissions as needed
 	if err != nil {
-		return fmt.Errorf("failed to write config file: %w", err)
+		return nil, fmt.Errorf("failed to write config file: %w", err)
 	}
 
-	return nil
+	loadedConfig = &cfg
+	ConfigInstance = &cfg
+	return &cfg, nil
 }
 
 func SetupSystemFolders() {

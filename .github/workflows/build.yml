@@ -14,7 +14,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
         include:
           - os: ubuntu-latest
             binary_name: metamorphoun
@@ -22,6 +22,9 @@ jobs:
           - os: windows-latest
             binary_name: Metamorphoun.exe
             asset_name: Metamorphoun-windows-amd64.exe
+          - os: macos-latest
+            binary_name: metamorphoun
+            asset_name: metamorphoun-macos-intel
 
     steps:
     - name: Checkout code
@@ -49,6 +52,13 @@ jobs:
       if: matrix.os == 'windows-latest'
       run: go build -v -ldflags="-H=windowsgui" -o ${{ matrix.binary_name }}
 
+    - name: Build WallpaperHelper (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        cd WallpaperHelper
+        dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o publish
+        copy publish\WallpaperHelper.exe ..\WallpaperHelper.exe
+
     - name: Test
       if: matrix.os != 'ubuntu-latest'
       run: go test -v ./...
@@ -58,6 +68,13 @@ jobs:
       with:
         name: ${{ matrix.asset_name }}
         path: ${{ matrix.binary_name }}
+
+    - name: Upload WallpaperHelper artifact
+      if: matrix.os == 'windows-latest'
+      uses: actions/upload-artifact@v4
+      with:
+        name: WallpaperHelper
+        path: WallpaperHelper.exe
 
   release:
     name: Create Release
@@ -78,6 +95,7 @@ jobs:
         files: |
           metamorphoun-linux-amd64/metamorphoun
           Metamorphoun-windows-amd64.exe/Metamorphoun.exe
+          WallpaperHelper/WallpaperHelper.exe
         draft: false
         prerelease: false
       env:

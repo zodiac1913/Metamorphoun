@@ -56,7 +56,7 @@ type Config struct {
 	WallpaperFilterGraffiti         bool    `json:"wallpaperFilterGraffiti"`
 	WallpaperFilterCartoon          bool    `json:"wallpaperFilterCartoon"`
 	//WallpaperFilterSpiral           bool          `json:"wallpaperFilterSpiral"`
-	WallpaperFilterMonochrome bool          `json:"wallpaperFilterMonochrome"`
+	WallpaperFilterMonochrome       bool          `json:"wallpaperFilterMonochrome"`
 	ShowTextOverlay           bool          `json:"showTextOverlay"`
 	TextChangeMinutes         int           `json:"textChangeMinutes"`
 	TextLibraries             []TextLibrary `json:"textLibraries"`

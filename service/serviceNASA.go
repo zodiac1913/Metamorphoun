@@ -32,7 +32,7 @@ func GetBackgroundNASA(imgItem config.Image) (image.Image, string, error) {
 	// //choose image to use
 	if len(wppArray) < 1 {
 		fmt.Println("Error: No img links found on page ")
-		return nil, "", fmt.Errorf("no image links found on page")
+		return nil, "", fmt.Errorf("%w: no image links found on APOD page %s", ErrBackgroundSourceRetry, finalHTML)
 	}
 	pic := wppArray[0]
 	if !strings.HasPrefix(pic, "http") {

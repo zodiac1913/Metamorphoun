@@ -16,6 +16,7 @@ Metamorphoun is a flexible wallpaper changer written in Go. It automatically cha
 - 💾 **History**: Keep track of previous wallpapers
 - 🎯 **System Tray**: Easy access on Windows
 - 📝 **Custom Quotes**: Add your own quotes via JSON
+- 🖥️ **Per-Screen Wallpapers**: Optional different wallpaper on each monitor where the platform backend supports it
 - 🖥️ **Cross-Platform**: Windows, Linux, and macOS support
 
 Inspired by [Variety](https://github.com/peterlevi/variety) by Peter Levi.
@@ -51,6 +52,12 @@ chmod +x install-linux.sh
 
 Desktop integration may require additional packages depending on your environment (GNOME, KDE, XFCE).
 
+For per-screen wallpapers on Linux:
+- Current support targets X11 sessions
+- Mint, Ubuntu, GNOME, KDE, and Cinnamon are wired through Linux backend modules
+- `xrandr` is used to detect connected displays
+- `xwallpaper` is used to assign one wallpaper per display
+
 ### macOS
 
 ```bash
@@ -63,6 +70,10 @@ chmod +x install-macos.sh
 You may need to grant permissions in System Preferences > Security & Privacy:
 - Full Disk Access
 - Accessibility (if needed)
+
+For per-screen wallpapers on macOS:
+- Enable the `Use a different picture on each screen` setting in the web UI
+- Metamorphoun uses AppleScript through `System Events` to assign wallpapers per desktop
 
 ## 🚀 Quick Start
 
@@ -79,6 +90,17 @@ You may need to grant permissions in System Preferences > Security & Privacy:
    - Apply image filters
 
 On first run, configuration files and folders will be created in your user directory.
+
+## 🖥️ Per-Screen Wallpapers
+
+Metamorphoun includes an optional `Use a different picture on each screen` setting in the web UI.
+
+Platform notes:
+- **Windows**: Uses the native `IDesktopWallpaper` API. Requires Windows 8 or newer.
+- **Linux**: Current implementation is aimed at X11 sessions and uses backend modules for GNOME, KDE, Cinnamon, Mint, and Ubuntu-family systems.
+- **macOS**: Uses AppleScript with `System Events` to assign wallpapers across desktops.
+
+If a platform backend is unavailable, Metamorphoun falls back to the normal single-wallpaper behavior.
 
 ## 📝 Adding Custom Quotes
 

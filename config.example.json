@@ -1,5 +1,6 @@
 {
   "changeWallpaperOnStartup": true,
+  "differentWallpaperPerScreen": false,
   "changeMinutes": 30,
   "serverAddress": "localhost",
   "serverPort": 8080,

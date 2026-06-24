@@ -40,6 +40,7 @@ type Config struct {
 	BackgroundChangeAttempt         int     `json:"backgroundChangeAttempt"`
 	StartOnStartup                  bool    `json:"startOnStartup"`
 	ChangeWallpaperOnStartup        bool    `json:"changeWallpaperOnStartup"`
+	DifferentWallpaperPerScreen     bool    `json:"differentWallpaperPerScreen"`
 	ChangeMinutes                   int32   `json:"changeMinutes"`
 	Images                          []Image `json:"images"`
 	WallpaperImageSizing            string  `json:"wallpaperImageSizing"`
@@ -548,6 +549,7 @@ func CreateConfig() (*Config, error) {
 		BackgroundChangingBlock:         false,
 		StartOnStartup:                  true,
 		ChangeWallpaperOnStartup:        true,
+		DifferentWallpaperPerScreen:     false,
 		ChangeMinutes:                   15,
 		Images: []Image{
 			{

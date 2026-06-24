@@ -20,6 +20,7 @@ import (
 	"os/exec"
 	"os/user"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/fogleman/gg"
@@ -27,8 +28,236 @@ import (
 
 var mbcQuotes []byte
 
+type linuxWallpaperModule struct {
+	name     string
+	supports func(linuxWallpaperContext) bool
+	apply    func(linuxWallpaperContext, []string) error
+}
+
+type linuxWallpaperContext struct {
+	distroID    string
+	idLike      []string
+	sessionType string
+	desktops    []string
+	outputs     []string
+}
+
+var linuxWallpaperModules = []linuxWallpaperModule{
+	{
+		name:     "gnome-x11-xwallpaper",
+		supports: supportsGnomeX11,
+		apply:    applyXwallpaperModule,
+	},
+	{
+		name:     "kde-x11-xwallpaper",
+		supports: supportsKDEX11,
+		apply:    applyXwallpaperModule,
+	},
+	{
+		name:     "cinnamon-x11-xwallpaper",
+		supports: supportsCinnamonX11,
+		apply:    applyXwallpaperModule,
+	},
+	{
+		name:     "ubuntu-family-x11-xwallpaper",
+		supports: supportsUbuntuFamilyX11,
+		apply:    applyXwallpaperModule,
+	},
+}
+
 func init() {
+	service.SetPerScreenWallpapers = setLinuxPerScreenWallpapersImpl
 	loadMBCQuotes()
+}
+
+func setLinuxPerScreenWallpapersImpl(wallpaperPaths []string) error {
+	ctx, err := detectLinuxWallpaperContext()
+	if err != nil {
+		return err
+	}
+	for _, module := range linuxWallpaperModules {
+		if module.supports(ctx) {
+			return module.apply(ctx, wallpaperPaths)
+		}
+	}
+	return fmt.Errorf("no Linux wallpaper module for distro %s desktop %v on %s", ctx.distroID, ctx.desktops, ctx.sessionType)
+}
+
+func detectLinuxWallpaperContext() (linuxWallpaperContext, error) {
+	ctx := linuxWallpaperContext{}
+	releaseData, err := os.ReadFile("/etc/os-release")
+	if err != nil {
+		return ctx, fmt.Errorf("failed to read /etc/os-release: %w", err)
+	}
+
+	for _, line := range strings.Split(string(releaseData), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		parts := strings.SplitN(line, "=", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		key := parts[0]
+		value := strings.Trim(parts[1], "\"")
+		switch key {
+		case "ID":
+			ctx.distroID = strings.ToLower(value)
+		case "ID_LIKE":
+			ctx.idLike = strings.Fields(strings.ToLower(value))
+		}
+	}
+
+	ctx.sessionType = detectLinuxSessionType()
+	if ctx.sessionType != "x11" {
+		return ctx, fmt.Errorf("Linux multi-screen wallpapers currently require X11; detected session type %q", ctx.sessionType)
+	}
+	ctx.desktops = detectLinuxDesktops()
+
+	ctx.outputs, err = getXRandROutputs()
+	if err != nil {
+		return ctx, err
+	}
+	if len(ctx.outputs) == 0 {
+		return ctx, fmt.Errorf("xrandr returned no connected outputs")
+	}
+
+	return ctx, nil
+}
+
+func detectLinuxSessionType() string {
+	sessionType := strings.ToLower(os.Getenv("XDG_SESSION_TYPE"))
+	if sessionType == "" && os.Getenv("DISPLAY") != "" {
+		return "x11"
+	}
+	if sessionType == "" && os.Getenv("WAYLAND_DISPLAY") != "" {
+		return "wayland"
+	}
+	return sessionType
+}
+
+func detectLinuxDesktops() []string {
+	seen := make(map[string]struct{})
+	desktops := make([]string, 0)
+	for _, source := range []string{os.Getenv("XDG_CURRENT_DESKTOP"), os.Getenv("DESKTOP_SESSION")} {
+		for _, desktop := range splitDesktopNames(source) {
+			if _, exists := seen[desktop]; exists {
+				continue
+			}
+			seen[desktop] = struct{}{}
+			desktops = append(desktops, desktop)
+		}
+	}
+	return desktops
+}
+
+func splitDesktopNames(source string) []string {
+	parts := strings.FieldsFunc(strings.ToLower(source), func(r rune) bool {
+		return r == ':' || r == ';' || r == ','
+	})
+	results := make([]string, 0, len(parts))
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		part = strings.TrimPrefix(part, "x-")
+		if part == "" {
+			continue
+		}
+		results = append(results, part)
+	}
+	return results
+}
+
+func supportsGnomeX11(ctx linuxWallpaperContext) bool {
+	return supportsDesktopFamilyX11(ctx, "gnome", "ubuntu")
+}
+
+func supportsKDEX11(ctx linuxWallpaperContext) bool {
+	return supportsDesktopFamilyX11(ctx, "kde", "plasma")
+}
+
+func supportsCinnamonX11(ctx linuxWallpaperContext) bool {
+	return supportsDesktopFamilyX11(ctx, "cinnamon")
+}
+
+func supportsUbuntuFamilyX11(ctx linuxWallpaperContext) bool {
+	if ctx.sessionType != "x11" {
+		return false
+	}
+	if ctx.distroID == "ubuntu" || ctx.distroID == "linuxmint" || ctx.distroID == "mint" {
+		return true
+	}
+	for _, like := range ctx.idLike {
+		if like == "ubuntu" || like == "debian" {
+			return true
+		}
+	}
+	return false
+}
+
+func supportsDesktopFamilyX11(ctx linuxWallpaperContext, families ...string) bool {
+	if ctx.sessionType != "x11" {
+		return false
+	}
+	for _, desktop := range ctx.desktops {
+		for _, family := range families {
+			if desktop == family || strings.HasPrefix(desktop, family+"-") {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func applyXwallpaperModule(ctx linuxWallpaperContext, wallpaperPaths []string) error {
+	if _, err := exec.LookPath("xwallpaper"); err != nil {
+		return fmt.Errorf("xwallpaper is required for Linux multi-screen wallpapers: %w", err)
+	}
+	if len(wallpaperPaths) == 0 {
+		return fmt.Errorf("no wallpaper paths provided")
+	}
+
+	args := make([]string, 0, len(ctx.outputs)*4)
+	for index, output := range ctx.outputs {
+		pathIndex := index
+		if pathIndex >= len(wallpaperPaths) {
+			pathIndex = len(wallpaperPaths) - 1
+		}
+		args = append(args, "--output", output, "--zoom", wallpaperPaths[pathIndex])
+	}
+
+	cmd := exec.Command("xwallpaper", args...)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("xwallpaper failed: %w: %s", err, strings.TrimSpace(string(output)))
+	}
+	return nil
+}
+
+func getXRandROutputs() ([]string, error) {
+	if _, err := exec.LookPath("xrandr"); err != nil {
+		return nil, fmt.Errorf("xrandr is required to enumerate Linux displays: %w", err)
+	}
+
+	cmd := exec.Command("xrandr", "--query")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("xrandr failed: %w: %s", err, strings.TrimSpace(string(output)))
+	}
+
+	outputs := make([]string, 0)
+	for _, line := range strings.Split(string(output), "\n") {
+		if !strings.Contains(line, " connected") {
+			continue
+		}
+		fields := strings.Fields(line)
+		if len(fields) == 0 {
+			continue
+		}
+		outputs = append(outputs, fields[0])
+	}
+
+	return outputs, nil
 }
 
 func loadMBCQuotes() {

@@ -6,12 +6,13 @@ import (
 	"Metamorphoun/morphLog"
 	"Metamorphoun/shared"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"image"
-	"image/png"
 	"log"
 	"math/rand"
 	"os"
+	"os/exec"
 	"os/user"
 	"path/filepath"
 	"runtime"
@@ -25,6 +26,9 @@ import (
 )
 
 var SetRandomQuote func(config.PicHistory, image.Image) (config.PicHistory, image.Image, error)
+var SetPerScreenWallpapers func([]string) error
+
+var ErrBackgroundSourceRetry = errors.New("background source requires reroll")
 
 func BackgroundGenerate(caller string, currentPic config.PicHistory) error {
 	println("BackgroundGenerate called from", caller)
@@ -35,111 +39,68 @@ func BackgroundGenerate(caller string, currentPic config.PicHistory) error {
 	}
 	config.ConfigInstance.PicUpdateCalled = true
 	var img image.Image
+	var err error
 	picEmpty := false
 	if currentPic.OriginName == "" {
 		picEmpty, currentPic = clearPic(picEmpty, currentPic)
 	}
 	if picEmpty {
-		// create a new pic history object
-		currentPic.PicNum = 0
-		//Step 1: get Images Source
-		currentPic, err := backgroundGenImageItem(currentPic)
+		var sourceExt string
+		currentPic, img, sourceExt, err = generateRandomWallpaperAsset(currentPic)
 		if err != nil {
-			//Failure to get image item
-			println("Failure to get image item..rerun")
-			config.ConfigInstance.BackgroundChangeAttempt++
-			backgroundGenRandomSource(currentPic)
-			return nil
-		}
-		//Step 2: get image from source (web/local)
-		currentPic, img, err = backgroundGenRandomSource(currentPic)
-		if img == nil {
-			fmt.Println("Image is Empty 1 wallpaper")
-			println(err)
+			if errors.Is(err, ErrBackgroundSourceRetry) {
+				fmt.Println("Background source could not provide an image, rerolling:", err)
+				config.ConfigInstance.BackgroundChangeAttempt++
+				return BackgroundGenerate(caller, config.PicHistory{})
+			}
+			fmt.Println("Error generating wallpaper:", err)
 			config.ConfigInstance.BackgroundChangeAttempt++
 			return BackgroundGenerate(caller, currentPic)
 		}
-		sourceExt := filepath.Ext(currentPic.OriginName)
-		_ = sourceExt
-		//Step 3: Stretch if set to fill the screen
-		//To Stretch or not to Stretch that is the question
-		sizingChoice := config.ConfigInstance.WallpaperImageSizing
-		img, currentPic = handleScaling(img, currentPic, sizingChoice, err)
-		if img == nil {
-			fmt.Println("Image is Empty 2")
-		}
-		//Step 4: Apply filters
-		//Handle Favorite with quote
-		specialCaseType := "General"
-		if currentPic.ImageItem.Name == "Favorites" && config.ConfigInstance.ShowTextOverlay {
-			if strings.Contains(currentPic.OriginName, "WithQuotes") {
-				specialCaseType = "WithQuotes"
-			} else {
-				specialCaseType = "WithoutQuotes"
-			}
-		}
-		//Step 4: Apply filters
-		if currentPic.ImageItem.Name == "PicSum" {
-			currentPicsFolder := GetFolderPath(enum.PathLoc.Config)
-			picSumCach := filepath.Join(currentPicsFolder, "imgPicSumCache.png")
-			err = os.Remove(picSumCach)
-			if err != nil {
-				fmt.Println("Error deleting pic0 file:", err)
-			}
-			//Picsum images are not saved in the cache
-			saveImage(img, "imgPicSumCache.png")
-		}
-		if specialCaseType != "WithQuotes" {
-			currentPic, img, err = picTypeAndFilter(currentPic, img, "")
-			if img == nil {
-				fmt.Println("Image is Empty 3")
-			}
-			if err != nil {
-				fmt.Println("Error applying filter:", err)
-				config.ConfigInstance.BackgroundChangeAttempt++
-				return BackgroundGenerate(caller, currentPic)
-			}
-		}
 
-		//Step 5: Handle Quote
-		if config.ConfigInstance.ShowTextOverlay {
-			if specialCaseType != "WithQuotes" {
-				currentPic, img, err = SetRandomQuote(currentPic, img)
-				if (err != nil) || img == nil {
-					fmt.Println("Error applying quote:")
-					config.ConfigInstance.BackgroundChangeAttempt++
-					return BackgroundGenerate(caller, currentPic)
-				}
-			}
-		}
 		//Step 6: Save the image
 		wallpaperMain := GetFolderPath(enum.PathLoc.Config)
 
-		sourceExt = filepath.Ext(currentPic.OriginName)
-		if sourceExt == "" {
-			sourceExt = ".png"
-		}
-		if len(sourceExt) > 5 {
-			sourceExt = UnUnsplash(currentPic.OriginName)
-		}
-		if runtime.GOOS == "darwin" {
-			// Only try to delete the previous image if there is one
-			if len(config.ConfigInstance.PicHistories) > 1 {
-				oldFn := config.ConfigInstance.PicHistories[1].SaveName
-				err = os.Remove(oldFn)
-				if err != nil {
-					fmt.Println("Error deleting pic0 file:", err)
-				}
+		removeAllPic0s()
+		if runtime.GOOS == "darwin" && config.ConfigInstance.DifferentWallpaperPerScreen && screenshot.NumActiveDisplays() > 1 {
+			err = saveDarwinWallpapersForAllScreens(wallpaperMain, currentPic, img, sourceExt)
+			if err != nil {
+				fmt.Println("Failed to set individual macOS wallpapers:", err)
+				config.ConfigInstance.BackgroundChangeAttempt++
+				return BackgroundGenerate(caller, currentPic)
 			}
+			config.ConfigInstance.PicUpdateCalled = false
+			config.ConfigInstance.BackgroundChangeAttempt = 0
+			return nil
+		}
+		if runtime.GOOS == "linux" && config.ConfigInstance.DifferentWallpaperPerScreen && screenshot.NumActiveDisplays() > 1 && SetPerScreenWallpapers != nil {
+			err = saveLinuxWallpapersForAllScreens(wallpaperMain, currentPic, img, sourceExt)
+			if err != nil {
+				fmt.Println("Failed to set individual Linux wallpapers:", err)
+			} else {
+				config.ConfigInstance.PicUpdateCalled = false
+				config.ConfigInstance.BackgroundChangeAttempt = 0
+				return nil
+			}
+		}
+		if runtime.GOOS == "windows" && config.ConfigInstance.DifferentWallpaperPerScreen && screenshot.NumActiveDisplays() > 1 && SetPerScreenWallpapers != nil {
+			err = saveWindowsWallpapersForAllScreens(wallpaperMain, currentPic, img, sourceExt)
+			if err != nil {
+				fmt.Println("Failed to set individual Windows wallpapers:", err)
+			} else {
+				config.ConfigInstance.PicUpdateCalled = false
+				config.ConfigInstance.BackgroundChangeAttempt = 0
+				return nil
+			}
+		}
 
-			fn := uuid.New()
-			currentPic.SaveName = filepath.Join(wallpaperMain, "btrfly"+fn.String()+sourceExt)
+		if runtime.GOOS == "darwin" {
+			currentPic.SaveName = filepath.Join(wallpaperMain, "btrfly"+uuid.New().String()+sourceExt)
 		} else {
 			currentPic.SaveName = filepath.Join(wallpaperMain, "pic0"+sourceExt)
 		}
 		config.ConfigInstance.AddPicHistory(currentPic)
 
-		removeAllPic0s()
 		fileLoc := ""
 		if runtime.GOOS == "windows" {
 			numDisplays := screenshot.NumActiveDisplays()
@@ -195,50 +156,255 @@ func BackgroundGenerate(caller string, currentPic config.PicHistory) error {
 	return nil
 }
 
-func SetWallpapersForAllScreens() error {
-	baseDir := GetFolderPath(enum.PathLoc.Config)
-	numDisplays := screenshot.NumActiveDisplays()
-	for i := 0; i < numDisplays; i++ {
-		bounds := screenshot.GetDisplayBounds(i)
-		imgPath := filepath.Join(baseDir, fmt.Sprintf("pic%d.png", i))
-		imgFile, err := os.Open(imgPath)
-		if err != nil {
-			fmt.Printf("Could not open image for screen %d: %v\n", i, err)
-			continue
-		}
-		srcImg, _, err := image.Decode(imgFile)
-		imgFile.Close()
-		if err != nil {
-			fmt.Printf("Could not decode image for screen %d: %v\n", i, err)
-			continue
-		}
-		// Resize/crop to fit the screen bounds
-		dstImg := image.NewRGBA(bounds)
-		draw.CatmullRom.Scale(dstImg, dstImg.Bounds(), srcImg, srcImg.Bounds(), draw.Over, nil)
+func generateRandomWallpaperAsset(currentPic config.PicHistory) (config.PicHistory, image.Image, string, error) {
+	currentPic.PicNum = 0
 
-		// Save the resized image to a temp file
-		outPath := filepath.Join(baseDir, fmt.Sprintf("pic%d_fitted.png", i))
-		outFile, err := os.Create(outPath)
-		if err != nil {
-			fmt.Printf("Could not create output file for screen %d: %v\n", i, err)
-			continue
-		}
-		err = png.Encode(outFile, dstImg)
-		outFile.Close()
-		if err != nil {
-			fmt.Printf("Could not encode output image for screen %d: %v\n", i, err)
-			continue
-		}
+	var err error
+	var img image.Image
 
-		// Set wallpaper for this screen if supported by your wallpaper library
-		err = wallpaper.SetFromFile(outPath)
-		if err != nil {
-			fmt.Printf("Failed to set wallpaper for screen %d: %v\n", i, err)
-			continue
+	currentPic, err = backgroundGenImageItem(currentPic)
+	if err != nil {
+		return currentPic, nil, "", err
+	}
+
+	currentPic, img, err = backgroundGenRandomSource(currentPic)
+	if err != nil {
+		return currentPic, img, "", err
+	}
+	if img == nil {
+		return currentPic, nil, "", fmt.Errorf("image is empty after selecting a source")
+	}
+
+	img, currentPic = handleScaling(img, currentPic, config.ConfigInstance.WallpaperImageSizing, err)
+	if img == nil {
+		return currentPic, nil, "", fmt.Errorf("image is empty after scaling")
+	}
+
+	specialCaseType := "General"
+	if currentPic.ImageItem.Name == "Favorites" && config.ConfigInstance.ShowTextOverlay {
+		if strings.Contains(currentPic.OriginName, "WithQuotes") {
+			specialCaseType = "WithQuotes"
 		} else {
-			fmt.Printf("Wallpaper set successfully for screen %d!\n", i)
+			specialCaseType = "WithoutQuotes"
 		}
 	}
+
+	if currentPic.ImageItem.Name == "PicSum" {
+		currentPicsFolder := GetFolderPath(enum.PathLoc.Config)
+		picSumCach := filepath.Join(currentPicsFolder, "imgPicSumCache.png")
+		if removeErr := os.Remove(picSumCach); removeErr != nil {
+			fmt.Println("Error deleting pic0 file:", removeErr)
+		}
+		saveImage(img, "imgPicSumCache.png")
+	}
+
+	if specialCaseType != "WithQuotes" {
+		currentPic, img, err = picTypeAndFilter(currentPic, img, "")
+		if err != nil {
+			return currentPic, img, "", err
+		}
+		if img == nil {
+			return currentPic, nil, "", fmt.Errorf("image is empty after filtering")
+		}
+	}
+
+	if config.ConfigInstance.ShowTextOverlay && specialCaseType != "WithQuotes" {
+		currentPic, img, err = SetRandomQuote(currentPic, img)
+		if err != nil {
+			return currentPic, img, "", err
+		}
+		if img == nil {
+			return currentPic, nil, "", fmt.Errorf("image is empty after applying quote")
+		}
+	}
+
+	sourceExt := filepath.Ext(currentPic.OriginName)
+	if sourceExt == "" {
+		sourceExt = ".png"
+	}
+	if len(sourceExt) > 5 {
+		sourceExt = UnUnsplash(currentPic.OriginName)
+	}
+
+	return currentPic, img, sourceExt, nil
+}
+
+func saveDarwinWallpapersForAllScreens(wallpaperMain string, currentPic config.PicHistory, img image.Image, sourceExt string) error {
+	numDisplays := screenshot.NumActiveDisplays()
+	if numDisplays < 2 {
+		return fmt.Errorf("individual wallpapers requested without multiple displays")
+	}
+
+	wallpaperPaths := make([]string, 0, numDisplays)
+	firstPath := darwinWallpaperPath(wallpaperMain, 0, sourceExt)
+	if err := saveImageForDisplay(img, firstPath, 0); err != nil {
+		return err
+	}
+	currentPic.SaveName = firstPath
+	if err := config.ConfigInstance.AddPicHistory(currentPic); err != nil {
+		return err
+	}
+	wallpaperPaths = append(wallpaperPaths, firstPath)
+
+	for displayIndex := 1; displayIndex < numDisplays; displayIndex++ {
+		_, nextImg, nextExt, err := generateRandomWallpaperAsset(config.PicHistory{})
+		if err != nil {
+			fmt.Printf("Display %d wallpaper generation failed, reusing the first image: %v\n", displayIndex, err)
+			nextImg = img
+			nextExt = sourceExt
+		}
+		nextPath := darwinWallpaperPath(wallpaperMain, displayIndex, nextExt)
+		if err := saveImageForDisplay(nextImg, nextPath, displayIndex); err != nil {
+			return err
+		}
+		wallpaperPaths = append(wallpaperPaths, nextPath)
+	}
+
+	return setDarwinWallpapers(wallpaperPaths)
+}
+
+func saveLinuxWallpapersForAllScreens(wallpaperMain string, currentPic config.PicHistory, img image.Image, sourceExt string) error {
+	numDisplays := screenshot.NumActiveDisplays()
+	if numDisplays < 2 {
+		return fmt.Errorf("individual wallpapers requested without multiple displays")
+	}
+	if SetPerScreenWallpapers == nil {
+		return fmt.Errorf("no Linux per-screen wallpaper backend registered")
+	}
+
+	wallpaperPaths := make([]string, 0, numDisplays)
+	firstPath := linuxWallpaperPath(wallpaperMain, 0, sourceExt)
+	if err := saveImageForDisplay(img, firstPath, 0); err != nil {
+		return err
+	}
+	currentPic.SaveName = firstPath
+	if err := config.ConfigInstance.AddPicHistory(currentPic); err != nil {
+		return err
+	}
+	wallpaperPaths = append(wallpaperPaths, firstPath)
+
+	for displayIndex := 1; displayIndex < numDisplays; displayIndex++ {
+		_, nextImg, nextExt, err := generateRandomWallpaperAsset(config.PicHistory{})
+		if err != nil {
+			fmt.Printf("Display %d wallpaper generation failed, reusing the first image: %v\n", displayIndex, err)
+			nextImg = img
+			nextExt = sourceExt
+		}
+		nextPath := linuxWallpaperPath(wallpaperMain, displayIndex, nextExt)
+		if err := saveImageForDisplay(nextImg, nextPath, displayIndex); err != nil {
+			return err
+		}
+		wallpaperPaths = append(wallpaperPaths, nextPath)
+	}
+
+	return SetPerScreenWallpapers(wallpaperPaths)
+}
+
+func saveWindowsWallpapersForAllScreens(wallpaperMain string, currentPic config.PicHistory, img image.Image, sourceExt string) error {
+	numDisplays := screenshot.NumActiveDisplays()
+	if numDisplays < 2 {
+		return fmt.Errorf("individual wallpapers requested without multiple displays")
+	}
+	if SetPerScreenWallpapers == nil {
+		return fmt.Errorf("no Windows per-screen wallpaper backend registered")
+	}
+
+	wallpaperPaths := make([]string, 0, numDisplays)
+	firstPath := windowsWallpaperPath(wallpaperMain, 0, sourceExt)
+	if err := saveImageForDisplay(img, firstPath, 0); err != nil {
+		return err
+	}
+	currentPic.SaveName = firstPath
+	if err := config.ConfigInstance.AddPicHistory(currentPic); err != nil {
+		return err
+	}
+	wallpaperPaths = append(wallpaperPaths, firstPath)
+
+	for displayIndex := 1; displayIndex < numDisplays; displayIndex++ {
+		_, nextImg, nextExt, err := generateRandomWallpaperAsset(config.PicHistory{})
+		if err != nil {
+			fmt.Printf("Display %d wallpaper generation failed, reusing the first image: %v\n", displayIndex, err)
+			nextImg = img
+			nextExt = sourceExt
+		}
+		nextPath := windowsWallpaperPath(wallpaperMain, displayIndex, nextExt)
+		if err := saveImageForDisplay(nextImg, nextPath, displayIndex); err != nil {
+			return err
+		}
+		wallpaperPaths = append(wallpaperPaths, nextPath)
+	}
+
+	return SetPerScreenWallpapers(wallpaperPaths)
+}
+
+func darwinWallpaperPath(wallpaperMain string, displayIndex int, sourceExt string) string {
+	if sourceExt == "" {
+		sourceExt = ".png"
+	}
+	return filepath.Join(wallpaperMain, fmt.Sprintf("btrfly-screen-%d-%s%s", displayIndex, uuid.New().String(), sourceExt))
+}
+
+func linuxWallpaperPath(wallpaperMain string, displayIndex int, sourceExt string) string {
+	if sourceExt == "" {
+		sourceExt = ".png"
+	}
+	return filepath.Join(wallpaperMain, fmt.Sprintf("linux-screen-%d-%s%s", displayIndex, uuid.New().String(), sourceExt))
+}
+
+func windowsWallpaperPath(wallpaperMain string, displayIndex int, sourceExt string) string {
+	if sourceExt == "" {
+		sourceExt = ".png"
+	}
+	return filepath.Join(wallpaperMain, fmt.Sprintf("win-screen-%d-%s%s", displayIndex, uuid.New().String(), sourceExt))
+}
+
+func saveImageForDisplay(img image.Image, filePath string, displayIndex int) error {
+	if img == nil {
+		return fmt.Errorf("cannot save empty image for display %d", displayIndex)
+	}
+
+	bounds := screenshot.GetDisplayBounds(displayIndex)
+	if bounds.Dx() <= 0 || bounds.Dy() <= 0 {
+		saveImg(img, filePath)
+		return nil
+	}
+
+	fittedImg := image.NewRGBA(image.Rect(0, 0, bounds.Dx(), bounds.Dy()))
+	draw.CatmullRom.Scale(fittedImg, fittedImg.Bounds(), img, img.Bounds(), draw.Over, nil)
+	saveImg(fittedImg, filePath)
+	return nil
+}
+
+func setDarwinWallpapers(wallpaperPaths []string) error {
+	if runtime.GOOS != "darwin" {
+		return fmt.Errorf("individual wallpaper assignment is only supported on macOS")
+	}
+	if len(wallpaperPaths) == 0 {
+		return fmt.Errorf("no wallpaper paths provided")
+	}
+
+	escapedPaths := make([]string, 0, len(wallpaperPaths))
+	for _, path := range wallpaperPaths {
+		escapedPath := strings.ReplaceAll(path, "\\", "\\\\")
+		escapedPath = strings.ReplaceAll(escapedPath, "\"", "\\\"")
+		escapedPaths = append(escapedPaths, fmt.Sprintf("\"%s\"", escapedPath))
+	}
+
+	script := fmt.Sprintf(`set wallpaperPaths to {%s}
+tell application "System Events"
+	set desktopCount to count of desktops
+	repeat with desktopIndex from 1 to desktopCount
+		set pathIndex to ((desktopIndex - 1) mod (count of wallpaperPaths)) + 1
+		set picture of desktop desktopIndex to item pathIndex of wallpaperPaths
+	end repeat
+end tell`, strings.Join(escapedPaths, ", "))
+
+	cmd := exec.Command("osascript", "-e", script)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to set macOS wallpapers: %w: %s", err, strings.TrimSpace(string(output)))
+	}
+
 	return nil
 }
 
@@ -299,9 +465,6 @@ func backgroundGenRandomSource(currentPic config.PicHistory) (config.PicHistory,
 		img, url, err = GetBackgroundNASA(currentPic.ImageItem)
 	} else if currentPic.ImageItem.Name == "UnSplash" {
 		img, url, err = GetBackgroundUnSplash(currentPic.ImageItem)
-		if img == nil {
-			BackgroundGenerate("Unsplash Failure", currentPic)
-		}
 	} else if currentPic.ImageItem.Name == "PicSum" {
 		img, url, err = GetBackgroundPicSum(currentPic.ImageItem)
 	} else if currentPic.ImageItem.Name == "ChristianPD" {
@@ -515,9 +678,11 @@ func GetQuote(currentPic config.PicHistory) (config.PicHistory, error) {
 	if _, err := os.Stat(favQuoteFolder); os.IsNotExist(err) {
 		//Ignore
 	} else {
-
-		fileName := fmt.Sprintf("quoteFavorites.json")
-		filePath := filepath.Join(favQuoteFolder, fileName)
+		filePath, err := ensureFavoriteQuotesFile()
+		if err != nil {
+			fmt.Println(err)
+			return currentPic, err
+		}
 		third := len(onQLs) / 3
 		if third < 1 {
 			third = 1

@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"image"
 	"log"
-	"math"
 	"os"
 	"os/exec"
 	"os/user"
@@ -19,10 +18,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
-	"unsafe"
 
 	"github.com/fogleman/gg"
-	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
 )
 
@@ -65,172 +62,31 @@ const (
 )
 
 var (
-	kernel32             = syscall.NewLazyDLL("kernel32.dll")
-	procBeep             = kernel32.NewProc("Beep")
-	ole32                = windows.NewLazySystemDLL("ole32.dll")
-	procCoInitializeEx   = ole32.NewProc("CoInitializeEx")
-	procCoUninitialize   = ole32.NewProc("CoUninitialize")
-	procCoCreateInstance = ole32.NewProc("CoCreateInstance")
+	kernel32 = syscall.NewLazyDLL("kernel32.dll")
+	procBeep = kernel32.NewProc("Beep")
 )
-
-const (
-	coinitApartmentThreaded = 0x2
-	clsctxInprocServer      = 0x1
-	wallpaperPositionFill   = 4
-	sFalse                  = 0x00000001
-)
-
-var (
-	clsidDesktopWallpaper = windows.GUID{Data1: 0xC2CF3110, Data2: 0x460E, Data3: 0x4FC1, Data4: [8]byte{0xB9, 0xD0, 0x8A, 0x1C, 0x0C, 0xD8, 0x57, 0xD1}}
-	iidDesktopWallpaper   = windows.GUID{Data1: 0xB92B56A9, Data2: 0x8B55, Data3: 0x4E14, Data4: [8]byte{0x9A, 0x89, 0x01, 0x99, 0xBB, 0xB6, 0xF9, 0x3B}}
-)
-
-type desktopWallpaper struct {
-	lpVtbl *desktopWallpaperVtbl
-}
-
-type desktopWallpaperVtbl struct {
-	queryInterface            uintptr
-	addRef                    uintptr
-	release                   uintptr
-	setWallpaper              uintptr
-	getWallpaper              uintptr
-	getMonitorDevicePathAt    uintptr
-	getMonitorDevicePathCount uintptr
-	getMonitorRECT            uintptr
-	setBackgroundColor        uintptr
-	getBackgroundColor        uintptr
-	setPosition               uintptr
-	getPosition               uintptr
-	setSlideshow              uintptr
-	getSlideshow              uintptr
-	setSlideshowOptions       uintptr
-	getSlideshowOptions       uintptr
-	advanceSlideshow          uintptr
-	getStatus                 uintptr
-	enable                    uintptr
-}
 
 func setWindowsPerScreenWallpapersImpl(wallpaperPaths []string) error {
 	if len(wallpaperPaths) == 0 {
 		return fmt.Errorf("no wallpaper paths provided")
 	}
 
-	uninit, err := coInitialize()
+	exePath, err := os.Executable()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get executable path: %w", err)
 	}
-	defer uninit()
+	helper := filepath.Join(filepath.Dir(exePath), "WallpaperHelper.exe")
+	if _, err := os.Stat(helper); os.IsNotExist(err) {
+		return fmt.Errorf("WallpaperHelper.exe not found at %s", helper)
+	}
 
-	desktop, err := createDesktopWallpaper()
+	args := append([]string{}, wallpaperPaths...)
+	cmd := exec.Command(helper, args...)
+	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return err
+		return fmt.Errorf("WallpaperHelper failed: %w: %s", err, strings.TrimSpace(string(output)))
 	}
-	defer desktop.Release()
-
-	if err := desktop.SetPosition(wallpaperPositionFill); err != nil {
-		return err
-	}
-
-	count, err := desktop.GetMonitorDevicePathCount()
-	if err != nil {
-		return err
-	}
-	if count == 0 {
-		return fmt.Errorf("IDesktopWallpaper reported zero monitors")
-	}
-
-	for monitorIndex := uint32(0); monitorIndex < count; monitorIndex++ {
-		monitorID, err := desktop.GetMonitorDevicePathAt(monitorIndex)
-		if err != nil {
-			return err
-		}
-		pathIndex := int(math.Min(float64(monitorIndex), float64(len(wallpaperPaths)-1)))
-		if err := desktop.SetWallpaper(monitorID, wallpaperPaths[pathIndex]); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func coInitialize() (func(), error) {
-	hr, _, _ := procCoInitializeEx.Call(0, uintptr(coinitApartmentThreaded))
-	switch uint32(hr) {
-	case 0, sFalse:
-		return func() {
-			procCoUninitialize.Call()
-		}, nil
-	default:
-		return nil, fmt.Errorf("CoInitializeEx failed: HRESULT 0x%08x", uint32(hr))
-	}
-}
-
-func createDesktopWallpaper() (*desktopWallpaper, error) {
-	var instance *desktopWallpaper
-	hr, _, _ := procCoCreateInstance.Call(
-		uintptr(unsafe.Pointer(&clsidDesktopWallpaper)),
-		0,
-		uintptr(clsctxInprocServer),
-		uintptr(unsafe.Pointer(&iidDesktopWallpaper)),
-		uintptr(unsafe.Pointer(&instance)),
-	)
-	if uint32(hr) != 0 {
-		return nil, fmt.Errorf("CoCreateInstance for IDesktopWallpaper failed: HRESULT 0x%08x", uint32(hr))
-	}
-	return instance, nil
-}
-
-func (d *desktopWallpaper) Release() {
-	if d == nil || d.lpVtbl == nil {
-		return
-	}
-	syscall.SyscallN(d.lpVtbl.release, uintptr(unsafe.Pointer(d)))
-}
-
-func (d *desktopWallpaper) SetPosition(position uint32) error {
-	hr, _, _ := syscall.SyscallN(d.lpVtbl.setPosition, uintptr(unsafe.Pointer(d)), uintptr(position))
-	if uint32(hr) != 0 {
-		return fmt.Errorf("IDesktopWallpaper::SetPosition failed: HRESULT 0x%08x", uint32(hr))
-	}
-	return nil
-}
-
-func (d *desktopWallpaper) GetMonitorDevicePathCount() (uint32, error) {
-	var count uint32
-	hr, _, _ := syscall.SyscallN(d.lpVtbl.getMonitorDevicePathCount, uintptr(unsafe.Pointer(d)), uintptr(unsafe.Pointer(&count)))
-	if uint32(hr) != 0 {
-		return 0, fmt.Errorf("IDesktopWallpaper::GetMonitorDevicePathCount failed: HRESULT 0x%08x", uint32(hr))
-	}
-	return count, nil
-}
-
-func (d *desktopWallpaper) GetMonitorDevicePathAt(index uint32) (string, error) {
-	var monitorID *uint16
-	hr, _, _ := syscall.SyscallN(d.lpVtbl.getMonitorDevicePathAt, uintptr(unsafe.Pointer(d)), uintptr(index), uintptr(unsafe.Pointer(&monitorID)))
-	if uint32(hr) != 0 {
-		return "", fmt.Errorf("IDesktopWallpaper::GetMonitorDevicePathAt failed: HRESULT 0x%08x", uint32(hr))
-	}
-	if monitorID == nil {
-		return "", fmt.Errorf("IDesktopWallpaper returned nil monitor ID for index %d", index)
-	}
-	defer windows.CoTaskMemFree(unsafe.Pointer(monitorID))
-	return windows.UTF16PtrToString(monitorID), nil
-}
-
-func (d *desktopWallpaper) SetWallpaper(monitorID string, wallpaperPath string) error {
-	monitorIDPtr, err := windows.UTF16PtrFromString(monitorID)
-	if err != nil {
-		return fmt.Errorf("invalid monitor ID: %w", err)
-	}
-	wallpaperPtr, err := windows.UTF16PtrFromString(wallpaperPath)
-	if err != nil {
-		return fmt.Errorf("invalid wallpaper path: %w", err)
-	}
-	hr, _, _ := syscall.SyscallN(d.lpVtbl.setWallpaper, uintptr(unsafe.Pointer(d)), uintptr(unsafe.Pointer(monitorIDPtr)), uintptr(unsafe.Pointer(wallpaperPtr)))
-	if uint32(hr) != 0 {
-		return fmt.Errorf("IDesktopWallpaper::SetWallpaper failed for %s: HRESULT 0x%08x", wallpaperPath, uint32(hr))
-	}
+	fmt.Println("WallpaperHelper output:", string(output))
 	return nil
 }
 

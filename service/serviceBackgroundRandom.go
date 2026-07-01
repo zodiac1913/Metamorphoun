@@ -5,10 +5,14 @@ import (
 	"Metamorphoun/enum"
 	"Metamorphoun/morphLog"
 	"Metamorphoun/shared"
+	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"image"
+	"image/png"
 	"log"
 	"math/rand"
 	"os"
@@ -235,6 +239,13 @@ func saveDarwinWallpapersForAllScreens(wallpaperMain string, currentPic config.P
 		return fmt.Errorf("individual wallpapers requested without multiple displays")
 	}
 
+	seenFingerprints := make(map[string]struct{}, numDisplays)
+	firstFingerprint, err := wallpaperAssetFingerprint(currentPic, img)
+	if err != nil {
+		return err
+	}
+	seenFingerprints[firstFingerprint] = struct{}{}
+
 	wallpaperPaths := make([]string, 0, numDisplays)
 	perScreenPics := make([]config.PicHistory, 0, numDisplays)
 	usedOrigins := make(map[string]struct{}, numDisplays)
@@ -243,6 +254,7 @@ func saveDarwinWallpapersForAllScreens(wallpaperMain string, currentPic config.P
 	if err := saveImageForDisplay(img, firstPath, 0); err != nil {
 		return err
 	}
+	fmt.Printf("Display %d assigned wallpaper: %s\n", 0, firstPath)
 	currentPic.SaveName = firstPath
 	if err := config.ConfigInstance.AddPicHistory(currentPic); err != nil {
 		return err
@@ -354,11 +366,19 @@ func saveLinuxWallpapersForAllScreens(wallpaperMain string, currentPic config.Pi
 		return fmt.Errorf("no Linux per-screen wallpaper backend registered")
 	}
 
+	seenFingerprints := make(map[string]struct{}, numDisplays)
+	firstFingerprint, err := wallpaperAssetFingerprint(currentPic, img)
+	if err != nil {
+		return err
+	}
+	seenFingerprints[firstFingerprint] = struct{}{}
+
 	wallpaperPaths := make([]string, 0, numDisplays)
 	firstPath := linuxWallpaperPath(wallpaperMain, 0, sourceExt)
 	if err := saveImageForDisplay(img, firstPath, 0); err != nil {
 		return err
 	}
+	fmt.Printf("Display %d assigned wallpaper: %s\n", 0, firstPath)
 	currentPic.SaveName = firstPath
 	if err := config.ConfigInstance.AddPicHistory(currentPic); err != nil {
 		return err
@@ -366,16 +386,15 @@ func saveLinuxWallpapersForAllScreens(wallpaperMain string, currentPic config.Pi
 	wallpaperPaths = append(wallpaperPaths, firstPath)
 
 	for displayIndex := 1; displayIndex < numDisplays; displayIndex++ {
-		_, nextImg, nextExt, err := generateRandomWallpaperAsset(config.PicHistory{})
+		_, nextImg, nextExt, err := generateDistinctWallpaperAsset(seenFingerprints, 8)
 		if err != nil {
-			fmt.Printf("Display %d wallpaper generation failed, reusing the first image: %v\n", displayIndex, err)
-			nextImg = img
-			nextExt = sourceExt
+			return fmt.Errorf("display %d wallpaper generation failed: %w", displayIndex, err)
 		}
 		nextPath := linuxWallpaperPath(wallpaperMain, displayIndex, nextExt)
 		if err := saveImageForDisplay(nextImg, nextPath, displayIndex); err != nil {
 			return err
 		}
+		fmt.Printf("Display %d assigned wallpaper: %s\n", displayIndex, nextPath)
 		wallpaperPaths = append(wallpaperPaths, nextPath)
 	}
 
@@ -391,11 +410,19 @@ func saveWindowsWallpapersForAllScreens(wallpaperMain string, currentPic config.
 		return fmt.Errorf("no Windows per-screen wallpaper backend registered")
 	}
 
+	seenFingerprints := make(map[string]struct{}, numDisplays)
+	firstFingerprint, err := wallpaperAssetFingerprint(currentPic, img)
+	if err != nil {
+		return err
+	}
+	seenFingerprints[firstFingerprint] = struct{}{}
+
 	wallpaperPaths := make([]string, 0, numDisplays)
 	firstPath := windowsWallpaperPath(wallpaperMain, 0, sourceExt)
 	if err := saveImageForDisplay(img, firstPath, 0); err != nil {
 		return err
 	}
+	fmt.Printf("Display %d assigned wallpaper: %s\n", 0, firstPath)
 	currentPic.SaveName = firstPath
 	if err := config.ConfigInstance.AddPicHistory(currentPic); err != nil {
 		return err
@@ -403,16 +430,15 @@ func saveWindowsWallpapersForAllScreens(wallpaperMain string, currentPic config.
 	wallpaperPaths = append(wallpaperPaths, firstPath)
 
 	for displayIndex := 1; displayIndex < numDisplays; displayIndex++ {
-		_, nextImg, nextExt, err := generateRandomWallpaperAsset(config.PicHistory{})
+		_, nextImg, nextExt, err := generateDistinctWallpaperAsset(seenFingerprints, 8)
 		if err != nil {
-			fmt.Printf("Display %d wallpaper generation failed, reusing the first image: %v\n", displayIndex, err)
-			nextImg = img
-			nextExt = sourceExt
+			return fmt.Errorf("display %d wallpaper generation failed: %w", displayIndex, err)
 		}
 		nextPath := windowsWallpaperPath(wallpaperMain, displayIndex, nextExt)
 		if err := saveImageForDisplay(nextImg, nextPath, displayIndex); err != nil {
 			return err
 		}
+		fmt.Printf("Display %d assigned wallpaper: %s\n", displayIndex, nextPath)
 		wallpaperPaths = append(wallpaperPaths, nextPath)
 	}
 
@@ -455,6 +481,60 @@ func saveImageForDisplay(img image.Image, filePath string, displayIndex int) err
 	draw.CatmullRom.Scale(fittedImg, fittedImg.Bounds(), img, img.Bounds(), draw.Over, nil)
 	saveImg(fittedImg, filePath)
 	return nil
+}
+
+func generateDistinctWallpaperAsset(seenFingerprints map[string]struct{}, maxAttempts int) (config.PicHistory, image.Image, string, error) {
+	if maxAttempts < 1 {
+		maxAttempts = 1
+	}
+
+	var lastErr error
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		nextPic, nextImg, nextExt, err := generateRandomWallpaperAsset(config.PicHistory{})
+		if err != nil {
+			lastErr = err
+			continue
+		}
+
+		fingerprint, err := wallpaperAssetFingerprint(nextPic, nextImg)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+
+		if _, exists := seenFingerprints[fingerprint]; exists {
+			lastErr = fmt.Errorf("duplicate wallpaper asset detected")
+			continue
+		}
+
+		seenFingerprints[fingerprint] = struct{}{}
+		return nextPic, nextImg, nextExt, nil
+	}
+
+	if lastErr == nil {
+		lastErr = fmt.Errorf("failed to generate a distinct wallpaper asset")
+	}
+	return config.PicHistory{}, nil, "", fmt.Errorf("failed to generate distinct wallpaper after %d attempts: %w", maxAttempts, lastErr)
+}
+
+func wallpaperAssetFingerprint(pic config.PicHistory, img image.Image) (string, error) {
+	if img == nil {
+		return "", fmt.Errorf("cannot fingerprint empty wallpaper image")
+	}
+
+	var imageBuffer bytes.Buffer
+	if err := png.Encode(&imageBuffer, img); err != nil {
+		return "", fmt.Errorf("failed to encode wallpaper image fingerprint: %w", err)
+	}
+
+	hasher := sha256.New()
+	hasher.Write(imageBuffer.Bytes())
+	hasher.Write([]byte("\n"))
+	hasher.Write([]byte(pic.QuoteStatement))
+	hasher.Write([]byte("\n"))
+	hasher.Write([]byte(pic.QuoteAuthor))
+
+	return hex.EncodeToString(hasher.Sum(nil)), nil
 }
 
 func setDarwinWallpapers(wallpaperPaths []string) error {

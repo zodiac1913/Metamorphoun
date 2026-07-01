@@ -101,9 +101,6 @@ func removeAllPic0s() error {
 func handleScaling(img image.Image, currentPic config.PicHistory, choice string, err error) (image.Image, config.PicHistory) {
 
 	if len(GetScreenInfo()) < 1 {
-		// config.ConfigInstance.BackgroundChangeAttempt++
-		// return BackgroundGenerate("handleScaling", currentPic)
-		_ = BackgroundGenerate("handleScaling", currentPic)
 		return nil, currentPic
 	}
 	screenInfo := GetScreenInfo()[0]

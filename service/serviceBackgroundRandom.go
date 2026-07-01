@@ -236,6 +236,9 @@ func saveDarwinWallpapersForAllScreens(wallpaperMain string, currentPic config.P
 	}
 
 	wallpaperPaths := make([]string, 0, numDisplays)
+	perScreenPics := make([]config.PicHistory, 0, numDisplays)
+	usedOrigins := make(map[string]struct{}, numDisplays)
+	usedQuotes := make(map[string]struct{}, numDisplays)
 	firstPath := darwinWallpaperPath(wallpaperMain, 0, sourceExt)
 	if err := saveImageForDisplay(img, firstPath, 0); err != nil {
 		return err
@@ -245,11 +248,14 @@ func saveDarwinWallpapersForAllScreens(wallpaperMain string, currentPic config.P
 		return err
 	}
 	wallpaperPaths = append(wallpaperPaths, firstPath)
+	perScreenPics = append(perScreenPics, currentPic)
+	recordDarwinDistinctAsset(currentPic, usedOrigins, usedQuotes)
 
 	for displayIndex := 1; displayIndex < numDisplays; displayIndex++ {
-		_, nextImg, nextExt, err := generateRandomWallpaperAsset(config.PicHistory{})
+		nextPic, nextImg, nextExt, err := generateDistinctDarwinWallpaperAsset(usedOrigins, usedQuotes)
 		if err != nil {
 			fmt.Printf("Display %d wallpaper generation failed, reusing the first image: %v\n", displayIndex, err)
+			nextPic = currentPic
 			nextImg = img
 			nextExt = sourceExt
 		}
@@ -257,10 +263,86 @@ func saveDarwinWallpapersForAllScreens(wallpaperMain string, currentPic config.P
 		if err := saveImageForDisplay(nextImg, nextPath, displayIndex); err != nil {
 			return err
 		}
+		nextPic.SaveName = nextPath
 		wallpaperPaths = append(wallpaperPaths, nextPath)
+		perScreenPics = append(perScreenPics, nextPic)
+		recordDarwinDistinctAsset(nextPic, usedOrigins, usedQuotes)
+	}
+
+	config.ConfigInstance.DarwinPerScreenPicHistories = perScreenPics
+	if err := config.SaveConfig(config.ConfigInstance); err != nil {
+		return err
 	}
 
 	return setDarwinWallpapers(wallpaperPaths)
+}
+
+func generateDistinctDarwinWallpaperAsset(usedOrigins map[string]struct{}, usedQuotes map[string]struct{}) (config.PicHistory, image.Image, string, error) {
+	const maxAttempts = 12
+
+	var fallbackPic config.PicHistory
+	var fallbackImg image.Image
+	var fallbackExt string
+	var fallbackReady bool
+	var lastErr error
+
+	for attempt := 0; attempt < maxAttempts; attempt++ {
+		candidatePic, candidateImg, candidateExt, err := generateRandomWallpaperAsset(config.PicHistory{})
+		if err != nil {
+			lastErr = err
+			continue
+		}
+		if candidateImg == nil {
+			lastErr = fmt.Errorf("empty image returned while generating a distinct macOS wallpaper")
+			continue
+		}
+
+		originUnique := darwinOriginIsUnique(candidatePic, usedOrigins)
+		quoteUnique := darwinQuoteIsUnique(candidatePic, usedQuotes)
+		if originUnique && quoteUnique {
+			return candidatePic, candidateImg, candidateExt, nil
+		}
+
+		if originUnique && !fallbackReady {
+			fallbackPic = candidatePic
+			fallbackImg = candidateImg
+			fallbackExt = candidateExt
+			fallbackReady = true
+		}
+	}
+
+	if fallbackReady {
+		return fallbackPic, fallbackImg, fallbackExt, nil
+	}
+	if lastErr != nil {
+		return config.PicHistory{}, nil, "", lastErr
+	}
+	return generateRandomWallpaperAsset(config.PicHistory{})
+}
+
+func darwinOriginIsUnique(pic config.PicHistory, usedOrigins map[string]struct{}) bool {
+	if pic.OriginName == "" {
+		return true
+	}
+	_, exists := usedOrigins[pic.OriginName]
+	return !exists
+}
+
+func darwinQuoteIsUnique(pic config.PicHistory, usedQuotes map[string]struct{}) bool {
+	if config.ConfigInstance.MBCMode || !config.ConfigInstance.ShowTextOverlay || pic.QuoteStatement == "" {
+		return true
+	}
+	_, exists := usedQuotes[pic.QuoteStatement]
+	return !exists
+}
+
+func recordDarwinDistinctAsset(pic config.PicHistory, usedOrigins map[string]struct{}, usedQuotes map[string]struct{}) {
+	if pic.OriginName != "" {
+		usedOrigins[pic.OriginName] = struct{}{}
+	}
+	if !config.ConfigInstance.MBCMode && config.ConfigInstance.ShowTextOverlay && pic.QuoteStatement != "" {
+		usedQuotes[pic.QuoteStatement] = struct{}{}
+	}
 }
 
 func saveLinuxWallpapersForAllScreens(wallpaperMain string, currentPic config.PicHistory, img image.Image, sourceExt string) error {

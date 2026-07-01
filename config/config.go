@@ -62,21 +62,22 @@ type Config struct {
 	TextLibraries             []TextLibrary `json:"textLibraries"`
 	TextFontFile              string        `json:"textFontFile"`
 	//TextFontPath              string        `json:"textFontPath"`
-	TextBoxLocation        string       `json:"textBoxLocation"`
-	CurrentQuoteStatement  string       `json:"currentQuoteStatement"`
-	CurrentQuoteAuthor     string       `json:"currentQuoteAuthor"`
-	QuoteAppearanceRandom  bool         `json:"quoteAppearanceRandom"`
-	QuoteFontRandom        bool         `json:"quoteFontRandom"`
-	QuoteTextColor         string       `json:"quoteTextColor"`
-	QuoteBackgroundColor   string       `json:"quoteBackgroundColor"`
-	QuoteBackgroundOpacity string       `json:"quoteBackgroundOpacity"`
-	PicHistories           []PicHistory `json:"picHistories"`
-	PicUpdateCalled        bool         `json:"picUpdateCalled"`
-	MBCMonth               int          `json:"mbcMonth"`
-	MBCMode                bool         `json:"mbcMode"`
-	MBCValue               int          `json:"mbcValue"`
-	QuoteFontSizeMin       float64      `json:"quoteFontSizeMin"`
-	QuoteFontSizeMax       float64      `json:"quoteFontSizeMax"`
+	TextBoxLocation             string       `json:"textBoxLocation"`
+	CurrentQuoteStatement       string       `json:"currentQuoteStatement"`
+	CurrentQuoteAuthor          string       `json:"currentQuoteAuthor"`
+	QuoteAppearanceRandom       bool         `json:"quoteAppearanceRandom"`
+	QuoteFontRandom             bool         `json:"quoteFontRandom"`
+	QuoteTextColor              string       `json:"quoteTextColor"`
+	QuoteBackgroundColor        string       `json:"quoteBackgroundColor"`
+	QuoteBackgroundOpacity      string       `json:"quoteBackgroundOpacity"`
+	PicHistories                []PicHistory `json:"picHistories"`
+	DarwinPerScreenPicHistories []PicHistory `json:"darwinPerScreenPicHistories"`
+	PicUpdateCalled             bool         `json:"picUpdateCalled"`
+	MBCMonth                    int          `json:"mbcMonth"`
+	MBCMode                     bool         `json:"mbcMode"`
+	MBCValue                    int          `json:"mbcValue"`
+	QuoteFontSizeMin            float64      `json:"quoteFontSizeMin"`
+	QuoteFontSizeMax            float64      `json:"quoteFontSizeMax"`
 	// Add other configuration fields here
 }
 type Image struct {

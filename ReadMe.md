@@ -56,7 +56,10 @@ For per-screen wallpapers on Linux:
 - Current support targets X11 sessions
 - Mint, Ubuntu, GNOME, KDE, and Cinnamon are wired through Linux backend modules
 - `xrandr` is used to detect connected displays
-- `xwallpaper` is used to assign one wallpaper per display
+- `xwallpaper` is **required** — install it with your package manager:
+  ```bash
+  sudo apt-get install xwallpaper   # Debian/Ubuntu/Mint
+  ```
 
 ### macOS
 

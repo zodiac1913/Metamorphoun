@@ -148,6 +148,47 @@ func UpdateQuote(caller string) error {
 	if sourceExt == "" {
 		sourceExt = ".png"
 	}
+
+	// Per-screen: each screen gets its own random pic + random quote (fully independent)
+	if runtime.GOOS == "linux" && config.ConfigInstance.DifferentWallpaperPerScreen && screenshot.NumActiveDisplays() > 1 && SetPerScreenWallpapers != nil {
+		numDisplays := screenshot.NumActiveDisplays()
+		wallpaperPaths := make([]string, 0, numDisplays)
+
+		// Screen 0 uses the image we already built above (random pic + quote already applied)
+		firstPath := filepath.Join(wallpaperMain, fmt.Sprintf("linux-screen-0-q%s", sourceExt))
+		saveImageForDisplay(img, firstPath, 0)
+		wallpaperPaths = append(wallpaperPaths, firstPath)
+
+		// Each additional screen gets a completely independent random pic + quote
+		for displayIndex := 1; displayIndex < numDisplays; displayIndex++ {
+			nextPic, nextImg, nextExt, genErr := generateRandomWallpaperAsset(config.PicHistory{})
+			if genErr != nil || nextImg == nil {
+				fmt.Printf("Display %d: independent generation failed, reusing first: %v\n", displayIndex, genErr)
+				wallpaperPaths = append(wallpaperPaths, firstPath)
+				continue
+			}
+			_ = nextPic
+			nextPath := filepath.Join(wallpaperMain, fmt.Sprintf("linux-screen-%d-q%s", displayIndex, nextExt))
+			saveImageForDisplay(nextImg, nextPath, displayIndex)
+			wallpaperPaths = append(wallpaperPaths, nextPath)
+		}
+
+		currentPic.SaveName = firstPath
+		config.ConfigInstance.PicHistories[0] = currentPic
+		if config.ConfigInstance.PicUpdateCalled {
+			return nil
+		}
+		perScreenErr := SetPerScreenWallpapers(wallpaperPaths)
+		if perScreenErr != nil {
+			fmt.Println("UpdateQuote: per-screen wallpaper failed, falling back to single:", perScreenErr)
+		} else {
+			fmt.Println("UpdateQuote: per-screen wallpapers set successfully!")
+			BeepLowShort()
+			return nil
+		}
+	}
+
+	// Fallback: single wallpaper for all screens
 	currentPic.SaveName = filepath.Join(wallpaperMain, "pic0"+sourceExt)
 	config.ConfigInstance.PicHistories[0] = currentPic
 	fileLoc := currentPic.SaveName
@@ -164,11 +205,9 @@ func UpdateQuote(caller string) error {
 		return nil
 	}
 	saveImg(img, fileLoc)
-	//_ = imgType
 
 	// Set the wallpaper
 	fmt.Println("Attempting to set wallpaper from path:", fileLoc)
-	//fmt.Println("Caller:", caller)
 	if config.ConfigInstance.PicUpdateCalled {
 		return nil
 	}

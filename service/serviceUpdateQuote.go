@@ -30,6 +30,9 @@ func UpdateQuote(caller string) error {
 	if config.ConfigInstance.PicUpdateCalled {
 		return nil
 	}
+	if runtime.GOOS == "darwin" && config.ConfigInstance.DifferentWallpaperPerScreen && screenshot.NumActiveDisplays() > 1 {
+		return updateDarwinPerScreenQuotes()
+	}
 	currentPic := config.ConfigInstance.PicHistories[0]
 	var err error
 	wallpaperMain := GetFolderPath(enum.PathLoc.Config)
@@ -219,6 +222,171 @@ func UpdateQuote(caller string) error {
 	}
 	BeepLowShort()
 	return nil
+}
+
+func updateDarwinPerScreenQuotes() error {
+	numDisplays := screenshot.NumActiveDisplays()
+	perScreenPics := config.ConfigInstance.DarwinPerScreenPicHistories
+	if len(perScreenPics) < numDisplays {
+		return BackgroundGenerate("UpdateQuotePerScreenDarwin", config.PicHistory{})
+	}
+
+	wallpaperMain := GetFolderPath(enum.PathLoc.Config)
+	wallpaperPaths := make([]string, 0, numDisplays)
+	updatedPics := make([]config.PicHistory, 0, numDisplays)
+	usedQuotes := make(map[string]struct{}, numDisplays)
+
+	for displayIndex := 0; displayIndex < numDisplays; displayIndex++ {
+		currentPic := perScreenPics[displayIndex]
+		currentPic, img, sourceExt, err := buildDistinctDarwinQuoteImage(currentPic, wallpaperMain, usedQuotes)
+		if err != nil {
+			return err
+		}
+
+		fileLoc := currentPic.SaveName
+		if fileLoc == "" {
+			fileLoc = darwinWallpaperPath(wallpaperMain, displayIndex, sourceExt)
+		}
+		if _, err := os.Stat(fileLoc); err == nil {
+			_ = os.Remove(fileLoc)
+		}
+		if err := saveImageForDisplay(img, fileLoc, displayIndex); err != nil {
+			return err
+		}
+
+		currentPic.SaveName = fileLoc
+		wallpaperPaths = append(wallpaperPaths, fileLoc)
+		updatedPics = append(updatedPics, currentPic)
+		if !config.ConfigInstance.MBCMode && config.ConfigInstance.ShowTextOverlay && currentPic.QuoteStatement != "" {
+			usedQuotes[currentPic.QuoteStatement] = struct{}{}
+		}
+	}
+
+	config.ConfigInstance.DarwinPerScreenPicHistories = updatedPics
+	if len(config.ConfigInstance.PicHistories) == 0 {
+		config.ConfigInstance.PicHistories = append(config.ConfigInstance.PicHistories, updatedPics[0])
+	} else {
+		config.ConfigInstance.PicHistories[0] = updatedPics[0]
+	}
+	if err := config.SaveConfig(config.ConfigInstance); err != nil {
+		return err
+	}
+
+	if err := setDarwinWallpapers(wallpaperPaths); err != nil {
+		return err
+	}
+	BeepLowShort()
+	return nil
+}
+
+func buildDistinctDarwinQuoteImage(currentPic config.PicHistory, wallpaperMain string, usedQuotes map[string]struct{}) (config.PicHistory, image.Image, string, error) {
+	const maxAttempts = 8
+
+	if config.ConfigInstance.MBCMode || !config.ConfigInstance.ShowTextOverlay {
+		return buildUpdatedQuoteImage(currentPic, wallpaperMain)
+	}
+
+	var fallbackPic config.PicHistory
+	var fallbackImg image.Image
+	var fallbackExt string
+	var fallbackReady bool
+	var lastErr error
+
+	for attempt := 0; attempt < maxAttempts; attempt++ {
+		candidatePic, candidateImg, candidateExt, err := buildUpdatedQuoteImage(currentPic, wallpaperMain)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+		if candidatePic.QuoteStatement == "" {
+			return candidatePic, candidateImg, candidateExt, nil
+		}
+		if _, exists := usedQuotes[candidatePic.QuoteStatement]; !exists {
+			return candidatePic, candidateImg, candidateExt, nil
+		}
+		if !fallbackReady {
+			fallbackPic = candidatePic
+			fallbackImg = candidateImg
+			fallbackExt = candidateExt
+			fallbackReady = true
+		}
+	}
+
+	if fallbackReady {
+		return fallbackPic, fallbackImg, fallbackExt, nil
+	}
+	if lastErr != nil {
+		return currentPic, nil, "", lastErr
+	}
+	return buildUpdatedQuoteImage(currentPic, wallpaperMain)
+}
+
+func buildUpdatedQuoteImage(currentPic config.PicHistory, wallpaperMain string) (config.PicHistory, image.Image, string, error) {
+	var err error
+	var img image.Image
+	if currentPic.OriginName == "" {
+		return currentPic, nil, "", fmt.Errorf("pic history is empty")
+	}
+
+	if currentPic.ImageItem.Name == "PicSum" {
+		picSumCachePath := filepath.Join(wallpaperMain, "picsumPureCache.png")
+		img, err = zutil.LoadImg(picSumCachePath)
+		if err != nil {
+			return currentPic, nil, "", fmt.Errorf("error loading PicSum cache image: %w", err)
+		}
+	} else {
+		img, err = backgroundSetSource(currentPic)
+		if err != nil {
+			return currentPic, nil, "", err
+		}
+	}
+	if img == nil {
+		return currentPic, nil, "", fmt.Errorf("image is empty after loading source")
+	}
+
+	img, currentPic = handleScaling(img, currentPic, currentPic.Sizing, err)
+	if img == nil {
+		return currentPic, nil, "", fmt.Errorf("image is empty after scaling")
+	}
+
+	specialCaseType := "General"
+	if currentPic.ImageItem.Name == "Favorites" && config.ConfigInstance.ShowTextOverlay {
+		if strings.Contains(currentPic.OriginName, "WithQuotes") {
+			specialCaseType = "WithQuotes"
+		} else {
+			specialCaseType = "WithoutQuotes"
+		}
+	}
+
+	if specialCaseType != "WithQuotes" {
+		img, err = filterCurrentPic(currentPic, img)
+		if err != nil {
+			return currentPic, nil, "", err
+		}
+		if img == nil {
+			return currentPic, nil, "", fmt.Errorf("image is empty after filtering")
+		}
+	}
+
+	if config.ConfigInstance.ShowTextOverlay && specialCaseType != "WithQuotes" {
+		currentPic, img, err = SetRandomQuote(currentPic, img)
+		if err != nil {
+			return currentPic, nil, "", err
+		}
+		if img == nil {
+			return currentPic, nil, "", fmt.Errorf("image is empty after applying quote")
+		}
+	}
+
+	sourceExt := filepath.Ext(currentPic.OriginName)
+	if sourceExt == "" {
+		sourceExt = ".png"
+	}
+	if len(sourceExt) > 5 {
+		sourceExt = UnUnsplash(currentPic.OriginName)
+	}
+
+	return currentPic, img, sourceExt, nil
 }
 
 func BeepLowShort() {

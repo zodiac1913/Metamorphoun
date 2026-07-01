@@ -1,23 +1,23 @@
 {
   "format": 1,
   "restore": {
-    "D:\\Users\\Dominic\\Desktop\\Dev\\Metamorphoun\\WallpaperHelper\\WallpaperHelper.csproj": {}
+    "C:\\Users\\RXJR\\Desktop\\Dev\\Metamorphoun\\WallpaperHelper\\WallpaperHelper.csproj": {}
   },
   "projects": {
-    "D:\\Users\\Dominic\\Desktop\\Dev\\Metamorphoun\\WallpaperHelper\\WallpaperHelper.csproj": {
+    "C:\\Users\\RXJR\\Desktop\\Dev\\Metamorphoun\\WallpaperHelper\\WallpaperHelper.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\Users\\Dominic\\Desktop\\Dev\\Metamorphoun\\WallpaperHelper\\WallpaperHelper.csproj",
+        "projectUniqueName": "C:\\Users\\RXJR\\Desktop\\Dev\\Metamorphoun\\WallpaperHelper\\WallpaperHelper.csproj",
         "projectName": "WallpaperHelper",
-        "projectPath": "D:\\Users\\Dominic\\Desktop\\Dev\\Metamorphoun\\WallpaperHelper\\WallpaperHelper.csproj",
-        "packagesPath": "C:\\Users\\Dominic\\.nuget\\packages\\",
-        "outputPath": "D:\\Users\\Dominic\\Desktop\\Dev\\Metamorphoun\\WallpaperHelper\\obj\\",
+        "projectPath": "C:\\Users\\RXJR\\Desktop\\Dev\\Metamorphoun\\WallpaperHelper\\WallpaperHelper.csproj",
+        "packagesPath": "C:\\Users\\RXJR\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\RXJR\\Desktop\\Dev\\Metamorphoun\\WallpaperHelper\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\Dominic\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\RXJR\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -52,14 +52,6 @@
         "net10.0": {
           "framework": "net10.0",
           "targetAlias": "net10.0",
-          "dependencies": {
-            "Microsoft.NET.ILLink.Tasks": {
-              "suppressParent": "All",
-              "target": "Package",
-              "version": "[10.0.8, )",
-              "autoReferenced": true
-            }
-          },
           "imports": [
             "net461",
             "net462",
@@ -71,20 +63,6 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
-          "downloadDependencies": [
-            {
-              "name": "Microsoft.AspNetCore.App.Runtime.win-x64",
-              "version": "[10.0.8, 10.0.8]"
-            },
-            {
-              "name": "Microsoft.NETCore.App.Runtime.win-x64",
-              "version": "[10.0.8, 10.0.8]"
-            },
-            {
-              "name": "Microsoft.WindowsDesktop.App.Runtime.win-x64",
-              "version": "[10.0.8, 10.0.8]"
-            }
-          ],
           "frameworkReferences": {
             "Microsoft.NETCore.App": {
               "privateAssets": "all"
@@ -365,11 +343,6 @@
             "System.Xml.XPath": "(,4.3.32767]",
             "System.Xml.XPath.XDocument": "(,5.0.32767]"
           }
-        }
-      },
-      "runtimes": {
-        "win-x64": {
-          "#import": []
         }
       }
     }

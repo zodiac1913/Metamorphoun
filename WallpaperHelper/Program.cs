@@ -33,8 +33,8 @@ struct RECT { public int Left, Top, Right, Bottom; }
 
 class Program {
     static int Main(string[] args) {
-        if (args.Length < 2) {
-            Console.Error.WriteLine("Usage: WallpaperHelper.exe <path1> <path2> [path3...]");
+        if (args.Length < 1) {
+            Console.Error.WriteLine("Usage: WallpaperHelper.exe <path1> [path2 ...]");
             return 1;
         }
 
@@ -42,11 +42,25 @@ class Program {
             var wallpaper = (IDesktopWallpaper)new DesktopWallpaperClass();
             uint count = wallpaper.GetMonitorDevicePathCount();
 
+            if (count == 0) {
+                Console.Error.WriteLine("No monitors were reported by IDesktopWallpaper.");
+                return 1;
+            }
+
+            if (args.Length < count) {
+                Console.Error.WriteLine($"Not enough wallpaper paths for monitors. Monitors={count}, Paths={args.Length}");
+                return 1;
+            }
+
+            if (args.Length > count) {
+                Console.WriteLine($"Warning: received extra wallpaper paths. Monitors={count}, Paths={args.Length}. Extra paths will be ignored.");
+            }
+
             for (uint i = 0; i < count; i++) {
                 string monitorID = wallpaper.GetMonitorDevicePathAt(i);
-                int pathIndex = (int)Math.Min(i, (uint)(args.Length - 1));
-                wallpaper.SetWallpaper(monitorID, args[pathIndex]);
-                Console.WriteLine($"Monitor {i}: {args[pathIndex]}");
+                string path = args[i];
+                wallpaper.SetWallpaper(monitorID, path);
+                Console.WriteLine($"Monitor {i} [{monitorID}]: {path}");
             }
             return 0;
         } catch (Exception ex) {

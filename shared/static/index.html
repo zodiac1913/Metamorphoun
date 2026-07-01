@@ -431,6 +431,38 @@
 <script type="module">
 	import comms from './scripts/comms.js'; 
 	import boom from './scripts/dynamite.js'; 
+	const ACTIVE_TAB_STORAGE_KEY = "metamorphoun.activeTab";
+	const RETURN_PAGE_STORAGE_KEY = "metamorphoun.returnPage";
+
+	function getTabInputs() {
+		return Array.from(document.querySelectorAll('input[name="tabs"][id^="tab-"]'));
+	}
+
+	function restoreActiveTab() {
+		let savedTabId = localStorage.getItem(ACTIVE_TAB_STORAGE_KEY);
+		if (!savedTabId) return;
+
+		let savedTab = document.getElementById(savedTabId);
+		if (!savedTab || savedTab.name !== "tabs") return;
+
+		savedTab.checked = true;
+	}
+
+	function wireTabPersistence() {
+		for (let tabInput of getTabInputs()) {
+			tabInput.addEventListener("change", () => {
+				if (tabInput.checked) {
+					localStorage.setItem(ACTIVE_TAB_STORAGE_KEY, tabInput.id);
+					localStorage.setItem(RETURN_PAGE_STORAGE_KEY, "index.html");
+				}
+			});
+		}
+	}
+
+	restoreActiveTab();
+	wireTabPersistence();
+	localStorage.setItem(RETURN_PAGE_STORAGE_KEY, "index.html");
+
 	window.comms=new comms({server: window.location.origin});
 	window.tnt=new boom();
 	document.addEventListener("DOMContentLoaded",async ()=>{

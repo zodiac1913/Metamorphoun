@@ -15,6 +15,10 @@
 <body class="bg-dark">
 	<div id="app" class="">
 
+    <div class="container-fluid mt-2 mb-2">
+        <button id="returnToSettings" type="button" class="btn btn-sm btn-secondary">Return to Settings</button>
+    </div>
+
         <div class="card purpleGradient">
             <div class="card-header bg-DarkMagenta text-Gold">
                 <h5 class="card-title">Current Background Info</h5>
@@ -31,9 +35,25 @@
 <script type="module">
 	import comms from './scripts/comms.js'; 
 	import boom from './scripts/dynamite.js'; 
-    import {jsonToHtml,startsWith} from './scripts/cc/ccUtilities.js'
+    import {jsonToHtml} from './scripts/cc/ccUtilities.js'
+	const RETURN_PAGE_STORAGE_KEY = "metamorphoun.returnPage";
 	window.comms=new comms({server: "http://localhost:3000"});
 	window.tnt=new boom();
+
+    function goBackToSettings() {
+        let returnPage = localStorage.getItem(RETURN_PAGE_STORAGE_KEY) || "index.html";
+        window.location.href = returnPage;
+    }
+
+    document.getElementById("returnToSettings").addEventListener("click", goBackToSettings);
+
+    try {
+        if (!localStorage.getItem(RETURN_PAGE_STORAGE_KEY)) {
+            localStorage.setItem(RETURN_PAGE_STORAGE_KEY, "index.html");
+        }
+    } catch (err) {
+        console.warn("Unable to initialize return context", err);
+    }
 
     document.addEventListener("DOMContentLoaded", async ()=> {
         let config=await window.comms.getConfig();

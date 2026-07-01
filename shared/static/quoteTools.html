@@ -14,6 +14,9 @@
 	<!-- <script lang="javascript" type="module" href="/scripts/comms.js"></script> -->
 </head>
 <body class="bg-BlanchedAlmond">
+    <div class="container-fluid mt-2">
+        <button id="returnToSettings" type="button" class="btn btn-sm btn-secondary">Return to Settings</button>
+    </div>
     <div class="container-fluid border-Navy border-2 shadow-lg p-3 mb-5 rounded">
         <div class="row border-1 border-DarkMagenta shadow shadow-DarkMagenta rounded">
             <div class="accordion mt-3" id="fileFormatAccordion">
@@ -102,6 +105,28 @@
 		
     </div>
     <script>
+    const RETURN_PAGE_STORAGE_KEY = "metamorphoun.returnPage";
+    const ACTIVE_TAB_STORAGE_KEY = "metamorphoun.activeTab";
+
+    function goBackToSettings() {
+        let returnPage = localStorage.getItem(RETURN_PAGE_STORAGE_KEY) || "index.html";
+        window.location.href = returnPage;
+    }
+
+    document.getElementById("returnToSettings").addEventListener("click", goBackToSettings);
+
+    try {
+        if (!localStorage.getItem(RETURN_PAGE_STORAGE_KEY)) {
+            localStorage.setItem(RETURN_PAGE_STORAGE_KEY, "index.html");
+        }
+        // Do not overwrite active tab here, just confirm key exists for restore behavior.
+        if (!localStorage.getItem(ACTIVE_TAB_STORAGE_KEY)) {
+            localStorage.setItem(ACTIVE_TAB_STORAGE_KEY, "tab-1");
+        }
+    } catch (err) {
+        console.warn("Unable to initialize return context", err);
+    }
+
 var fileyInput = document.getElementById("fileInput");
 fileyInput.addEventListener("change", function() {
     var fileName = fileyInput.value.split('\\').pop(); // Get the file name from the full path

@@ -34,11 +34,28 @@ struct RECT { public int Left, Top, Right, Bottom; }
 class Program {
     static int Main(string[] args) {
         if (args.Length < 1) {
-            Console.Error.WriteLine("Usage: WallpaperHelper.exe <path1> [path2 ...]");
+            Console.Error.WriteLine("Usage: WallpaperHelper.exe [--monitor-count=N] <path1> [path2 ...]");
             return 1;
         }
 
         try {
+            int requestedMonitorCount = -1;
+            int pathStart = 0;
+            if (args[0].StartsWith("--monitor-count=", StringComparison.OrdinalIgnoreCase)) {
+                string rawCount = args[0].Substring("--monitor-count=".Length);
+                if (!int.TryParse(rawCount, out requestedMonitorCount) || requestedMonitorCount < 1) {
+                    Console.Error.WriteLine($"Invalid monitor count argument: {args[0]}");
+                    return 1;
+                }
+                pathStart = 1;
+            }
+
+            int pathCount = args.Length - pathStart;
+            if (pathCount < 1) {
+                Console.Error.WriteLine("No wallpaper paths provided.");
+                return 1;
+            }
+
             var wallpaper = (IDesktopWallpaper)new DesktopWallpaperClass();
             uint count = wallpaper.GetMonitorDevicePathCount();
 
@@ -47,18 +64,23 @@ class Program {
                 return 1;
             }
 
-            if (args.Length < count) {
-                Console.Error.WriteLine($"Not enough wallpaper paths for monitors. Monitors={count}, Paths={args.Length}");
+            int effectiveMonitorCount = (int)count;
+            if (requestedMonitorCount > 0 && requestedMonitorCount < effectiveMonitorCount) {
+                effectiveMonitorCount = requestedMonitorCount;
+            }
+
+            if (pathCount < effectiveMonitorCount) {
+                Console.Error.WriteLine($"Not enough wallpaper paths for target monitors. TargetMonitors={effectiveMonitorCount}, Paths={pathCount}");
                 return 1;
             }
 
-            if (args.Length > count) {
-                Console.WriteLine($"Warning: received extra wallpaper paths. Monitors={count}, Paths={args.Length}. Extra paths will be ignored.");
+            if (pathCount > effectiveMonitorCount) {
+                Console.WriteLine($"Warning: received extra wallpaper paths. TargetMonitors={effectiveMonitorCount}, Paths={pathCount}. Extra paths will be ignored.");
             }
 
-            for (uint i = 0; i < count; i++) {
-                string monitorID = wallpaper.GetMonitorDevicePathAt(i);
-                string path = args[i];
+            for (int i = 0; i < effectiveMonitorCount; i++) {
+                string monitorID = wallpaper.GetMonitorDevicePathAt((uint)i);
+                string path = args[pathStart + i];
                 wallpaper.SetWallpaper(monitorID, path);
                 Console.WriteLine($"Monitor {i} [{monitorID}]: {path}");
             }

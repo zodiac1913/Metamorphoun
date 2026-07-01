@@ -87,15 +87,19 @@ func BackgroundGenerate(caller string, currentPic config.PicHistory) error {
 				return nil
 			}
 		}
-		if runtime.GOOS == "windows" && config.ConfigInstance.DifferentWallpaperPerScreen && screenshot.NumActiveDisplays() > 1 && SetPerScreenWallpapers != nil {
+		if runtime.GOOS == "windows" && config.ConfigInstance.DifferentWallpaperPerScreen {
+			if SetPerScreenWallpapers == nil {
+				config.ConfigInstance.PicUpdateCalled = false
+				return fmt.Errorf("Windows per-screen mode enabled but backend is not registered")
+			}
 			err = saveWindowsWallpapersForAllScreens(wallpaperMain, currentPic, img, sourceExt)
 			if err != nil {
-				fmt.Println("Failed to set individual Windows wallpapers:", err)
-			} else {
 				config.ConfigInstance.PicUpdateCalled = false
-				config.ConfigInstance.BackgroundChangeAttempt = 0
-				return nil
+				return fmt.Errorf("failed to set individual Windows wallpapers: %w", err)
 			}
+			config.ConfigInstance.PicUpdateCalled = false
+			config.ConfigInstance.BackgroundChangeAttempt = 0
+			return nil
 		}
 
 		if runtime.GOOS == "darwin" {
@@ -404,7 +408,9 @@ func saveLinuxWallpapersForAllScreens(wallpaperMain string, currentPic config.Pi
 func saveWindowsWallpapersForAllScreens(wallpaperMain string, currentPic config.PicHistory, img image.Image, sourceExt string) error {
 	numDisplays := screenshot.NumActiveDisplays()
 	if numDisplays < 2 {
-		return fmt.Errorf("individual wallpapers requested without multiple displays")
+		// If screenshot monitor detection is wrong, still generate multiple candidates.
+		// WallpaperHelper will apply only what it needs for actual monitor count.
+		numDisplays = 8
 	}
 	if SetPerScreenWallpapers == nil {
 		return fmt.Errorf("no Windows per-screen wallpaper backend registered")
@@ -469,6 +475,11 @@ func windowsWallpaperPath(wallpaperMain string, displayIndex int, sourceExt stri
 func saveImageForDisplay(img image.Image, filePath string, displayIndex int) error {
 	if img == nil {
 		return fmt.Errorf("cannot save empty image for display %d", displayIndex)
+	}
+
+	if displayIndex < 0 || displayIndex >= screenshot.NumActiveDisplays() {
+		saveImg(img, filePath)
+		return nil
 	}
 
 	bounds := screenshot.GetDisplayBounds(displayIndex)
@@ -820,7 +831,6 @@ func picTypeAndFilter(currentPic config.PicHistory, img image.Image, filterChoic
 // }
 
 func GetQuote(currentPic config.PicHistory) (config.PicHistory, error) {
-	fmt.Println("GetQuote called")
 	config.GetConfig()
 	cfg := config.GetConfig()
 	usr, err := user.Current()
@@ -898,32 +908,32 @@ func GetQuote(currentPic config.PicHistory) (config.PicHistory, error) {
 	var quotes []Quote
 	err = json.Unmarshal(quotesRaw, &quotes)
 	if err != nil {
-		fmt.Println("failed to unmarshal config: %w", err)
+		fmt.Println("failed to unmarshal quotes:", err)
+		return currentPic, err
 	}
 
-	fmt.Println("Quote List:", qLibrary.Name, "Quotes Count", err)
-	// Get a random index within the range of quotes.
 	if len(quotes) == 0 {
-		fmt.Println("No quotes found.")
+		return currentPic, fmt.Errorf("no quotes found in %s", qLibrary.Location)
 	}
-	// Set random quote
-	fmt.Println("--------------------LOG---------------------")
-	fmt.Println("Quote:", quotes)
+
+	fmt.Printf("Quote source: %s | available: %d\n", qLibrary.Name, len(quotes))
 	quote := quotes[rand.Intn(len(quotes))]
 	config.UpdateConfigField("currentQuoteStatement", quote.Statement)
 	config.UpdateConfigField("currentQuoteAuthor", quote.Author)
 	currentPic.QuoteStatement = quote.Statement
 	currentPic.QuoteAuthor = quote.Author
 
-	fmt.Println("Quote:", quote.Statement)
-	fmt.Println("Author:", quote.Author)
+	trimmed := quote.Statement
+	if len(trimmed) > 200 {
+		trimmed = trimmed[:197] + "..."
+	}
+	fmt.Printf("Selected quote: %s | author: %s\n", trimmed, quote.Author)
 
 	lEntry := morphLog.LogItem{TimeStamp: time.Now().Format("20060102 15:04:05"),
 		Message: "Selected Quote", Level: "INFO", Library: "quotes.go SetQuote()",
-		Operation: "Setting Quote", Origin: qLibrary.Location, LocalFile: quote.Statement,
+		Operation: "Setting Quote", Origin: qLibrary.Location, LocalFile: trimmed,
 	}
 	morphLog.UpdateLogs(lEntry)
-	fmt.Println("new quote log entry:", lEntry)
 
 	return currentPic, nil
 }

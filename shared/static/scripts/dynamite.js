@@ -53,6 +53,15 @@ export default class dynamite{
 
         quoteToolsButton.addEventListener("click",async (e)=>{ 
             let url = "quoteTools.html";
+            try {
+                let activeTab = document.querySelector('input[name="tabs"]:checked');
+                if (activeTab && activeTab.id) {
+                    localStorage.setItem("metamorphoun.activeTab", activeTab.id);
+                }
+                localStorage.setItem("metamorphoun.returnPage", "index.html");
+            } catch (err) {
+                console.warn("Unable to store return context", err);
+            }
             window.open(url);
         });
         //wired

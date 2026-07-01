@@ -71,16 +71,19 @@ func setWindowsPerScreenWallpapersImpl(wallpaperPaths []string) error {
 		return fmt.Errorf("no wallpaper paths provided")
 	}
 
-	exePath, err := os.Executable()
+	helper, err := findWallpaperHelperPath()
 	if err != nil {
-		return fmt.Errorf("failed to get executable path: %w", err)
-	}
-	helper := filepath.Join(filepath.Dir(exePath), "WallpaperHelper.exe")
-	if _, err := os.Stat(helper); os.IsNotExist(err) {
-		return fmt.Errorf("WallpaperHelper.exe not found at %s", helper)
+		return err
 	}
 
-	args := append([]string{}, wallpaperPaths...)
+	monitorCount := len(service.GetScreenInfo())
+	if monitorCount < 1 {
+		monitorCount = len(wallpaperPaths)
+	}
+
+	args := make([]string, 0, len(wallpaperPaths)+1)
+	args = append(args, fmt.Sprintf("--monitor-count=%d", monitorCount))
+	args = append(args, wallpaperPaths...)
 	cmd := exec.Command(helper, args...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -88,6 +91,51 @@ func setWindowsPerScreenWallpapersImpl(wallpaperPaths []string) error {
 	}
 	fmt.Println("WallpaperHelper output:", string(output))
 	return nil
+}
+
+func findWallpaperHelperPath() (string, error) {
+	candidates := make([]string, 0, 10)
+
+	if override := strings.TrimSpace(os.Getenv("METAMORPHOUN_HELPER_PATH")); override != "" {
+		candidates = append(candidates, override)
+	}
+
+	if exePath, err := os.Executable(); err == nil {
+		exeDir := filepath.Dir(exePath)
+		candidates = append(candidates,
+			filepath.Join(exeDir, "WallpaperHelper", "bin", "Debug", "net10.0", "WallpaperHelper.exe"),
+			filepath.Join(exeDir, "WallpaperHelper", "publish", "WallpaperHelper.exe"),
+			filepath.Join(exeDir, "WallpaperHelper.exe"),
+		)
+	}
+
+	if wd, err := os.Getwd(); err == nil {
+		candidates = append(candidates,
+			filepath.Join(wd, "WallpaperHelper", "bin", "Debug", "net10.0", "WallpaperHelper.exe"),
+			filepath.Join(wd, "WallpaperHelper", "publish", "WallpaperHelper.exe"),
+			filepath.Join(wd, "WallpaperHelper", "publish2", "WallpaperHelper.exe"),
+			filepath.Join(wd, "WallpaperHelper.exe"),
+		)
+	}
+
+	seen := make(map[string]struct{}, len(candidates))
+	for _, candidate := range candidates {
+		if candidate == "" {
+			continue
+		}
+		if _, exists := seen[candidate]; exists {
+			continue
+		}
+		seen[candidate] = struct{}{}
+
+		info, err := os.Stat(candidate)
+		if err == nil && !info.IsDir() {
+			fmt.Println("Using WallpaperHelper at:", candidate)
+			return candidate, nil
+		}
+	}
+
+	return "", fmt.Errorf("WallpaperHelper.exe not found; checked: %s", strings.Join(candidates, ", "))
 }
 
 func PrintPlatformMessage() {
@@ -252,8 +300,11 @@ func SetRandomQuote(currentPic config.PicHistory, img image.Image) (config.PicHi
 			return currentPic, img, err
 		}
 	}
-	fmt.Println("Quote:", currentPic.QuoteStatement)
-	fmt.Println("Author:", currentPic.QuoteAuthor)
+	quotePreview := currentPic.QuoteStatement
+	if len(quotePreview) > 200 {
+		quotePreview = quotePreview[:197] + "..."
+	}
+	fmt.Printf("Quote selected: %s | author: %s\n", quotePreview, currentPic.QuoteAuthor)
 
 	// Create a new context with the image dimensions
 	dc := gg.NewContextForImage(img)

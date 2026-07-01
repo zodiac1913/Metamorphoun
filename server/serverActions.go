@@ -55,7 +55,11 @@ func nextBackgroundApi(w http.ResponseWriter, r *http.Request) {
 	// Set Content-Type header
 	w.Header().Set("Content-Type", "application/json")
 	config.ConfigInstance.BackgroundChangeAttempt = 0
-	service.BackgroundGenerate("WebServerNext", config.PicHistory{})
+	if err := service.BackgroundGenerate("WebServerNext", config.PicHistory{}); err != nil {
+		fmt.Println("WebServerNext failed:", err)
+		http.Error(w, fmt.Sprintf("Background change failed: %v", err), http.StatusInternalServerError)
+		return
+	}
 	// Write JSON data to response
 	_, err = w.Write(jsonData)
 	if err != nil {

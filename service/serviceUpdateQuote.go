@@ -156,19 +156,21 @@ func UpdateQuote(caller string) error {
 	if runtime.GOOS == "linux" && config.ConfigInstance.DifferentWallpaperPerScreen && screenshot.NumActiveDisplays() > 1 && SetPerScreenWallpapers != nil {
 		numDisplays := screenshot.NumActiveDisplays()
 		wallpaperPaths := make([]string, 0, numDisplays)
+		seenFingerprints := make(map[string]struct{}, numDisplays)
 
 		// Screen 0 uses the image we already built above (random pic + quote already applied)
 		firstPath := filepath.Join(wallpaperMain, fmt.Sprintf("linux-screen-0-q%s", sourceExt))
 		saveImageForDisplay(img, firstPath, 0)
 		wallpaperPaths = append(wallpaperPaths, firstPath)
+		if fp, fpErr := wallpaperAssetFingerprint(currentPic, img); fpErr == nil {
+			seenFingerprints[fp] = struct{}{}
+		}
 
 		// Each additional screen gets a completely independent random pic + quote
 		for displayIndex := 1; displayIndex < numDisplays; displayIndex++ {
-			nextPic, nextImg, nextExt, genErr := generateRandomWallpaperAsset(config.PicHistory{})
+			nextPic, nextImg, nextExt, genErr := generateDistinctWallpaperAsset(seenFingerprints, 12)
 			if genErr != nil || nextImg == nil {
-				fmt.Printf("Display %d: independent generation failed, reusing first: %v\n", displayIndex, genErr)
-				wallpaperPaths = append(wallpaperPaths, firstPath)
-				continue
+				return fmt.Errorf("display %d: independent generation failed: %w", displayIndex, genErr)
 			}
 			_ = nextPic
 			nextPath := filepath.Join(wallpaperMain, fmt.Sprintf("linux-screen-%d-q%s", displayIndex, nextExt))
@@ -184,6 +186,50 @@ func UpdateQuote(caller string) error {
 		perScreenErr := SetPerScreenWallpapers(wallpaperPaths)
 		if perScreenErr != nil {
 			fmt.Println("UpdateQuote: per-screen wallpaper failed, falling back to single:", perScreenErr)
+		} else {
+			fmt.Println("UpdateQuote: per-screen wallpapers set successfully!")
+			BeepLowShort()
+			return nil
+		}
+	}
+
+	if runtime.GOOS == "windows" && config.ConfigInstance.DifferentWallpaperPerScreen {
+		if SetPerScreenWallpapers == nil {
+			return fmt.Errorf("UpdateQuote: Windows per-screen mode enabled but backend is not registered")
+		}
+		numDisplays := screenshot.NumActiveDisplays()
+		if numDisplays < 2 {
+			numDisplays = 8
+		}
+		wallpaperPaths := make([]string, 0, numDisplays)
+		seenFingerprints := make(map[string]struct{}, numDisplays)
+
+		firstPath := windowsWallpaperPath(wallpaperMain, 0, sourceExt)
+		saveImageForDisplay(img, firstPath, 0)
+		wallpaperPaths = append(wallpaperPaths, firstPath)
+		if fp, fpErr := wallpaperAssetFingerprint(currentPic, img); fpErr == nil {
+			seenFingerprints[fp] = struct{}{}
+		}
+
+		for displayIndex := 1; displayIndex < numDisplays; displayIndex++ {
+			nextPic, nextImg, nextExt, genErr := generateDistinctWallpaperAsset(seenFingerprints, 12)
+			if genErr != nil || nextImg == nil {
+				return fmt.Errorf("display %d: independent generation failed: %w", displayIndex, genErr)
+			}
+			_ = nextPic
+			nextPath := windowsWallpaperPath(wallpaperMain, displayIndex, nextExt)
+			saveImageForDisplay(nextImg, nextPath, displayIndex)
+			wallpaperPaths = append(wallpaperPaths, nextPath)
+		}
+
+		currentPic.SaveName = firstPath
+		config.ConfigInstance.PicHistories[0] = currentPic
+		if config.ConfigInstance.PicUpdateCalled {
+			return nil
+		}
+		perScreenErr := SetPerScreenWallpapers(wallpaperPaths)
+		if perScreenErr != nil {
+			return fmt.Errorf("UpdateQuote: per-screen wallpaper failed: %w", perScreenErr)
 		} else {
 			fmt.Println("UpdateQuote: per-screen wallpapers set successfully!")
 			BeepLowShort()
@@ -414,7 +460,6 @@ func BeepHighTwice() {
 func GetScreenInfo() []screenInfo {
 	var screenInfoRange []screenInfo
 	displayCount := screenshot.NumActiveDisplays()
-	fmt.Printf("Number of displays: %d\n", displayCount)
 	for i := 0; i < displayCount; i++ {
 		// Get the bounds of the display
 		bounds := screenshot.GetDisplayBounds(i)
@@ -425,7 +470,6 @@ func GetScreenInfo() []screenInfo {
 		screen.Width = width
 		screen.Height = height
 		screenInfoRange = append([]screenInfo{screen}, screenInfoRange...)
-		fmt.Printf("Display %d: width = %d, height = %d\n", i, width, height)
 	}
 	return screenInfoRange
 }

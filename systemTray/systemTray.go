@@ -150,7 +150,9 @@ func MakeSystemTray() {
 				service.StoreQuote("{\"statement\": \"" + cq.QuoteStatement + "\", \"author\": \"" + cq.QuoteAuthor + "\"}")
 			case <-mNextBG.ClickedCh:
 				config.ConfigInstance.BackgroundChangeAttempt++
-				service.BackgroundGenerate("SystrayNextBackground", config.PicHistory{})
+				if err := service.BackgroundGenerate("SystrayNextBackground", config.PicHistory{}); err != nil {
+					fmt.Println("SystrayNextBackground failed:", err)
+				}
 			case <-mLastBG.ClickedCh:
 				service.RecallBackground("RecallBackground", 1)
 

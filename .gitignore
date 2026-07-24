@@ -6,9 +6,6 @@
 Metamorphoun
 __debug_bin*
 
-# Keep these binaries
-!WallpaperHelper.exe
-
 # Test and debug files
 *on_exit_*.txt
 *.test

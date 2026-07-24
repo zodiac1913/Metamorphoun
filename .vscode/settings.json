@@ -14,12 +14,19 @@
         "statusBar.background": "#b22222",
         "statusBar.foreground": "#e7e7e7",
         "statusBarItem.hoverBackground": "#d73030",
-        "statusBarItem.remoteBackground": "#b22222",
+        "statusBarItem.remoteBackground": "#0a360a",
         "statusBarItem.remoteForeground": "#e7e7e7",
         "titleBar.activeBackground": "#b22222",
         "titleBar.activeForeground": "#e7e7e7",
         "titleBar.inactiveBackground": "#b2222299",
-        "titleBar.inactiveForeground": "#e7e7e799"
+        "titleBar.inactiveForeground": "#e7e7e799",
+        "activityBarTop.activeBackground": "#d73030",
+        "activityBarTop.background": "#d73030",
+        "activityBarTop.foreground": "#e7e7e7",
+        "activityBarTop.inactiveForeground": "#e7e7e799",
+        "commandCenter.foreground": "#e7e7e7",
+        "statusBar.debuggingBackground": "#b22222",
+        "statusBar.debuggingForeground": "#e7e7e7"
     },
     "peacock.color": "firebrick",
     "kiroAgent.configureMCP": "Disabled"

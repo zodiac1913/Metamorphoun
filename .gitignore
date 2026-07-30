@@ -17,7 +17,11 @@ config.json
 path_to_config_folder/
 
 # IDE and editor files
-.vscode/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
 .idea/
 *.swp
 *.swo
@@ -28,6 +32,8 @@ path_to_config_folder/
 dist/
 build/
 release/
+WallpaperHelper/obj/
+WallpaperHelper/bin/
 
 # Logs
 *.log

@@ -433,6 +433,48 @@
 	import boom from './scripts/dynamite.js'; 
 	const ACTIVE_TAB_STORAGE_KEY = "metamorphoun.activeTab";
 	const RETURN_PAGE_STORAGE_KEY = "metamorphoun.returnPage";
+	const WINDOW_HANDOFF_KEY = "metamorphoun.windowHandoff";
+	const THIS_WINDOW_ID = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+	const THIS_WINDOW_OPENED_AT = Date.now();
+
+	function closeThisWindowForNewSession() {
+		// Browsers can block window.close for tabs not script-opened; provide a safe fallback.
+		window.onbeforeunload = null;
+		window.open('', '_self');
+		window.close();
+
+		setTimeout(() => {
+			document.title = "Metamorphoun (replaced)";
+			document.body.innerHTML = "<div style='padding:24px;font-family:sans-serif'>This Metamorphoun window was replaced by a newer one.</div>";
+			window.location.replace("about:blank");
+		}, 120);
+	}
+
+	function wireSingleWindowHandoff() {
+		window.addEventListener("storage", (event) => {
+			if (event.key !== WINDOW_HANDOFF_KEY || !event.newValue) return;
+
+			try {
+				const payload = JSON.parse(event.newValue);
+				if (!payload || payload.windowId === THIS_WINDOW_ID) return;
+				if (typeof payload.openedAt !== "number") return;
+
+				if (payload.openedAt >= THIS_WINDOW_OPENED_AT) {
+					closeThisWindowForNewSession();
+				}
+			} catch (error) {
+				console.warn("Unable to process window handoff event", error);
+			}
+		});
+
+		localStorage.setItem(
+			WINDOW_HANDOFF_KEY,
+			JSON.stringify({
+				windowId: THIS_WINDOW_ID,
+				openedAt: THIS_WINDOW_OPENED_AT,
+			}),
+		);
+	}
 
 	function getTabInputs() {
 		return Array.from(document.querySelectorAll('input[name="tabs"][id^="tab-"]'));
@@ -461,6 +503,7 @@
 
 	restoreActiveTab();
 	wireTabPersistence();
+	wireSingleWindowHandoff();
 	localStorage.setItem(RETURN_PAGE_STORAGE_KEY, "index.html");
 
 	window.comms=new comms({server: window.location.origin});

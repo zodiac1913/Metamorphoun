@@ -29,5 +29,6 @@
         "statusBar.debuggingForeground": "#e7e7e7"
     },
     "peacock.color": "firebrick",
-    "kiroAgent.configureMCP": "Disabled"
+    "kiroAgent.configureMCP": "Disabled",
+    "workbench.experimental.modernUI": false,
 }

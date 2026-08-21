@@ -130,12 +130,58 @@ func findWallpaperHelperPath() (string, error) {
 
 		info, err := os.Stat(candidate)
 		if err == nil && !info.IsDir() {
+			// The .exe is just a native host — it needs the .dll next to it.
+			// If the .dll is missing, try to rebuild it.
+			dllPath := strings.TrimSuffix(candidate, filepath.Ext(candidate)) + ".dll"
+			if _, dllErr := os.Stat(dllPath); os.IsNotExist(dllErr) {
+				fmt.Println("WallpaperHelper.dll missing next to", candidate, "— attempting dotnet build...")
+				if buildErr := buildWallpaperHelper(candidate); buildErr != nil {
+					fmt.Println("dotnet build failed:", buildErr)
+					continue // skip this candidate, try the next one
+				}
+				// Verify the dll now exists after build
+				if _, dllErr = os.Stat(dllPath); os.IsNotExist(dllErr) {
+					fmt.Println("dotnet build succeeded but .dll still missing at", dllPath)
+					continue
+				}
+			}
 			fmt.Println("Using WallpaperHelper at:", candidate)
 			return candidate, nil
 		}
 	}
 
 	return "", fmt.Errorf("WallpaperHelper.exe not found; checked: %s", strings.Join(candidates, ", "))
+}
+
+// buildWallpaperHelper runs "dotnet build" in the project directory that contains the given exe path.
+func buildWallpaperHelper(exePath string) error {
+	// Walk up from the exe to find a directory containing a .csproj file
+	dir := filepath.Dir(exePath)
+	for i := 0; i < 5; i++ {
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			break
+		}
+		for _, entry := range entries {
+			if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".csproj") {
+				fmt.Println("Found .csproj in", dir, "— running dotnet build...")
+				cmd := exec.Command("dotnet", "build")
+				cmd.Dir = dir
+				output, err := cmd.CombinedOutput()
+				if err != nil {
+					return fmt.Errorf("dotnet build failed in %s: %w: %s", dir, err, strings.TrimSpace(string(output)))
+				}
+				fmt.Println("dotnet build output:", string(output))
+				return nil
+			}
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			break
+		}
+		dir = parent
+	}
+	return fmt.Errorf("no .csproj found near %s", exePath)
 }
 
 func PrintPlatformMessage() {

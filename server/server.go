@@ -12,6 +12,8 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"sync"
+	"time"
 
 	//"net/http/pprof"
 	"os"
@@ -29,6 +31,32 @@ import (
 )
 
 var GetFolderPath func(string) string
+
+// Heartbeat tracking — the frontend pings this endpoint periodically
+// so the server knows a browser tab is actively open.
+var (
+	lastHeartbeat time.Time
+	heartbeatMu   sync.Mutex
+)
+
+// HasRecentHeartbeat returns true if a browser tab has sent a heartbeat
+// within the given duration.
+func HasRecentHeartbeat(within time.Duration) bool {
+	heartbeatMu.Lock()
+	defer heartbeatMu.Unlock()
+	if lastHeartbeat.IsZero() {
+		return false
+	}
+	return time.Since(lastHeartbeat) < within
+}
+
+func heartbeatHandler(w http.ResponseWriter, r *http.Request) {
+	heartbeatMu.Lock()
+	lastHeartbeat = time.Now()
+	heartbeatMu.Unlock()
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"status":"ok"}`))
+}
 
 type PathLocType string
 
@@ -68,6 +96,7 @@ func Serve(cfg config.Config) bool { //serverUrl string, serverPort int
 	http.HandleFunc("/lastBackgroundApi", lastBackgroundApi)
 	http.HandleFunc("/nextBackgroundApi", nextBackgroundApi)
 	http.HandleFunc("/saveFavoriteApi", saveFavoriteApi)
+	http.HandleFunc("/heartbeat", heartbeatHandler)
 
 	// Register pprof handlers on the custom mux
 	// mux.HandleFunc("/debug/pprof/", pprof.Index)

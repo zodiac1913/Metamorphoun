@@ -431,6 +431,14 @@
 <script type="module">
 	import comms from './scripts/comms.js'; 
 	import boom from './scripts/dynamite.js'; 
+
+	// Heartbeat: let the server know this tab is alive
+	setInterval(() => {
+		fetch('/heartbeat', { method: 'POST' }).catch(() => {});
+	}, 5000);
+	// Send one immediately on page load
+	fetch('/heartbeat', { method: 'POST' }).catch(() => {});
+
 	const ACTIVE_TAB_STORAGE_KEY = "metamorphoun.activeTab";
 	const RETURN_PAGE_STORAGE_KEY = "metamorphoun.returnPage";
 	const WINDOW_HANDOFF_KEY = "metamorphoun.windowHandoff";

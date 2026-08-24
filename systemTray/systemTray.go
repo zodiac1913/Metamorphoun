@@ -175,7 +175,11 @@ func MakeSystemTray() {
 			// 	mEnabled.Disable()
 			case <-mUrl.ClickedCh:
 				{
-					urlSettings := "http://" + config.ConfigInstance.ServerAddress + ":" + zutil.AsString(config.ConfigInstance.ServerPort)
+					serverAddress := config.ConfigInstance.ServerAddress
+					if serverAddress == "" {
+						serverAddress = "localhost"
+					}
+					urlSettings := "http://" + serverAddress + ":" + zutil.AsString(config.ConfigInstance.ServerPort)
 					var cmd *exec.Cmd
 
 					switch runtime.GOOS {

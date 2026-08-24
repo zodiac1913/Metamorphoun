@@ -315,6 +315,8 @@ func filterCurrentPic(currentPic config.PicHistory, img image.Image) (image.Imag
 		currentPic, img, err = MonochromeItNfo(currentPic, img)
 	case "graffiti":
 		img, err = GraffitiItSet(currentPic, img)
+	case "cyberpunk":
+		img, err = CyberpunkItSet(currentPic, img)
 	default: //Original
 		err = nil
 		//Do Nothing

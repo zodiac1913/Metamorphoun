@@ -324,3 +324,9 @@ func GraffitiItNfo(currentPic config.PicHistory, img image.Image, intensity floa
 	}
 	return currentPic, newImg, nil
 }
+
+func CyberpunkItNfo(currentPic config.PicHistory, img image.Image, intensity float64) (config.PicHistory, image.Image, error) {
+	currentPic.FilterIntensity = 1
+	result, err := cyberpunkFocus(img)
+	return currentPic, result, err
+}

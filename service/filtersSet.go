@@ -352,6 +352,157 @@ func GraffitiItSet(currentPic config.PicHistory, img image.Image) (image.Image, 
 	return newImg, nil
 }
 
+// CyberpunkItSet recreates the offline focal neon treatment for a saved wallpaper.
+func CyberpunkItSet(currentPic config.PicHistory, img image.Image) (image.Image, error) {
+	return cyberpunkFocus(img)
+}
+
+func cyberpunkFocus(img image.Image) (image.Image, error) {
+	bounds := img.Bounds()
+	width, height := bounds.Dx(), bounds.Dy()
+	if width == 0 || height == 0 {
+		return nil, fmt.Errorf("cannot apply cyberpunk filter to an empty image")
+	}
+
+	// Downscaling makes the saliency calculation fast while favoring broad, coherent detail.
+	analysis := imaging.Resize(img, 320, 0, imaging.Lanczos)
+	analysisBounds := analysis.Bounds()
+	analysisWidth, analysisHeight := analysisBounds.Dx(), analysisBounds.Dy()
+	softened := imaging.Blur(analysis, 14)
+	saliency := image.NewGray(analysisBounds)
+
+	luminanceAt := func(source image.Image, x, y int) float64 {
+		if x < analysisBounds.Min.X {
+			x = analysisBounds.Min.X
+		}
+		if x >= analysisBounds.Max.X {
+			x = analysisBounds.Max.X - 1
+		}
+		if y < analysisBounds.Min.Y {
+			y = analysisBounds.Min.Y
+		}
+		if y >= analysisBounds.Max.Y {
+			y = analysisBounds.Max.Y - 1
+		}
+		r, g, b, _ := source.At(x, y).RGBA()
+		return 0.2126*float64(r>>8) + 0.7152*float64(g>>8) + 0.0722*float64(b>>8)
+	}
+
+	for y := analysisBounds.Min.Y; y < analysisBounds.Max.Y; y++ {
+		for x := analysisBounds.Min.X; x < analysisBounds.Max.X; x++ {
+			lum := luminanceAt(analysis, x, y)
+			localContrast := math.Abs(lum-luminanceAt(softened, x, y)) / 128
+			gx := luminanceAt(analysis, x+1, y) - luminanceAt(analysis, x-1, y)
+			gy := luminanceAt(analysis, x, y+1) - luminanceAt(analysis, x, y-1)
+			edge := math.Min(1, math.Sqrt(gx*gx+gy*gy)/180)
+			r, g, b, _ := analysis.At(x, y).RGBA()
+			maxChannel := math.Max(float64(r>>8), math.Max(float64(g>>8), float64(b>>8)))
+			minChannel := math.Min(float64(r>>8), math.Min(float64(g>>8), float64(b>>8)))
+			saturation := (maxChannel - minChannel) / 255
+			centerX := (float64(x-analysisBounds.Min.X) / float64(analysisWidth)) - 0.5
+			centerY := (float64(y-analysisBounds.Min.Y) / float64(analysisHeight)) - 0.5
+			centerBias := math.Exp(-5 * (centerX*centerX + centerY*centerY))
+			score := math.Min(1, 0.48*edge+0.24*localContrast+0.16*saturation+0.12*centerBias)
+			saliency.SetGray(x, y, color.Gray{Y: uint8(score * 255)})
+		}
+	}
+
+	// The blurred score chooses an area with sustained visual interest, not a single sharp edge.
+	blurredSaliency := imaging.Blur(saliency, 14)
+	focusX, focusY := analysisBounds.Min.X+analysisWidth/2, analysisBounds.Min.Y+analysisHeight/2
+	var bestScore uint8
+	for y := analysisBounds.Min.Y; y < analysisBounds.Max.Y; y++ {
+		for x := analysisBounds.Min.X; x < analysisBounds.Max.X; x++ {
+			scoreChannel, _, _, _ := blurredSaliency.At(x, y).RGBA()
+			score := uint8(scoreChannel >> 8)
+			if score > bestScore {
+				bestScore = score
+				focusX, focusY = x, y
+			}
+		}
+	}
+
+	_ = focusX
+	_ = focusY
+	selectionWidth := int(math.Ceil(float64(width) * 0.72))
+	selectionHeight := int(math.Ceil(float64(height) * 0.74))
+	selectionLeft := bounds.Min.X
+	selectionTop := bounds.Min.Y
+	if remainingWidth := width - selectionWidth; remainingWidth > 0 {
+		selectionLeft += rand.Intn(remainingWidth + 1)
+	}
+	if remainingHeight := height - selectionHeight; remainingHeight > 0 {
+		selectionTop += rand.Intn(remainingHeight + 1)
+	}
+	selectionRight := selectionLeft + selectionWidth
+	selectionBottom := selectionTop + selectionHeight
+	feather := math.Max(1, math.Min(float64(selectionWidth), float64(selectionHeight))*0.12)
+	smoothed := imaging.Blur(img, 1.1)
+	result := image.NewRGBA(bounds)
+	edges := image.NewRGBA(bounds)
+
+	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			r, g, b, a := img.At(x, y).RGBA()
+			red, green, blue := float64(r>>8), float64(g>>8), float64(b>>8)
+			luminance := 0.2126*red + 0.7152*green + 0.0722*blue
+			distanceToEdge := math.Min(
+				math.Min(float64(x-selectionLeft), float64(selectionRight-x)),
+				math.Min(float64(y-selectionTop), float64(selectionBottom-y)),
+			)
+			focus := math.Max(0, math.Min(1, distanceToEdge/feather))
+			focus = focus * focus * (3 - 2*focus)
+
+			background := color.RGBA{R: uint8(luminance * 0.05), G: uint8(luminance * 0.11), B: uint8(14 + luminance*0.20), A: uint8(a >> 8)}
+			neon := color.RGBA{
+				R: uint8(math.Min(255, luminance*0.34+red*0.24+18)),
+				G: uint8(math.Min(255, luminance*0.68+green*0.30+12)),
+				B: uint8(math.Min(255, luminance*0.92+blue*0.34+36)),
+				A: uint8(a >> 8),
+			}
+			result.SetRGBA(x, y, mixRGBA(background, neon, focus))
+
+			edge := sobelEdge(smoothed, x-bounds.Min.X, y-bounds.Min.Y, width, height)
+			if edge > 85 && focus > 0.08 {
+				line := color.RGBA{R: 10, G: 235, B: 255, A: uint8(255 * focus)}
+				if red > blue {
+					line = color.RGBA{R: 255, G: 24, B: 198, A: uint8(255 * focus)}
+				}
+				edges.SetRGBA(x, y, line)
+			}
+		}
+	}
+
+	glow := imaging.Blur(edges, 6)
+	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			base := result.RGBAAt(x, y)
+			glowColor := glow.At(x, y)
+			gr, gg, gb, ga := glowColor.RGBA()
+			if ga > 0 {
+				result.SetRGBA(x, y, mixRGBA(base, color.RGBA{R: uint8(gr >> 8), G: uint8(gg >> 8), B: uint8(gb >> 8), A: 255}, 0.38))
+			}
+			_, _, _, edgeAlpha := edges.At(x, y).RGBA()
+			if edgeAlpha > 0 {
+				er, eg, eb, _ := edges.At(x, y).RGBA()
+				result.SetRGBA(x, y, color.RGBA{R: uint8(er >> 8), G: uint8(eg >> 8), B: uint8(eb >> 8), A: 255})
+			}
+		}
+	}
+
+	return result, nil
+}
+
+func mixRGBA(left, right color.RGBA, amount float64) color.RGBA {
+	amount = math.Max(0, math.Min(1, amount))
+	return color.RGBA{
+		R: uint8(float64(left.R)*(1-amount) + float64(right.R)*amount),
+		G: uint8(float64(left.G)*(1-amount) + float64(right.G)*amount),
+		B: uint8(float64(left.B)*(1-amount) + float64(right.B)*amount),
+		A: uint8(float64(left.A)*(1-amount) + float64(right.A)*amount),
+	}
+}
+
 // CartoonSet applies a cartoon / cel-shading effect to the image.
 // It posterizes the colours to a small number of levels for that flat,
 // hand-painted look, then overlays dark edge lines detected via a Sobel filter.

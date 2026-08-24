@@ -695,6 +695,9 @@ func picTypeAndFilter(currentPic config.PicHistory, img image.Image, filterChoic
 	if config.ConfigInstance.WallpaperFilterGraffiti {
 		filters = append(filters, "graffiti")
 	}
+	if config.ConfigInstance.WallpaperFilterCyberpunk {
+		filters = append(filters, "cyberpunk")
+	}
 	if config.ConfigInstance.WallpaperFilterVortex {
 
 		if !currentPic.ImageItem.AllowDistort {
@@ -747,6 +750,8 @@ func picTypeAndFilter(currentPic config.PicHistory, img image.Image, filterChoic
 		currentPic, img, err = MonochromeItNfo(currentPic, img)
 	case "graffiti":
 		currentPic, img, err = GraffitiItNfo(currentPic, img, 0)
+	case "cyberpunk":
+		currentPic, img, err = CyberpunkItNfo(currentPic, img, 0)
 	default: //Original
 		err = nil
 		//Do Nothing

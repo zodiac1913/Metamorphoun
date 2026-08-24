@@ -55,6 +55,7 @@ type Config struct {
 	WallpaperFilterJigsawPuzzle     bool    `json:"wallpaperFilterJigsawPuzzle"`
 	WallpaperFilterGraffiti         bool    `json:"wallpaperFilterGraffiti"`
 	WallpaperFilterCartoon          bool    `json:"wallpaperFilterCartoon"`
+	WallpaperFilterCyberpunk        bool    `json:"wallpaperFilterCyberpunk"`
 	//WallpaperFilterSpiral           bool          `json:"wallpaperFilterSpiral"`
 	WallpaperFilterMonochrome bool          `json:"wallpaperFilterMonochrome"`
 	ShowTextOverlay           bool          `json:"showTextOverlay"`
@@ -650,6 +651,7 @@ func CreateConfig() (*Config, error) {
 		WallpaperFilterWavy:       false,
 		WallpaperFilterVortex:     false,
 		WallpaperFilterGraffiti:   false,
+		WallpaperFilterCyberpunk:  false,
 		WallpaperFilterMonochrome: false,
 		QuoteAppearanceRandom:     false,
 		QuoteFontRandom:           false,

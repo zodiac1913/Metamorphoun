@@ -292,7 +292,6 @@ func macBrowserHasMetamorphounTab(browserName string, targetURL string) (bool, e
 				try
 					set tabURL to URL of currentTab as text
 				end try
-				if tabName contains "Metamorphoun" then return "FOUND"
 				if tabURL starts with %q then return "FOUND"
 			end repeat
 		end repeat
@@ -312,7 +311,6 @@ func macBrowserHasMetamorphounTab(browserName string, targetURL string) (bool, e
 				try
 					set tabURL to URL of currentTab as text
 				end try
-				if tabTitle contains "Metamorphoun" then return "FOUND"
 				if tabURL starts with %q then return "FOUND"
 			end repeat
 		end repeat

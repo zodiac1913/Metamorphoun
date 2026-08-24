@@ -11,6 +11,7 @@ import (
 	"context"
 	"fmt"
 	"image"
+	"net/http"
 	"os"
 	"os/exec"
 	"strconv"
@@ -45,22 +46,20 @@ func main() {
 	// Initialize the update signal channel
 	updateSignal = make(chan struct{})
 
-	startBackgroundServices(ctx, cfg)
+	startServer(cfg)
 
-	// Wait briefly to give any existing browser tab time to send a heartbeat
-	// (the page sends one immediately on load, then every 5s)
-	time.Sleep(3 * time.Second)
 	settingsURL := "http://localhost:" + strconv.Itoa(config.ConfigInstance.ServerPort)
-
-	// Only open the browser if no tab has checked in
-	if hasExistingMetamorphounTab(settingsURL) {
-		fmt.Println("Existing Metamorphoun browser tab detected — skipping browser open")
+	if !waitForSettingsServer(settingsURL, 10*time.Second) {
+		fmt.Println("Settings server was not ready; browser launch skipped")
 	} else if !server.HasRecentHeartbeat(10 * time.Second) {
 		fmt.Println("No browser heartbeat detected — opening browser tab")
-		server.OpenFolder("explorer", settingsURL)
+		if err := server.OpenFolder("explorer", settingsURL); err != nil {
+			fmt.Println("Failed to open settings page:", err)
+		}
 	} else {
 		fmt.Println("Browser heartbeat detected — tab already open, skipping browser open")
 	}
+	startBackgroundServices(ctx, cfg)
 
 	onExit := func() {
 		now := time.Now()
@@ -69,6 +68,20 @@ func main() {
 	}
 	systray.Run(systemTray.MakeSystemTray, onExit)
 	<-ctx.Done()
+}
+
+func waitForSettingsServer(settingsURL string, timeout time.Duration) bool {
+	client := http.Client{Timeout: time.Second}
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		response, err := client.Get(settingsURL)
+		if err == nil {
+			response.Body.Close()
+			return true
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+	return false
 }
 
 func loadOrCreateConfig() *config.Config {
@@ -113,7 +126,6 @@ func normalizeConfigDefaults(cfg *config.Config) {
 }
 
 func startBackgroundServices(ctx context.Context, cfg *config.Config) {
-	startServer(cfg)
 	startWallpaperScheduler(ctx, cfg)
 	startQuoteService(cfg)
 }

@@ -50,11 +50,14 @@ func main() {
 	// Wait briefly to give any existing browser tab time to send a heartbeat
 	// (the page sends one immediately on load, then every 5s)
 	time.Sleep(3 * time.Second)
+	settingsURL := "http://localhost:" + strconv.Itoa(config.ConfigInstance.ServerPort)
 
 	// Only open the browser if no tab has checked in
-	if !server.HasRecentHeartbeat(10 * time.Second) {
+	if hasExistingMetamorphounTab(settingsURL) {
+		fmt.Println("Existing Metamorphoun browser tab detected — skipping browser open")
+	} else if !server.HasRecentHeartbeat(10 * time.Second) {
 		fmt.Println("No browser heartbeat detected — opening browser tab")
-		server.OpenFolder("explorer", "http://localhost:"+strconv.Itoa(config.ConfigInstance.ServerPort))
+		server.OpenFolder("explorer", settingsURL)
 	} else {
 		fmt.Println("Browser heartbeat detected — tab already open, skipping browser open")
 	}

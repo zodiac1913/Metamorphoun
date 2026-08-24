@@ -188,6 +188,10 @@ func PrintPlatformMessage() {
 	fmt.Println("Running Windows-specific code")
 }
 
+func hasExistingMetamorphounTab(string) bool {
+	return false
+}
+
 func Beep(frequency, duration int) {
 	procBeep.Call(uintptr(frequency), uintptr(duration))
 }

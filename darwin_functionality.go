@@ -18,6 +18,7 @@ import (
 	"os/exec"
 	"os/user"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"Metamorphoun/config"
@@ -257,4 +258,75 @@ func RemoveFromStartup() error {
 	}
 	log.Println("Application removed from macOS startup.")
 	return nil
+}
+
+func hasExistingMetamorphounTab(settingsURL string) bool {
+	targetURL := strings.TrimRight(settingsURL, "/")
+	for _, browserName := range []string{"Safari", "Google Chrome", "Vivaldi", "Brave Browser", "Microsoft Edge", "Arc", "Chromium"} {
+		found, err := macBrowserHasMetamorphounTab(browserName, targetURL)
+		if err != nil {
+			fmt.Printf("Skipping %s tab probe: %v\n", browserName, err)
+			continue
+		}
+		if found {
+			fmt.Printf("Metamorphoun tab found in %s\n", browserName)
+			return true
+		}
+	}
+	return false
+}
+
+func macBrowserHasMetamorphounTab(browserName string, targetURL string) (bool, error) {
+	var script string
+	switch browserName {
+	case "Safari":
+		script = fmt.Sprintf(`if application %q is running then
+	tell application %q
+		repeat with currentWindow in windows
+			repeat with currentTab in tabs of currentWindow
+				set tabName to ""
+				set tabURL to ""
+				try
+					set tabName to name of currentTab as text
+				end try
+				try
+					set tabURL to URL of currentTab as text
+				end try
+				if tabName contains "Metamorphoun" then return "FOUND"
+				if tabURL starts with %q then return "FOUND"
+			end repeat
+		end repeat
+	end tell
+	end if
+	return "NOT_FOUND"`, browserName, browserName, targetURL)
+	default:
+		script = fmt.Sprintf(`if application %q is running then
+	tell application %q
+		repeat with currentWindow in windows
+			repeat with currentTab in tabs of currentWindow
+				set tabTitle to ""
+				set tabURL to ""
+				try
+					set tabTitle to title of currentTab as text
+				end try
+				try
+					set tabURL to URL of currentTab as text
+				end try
+				if tabTitle contains "Metamorphoun" then return "FOUND"
+				if tabURL starts with %q then return "FOUND"
+			end repeat
+		end repeat
+	end tell
+	end if
+	return "NOT_FOUND"`, browserName, browserName, targetURL)
+	}
+
+	cmd := exec.Command("osascript")
+	cmd.Stdin = strings.NewReader(script)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return false, fmt.Errorf("osascript query failed: %w: %s", err, strings.TrimSpace(string(output)))
+	}
+
+	return strings.Contains(string(output), "FOUND"), nil
 }

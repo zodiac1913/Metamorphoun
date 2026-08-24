@@ -273,6 +273,10 @@ func PrintPlatformMessage() {
 	fmt.Println("Running Linux-specific code")
 }
 
+func hasExistingMetamorphounTab(string) bool {
+	return false
+}
+
 func AddToStartup() error {
 	cronJob := "@reboot /path/to/your/application\n"
 	cmd := exec.Command("bash", "-c", fmt.Sprintf("echo '%s' | crontab -u youruser -", cronJob))

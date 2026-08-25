@@ -422,36 +422,42 @@ func cyberpunkFocus(img image.Image) (image.Image, error) {
 		}
 	}
 
-	_ = focusX
-	_ = focusY
-	selectionWidth := int(math.Ceil(float64(width) * 0.72))
-	selectionHeight := int(math.Ceil(float64(height) * 0.74))
-	selectionLeft := bounds.Min.X
-	selectionTop := bounds.Min.Y
-	if remainingWidth := width - selectionWidth; remainingWidth > 0 {
-		selectionLeft += rand.Intn(remainingWidth + 1)
+	focusCenterX := float64(bounds.Min.X) + ((float64(focusX-analysisBounds.Min.X) + 0.5) / float64(analysisWidth) * float64(width))
+	focusCenterY := float64(bounds.Min.Y) + ((float64(focusY-analysisBounds.Min.Y) + 0.5) / float64(analysisHeight) * float64(height))
+	focusWidth := float64(width) * (0.25 + rand.Float64()*0.50)
+	focusHeight := float64(height) * (0.25 + rand.Float64()*0.50)
+	if rand.Intn(100) < 30 {
+		size := math.Min(focusWidth, focusHeight) * (0.85 + rand.Float64()*0.30)
+		focusWidth = math.Min(float64(width)*0.75, size)
+		focusHeight = math.Min(float64(height)*0.75, size)
 	}
-	if remainingHeight := height - selectionHeight; remainingHeight > 0 {
-		selectionTop += rand.Intn(remainingHeight + 1)
+	halfFocusWidth := math.Max(1, focusWidth/2)
+	halfFocusHeight := math.Max(1, focusHeight/2)
+	focusCenterX = clampFloat(focusCenterX+(rand.Float64()-0.5)*halfFocusWidth*0.45, float64(bounds.Min.X)+halfFocusWidth*0.70, float64(bounds.Max.X)-halfFocusWidth*0.70)
+	focusCenterY = clampFloat(focusCenterY+(rand.Float64()-0.5)*halfFocusHeight*0.45, float64(bounds.Min.Y)+halfFocusHeight*0.70, float64(bounds.Max.Y)-halfFocusHeight*0.70)
+	focus := cyberpunkFocusSpec{
+		centerX:    focusCenterX,
+		centerY:    focusCenterY,
+		halfWidth:  halfFocusWidth,
+		halfHeight: halfFocusHeight,
+		curvePower: 1.45 + rand.Float64()*3.75,
+		softness:   0.10 + rand.Float64()*0.18,
+		squared:    rand.Intn(100) < 38,
 	}
-	selectionRight := selectionLeft + selectionWidth
-	selectionBottom := selectionTop + selectionHeight
-	feather := math.Max(1, math.Min(float64(selectionWidth), float64(selectionHeight))*0.12)
 	smoothed := imaging.Blur(img, 1.1)
 	result := image.NewRGBA(bounds)
 	edges := image.NewRGBA(bounds)
+	contours := image.NewRGBA(bounds)
+	figures := image.NewRGBA(bounds)
+	drawCyberpunkContours(contours, bounds, focus)
+	drawCyberpunkBackgroundFigures(figures, bounds, focus)
 
 	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
 			r, g, b, a := img.At(x, y).RGBA()
 			red, green, blue := float64(r>>8), float64(g>>8), float64(b>>8)
 			luminance := 0.2126*red + 0.7152*green + 0.0722*blue
-			distanceToEdge := math.Min(
-				math.Min(float64(x-selectionLeft), float64(selectionRight-x)),
-				math.Min(float64(y-selectionTop), float64(selectionBottom-y)),
-			)
-			focus := math.Max(0, math.Min(1, distanceToEdge/feather))
-			focus = focus * focus * (3 - 2*focus)
+			focusAmount := cyberpunkFocusAmount(float64(x), float64(y), focus)
 
 			background := color.RGBA{R: uint8(luminance * 0.05), G: uint8(luminance * 0.11), B: uint8(14 + luminance*0.20), A: uint8(a >> 8)}
 			neon := color.RGBA{
@@ -460,13 +466,13 @@ func cyberpunkFocus(img image.Image) (image.Image, error) {
 				B: uint8(math.Min(255, luminance*0.92+blue*0.34+36)),
 				A: uint8(a >> 8),
 			}
-			result.SetRGBA(x, y, mixRGBA(background, neon, focus))
+			result.SetRGBA(x, y, mixRGBA(background, neon, focusAmount))
 
 			edge := sobelEdge(smoothed, x-bounds.Min.X, y-bounds.Min.Y, width, height)
-			if edge > 85 && focus > 0.08 {
-				line := color.RGBA{R: 10, G: 235, B: 255, A: uint8(255 * focus)}
+			if edge > 85 && focusAmount > 0.08 {
+				line := color.RGBA{R: 10, G: 235, B: 255, A: uint8(255 * focusAmount)}
 				if red > blue {
-					line = color.RGBA{R: 255, G: 24, B: 198, A: uint8(255 * focus)}
+					line = color.RGBA{R: 255, G: 24, B: 198, A: uint8(255 * focusAmount)}
 				}
 				edges.SetRGBA(x, y, line)
 			}
@@ -474,13 +480,33 @@ func cyberpunkFocus(img image.Image) (image.Image, error) {
 	}
 
 	glow := imaging.Blur(edges, 6)
+	contourGlow := imaging.Blur(contours, math.Max(4, math.Min(float64(width), float64(height))*0.006))
 	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			focusAmount := cyberpunkFocusAmount(float64(x), float64(y), focus)
+			darkness := 1 - focusAmount
 			base := result.RGBAAt(x, y)
+			fr, fg, fb, fa := figures.At(x, y).RGBA()
+			if fa > 0 && darkness > 0.12 {
+				amount := math.Min(0.72, (float64(fa>>8)/255)*darkness)
+				base = mixRGBA(base, color.RGBA{R: uint8(fr >> 8), G: uint8(fg >> 8), B: uint8(fb >> 8), A: 255}, amount)
+				result.SetRGBA(x, y, base)
+			}
+			cgr, cgg, cgb, cga := contourGlow.At(x, y).RGBA()
+			if cga > 0 && darkness > 0.03 {
+				amount := math.Min(0.58, (float64(cga>>8)/255)*darkness*0.65)
+				base = mixRGBA(result.RGBAAt(x, y), color.RGBA{R: uint8(cgr >> 8), G: uint8(cgg >> 8), B: uint8(cgb >> 8), A: 255}, amount)
+				result.SetRGBA(x, y, base)
+			}
 			glowColor := glow.At(x, y)
 			gr, gg, gb, ga := glowColor.RGBA()
 			if ga > 0 {
 				result.SetRGBA(x, y, mixRGBA(base, color.RGBA{R: uint8(gr >> 8), G: uint8(gg >> 8), B: uint8(gb >> 8), A: 255}, 0.38))
+			}
+			cr, cg, cb, ca := contours.At(x, y).RGBA()
+			if ca > 0 && darkness > 0.02 {
+				amount := math.Min(0.92, (float64(ca>>8)/255)*math.Max(0.35, darkness))
+				result.SetRGBA(x, y, mixRGBA(result.RGBAAt(x, y), color.RGBA{R: uint8(cr >> 8), G: uint8(cg >> 8), B: uint8(cb >> 8), A: 255}, amount))
 			}
 			_, _, _, edgeAlpha := edges.At(x, y).RGBA()
 			if edgeAlpha > 0 {
@@ -491,6 +517,232 @@ func cyberpunkFocus(img image.Image) (image.Image, error) {
 	}
 
 	return result, nil
+}
+
+type cyberpunkFocusSpec struct {
+	centerX    float64
+	centerY    float64
+	halfWidth  float64
+	halfHeight float64
+	curvePower float64
+	softness   float64
+	squared    bool
+}
+
+type cyberpunkContourSpec struct {
+	centerX    float64
+	centerY    float64
+	radiusX    float64
+	radiusY    float64
+	rotation   float64
+	curvePower float64
+	squared    bool
+}
+
+func cyberpunkFocusAmount(x, y float64, focus cyberpunkFocusSpec) float64 {
+	dx := math.Abs(x-focus.centerX) / math.Max(1, focus.halfWidth)
+	dy := math.Abs(y-focus.centerY) / math.Max(1, focus.halfHeight)
+	distance := math.Max(dx, dy)
+	if !focus.squared {
+		power := math.Max(1, focus.curvePower)
+		distance = math.Pow(math.Pow(dx, power)+math.Pow(dy, power), 1/power)
+	}
+	amount := 1 - smoothstep(1-focus.softness, 1+focus.softness, distance)
+	return math.Max(0, math.Min(1, amount))
+}
+
+func smoothstep(edge0, edge1, value float64) float64 {
+	if edge0 == edge1 {
+		if value < edge0 {
+			return 0
+		}
+		return 1
+	}
+	t := clampFloat((value-edge0)/(edge1-edge0), 0, 1)
+	return t * t * (3 - 2*t)
+}
+
+func clampFloat(value, minValue, maxValue float64) float64 {
+	if minValue > maxValue {
+		return (minValue + maxValue) / 2
+	}
+	if value < minValue {
+		return minValue
+	}
+	if value > maxValue {
+		return maxValue
+	}
+	return value
+}
+
+func randomCyberpunkColor(alpha uint8) color.RGBA {
+	palette := []color.RGBA{
+		{R: 0, G: 244, B: 255, A: alpha},
+		{R: 255, G: 28, B: 205, A: alpha},
+		{R: 255, G: 238, B: 38, A: alpha},
+		{R: 0, G: 255, B: 137, A: alpha},
+		{R: 255, G: 83, B: 35, A: alpha},
+		{R: 126, G: 58, B: 255, A: alpha},
+	}
+	return palette[rand.Intn(len(palette))]
+}
+
+func drawCyberpunkContours(layer *image.RGBA, bounds image.Rectangle, focus cyberpunkFocusSpec) {
+	dc := gg.NewContextForRGBA(layer)
+	minDimension := math.Max(1, math.Min(float64(bounds.Dx()), float64(bounds.Dy())))
+	count := 5 + rand.Intn(7)
+	for i := 0; i < count; i++ {
+		angle := rand.Float64() * math.Pi * 2
+		push := 0.85 + rand.Float64()*0.75
+		contour := cyberpunkContourSpec{
+			centerX:    focus.centerX + math.Cos(angle)*focus.halfWidth*push,
+			centerY:    focus.centerY + math.Sin(angle)*focus.halfHeight*push,
+			radiusX:    focus.halfWidth * (0.40 + rand.Float64()*1.05),
+			radiusY:    focus.halfHeight * (0.26 + rand.Float64()*0.92),
+			rotation:   angle + (rand.Float64()-0.5)*0.9,
+			curvePower: 1.4 + rand.Float64()*4.6,
+			squared:    rand.Intn(100) < 42,
+		}
+		bands := 1 + rand.Intn(3)
+		for band := 0; band < bands; band++ {
+			strokeWidth := minDimension*(0.0025+rand.Float64()*0.0065) + float64(band)*minDimension*0.002
+			contourColor := randomCyberpunkColor(uint8(145 + rand.Intn(95)))
+			dc.SetColor(contourColor)
+			dc.SetLineWidth(strokeWidth)
+			bandContour := contour
+			bandContour.radiusX += float64(band) * strokeWidth * 2.7
+			bandContour.radiusY += float64(band) * strokeWidth * 2.7
+			traceCyberpunkContour(dc, bandContour)
+			dc.Stroke()
+		}
+	}
+}
+
+func traceCyberpunkContour(dc *gg.Context, contour cyberpunkContourSpec) {
+	if contour.squared {
+		corner := math.Min(contour.radiusX, contour.radiusY) * (0.04 + rand.Float64()*0.16)
+		points := [][2]float64{
+			{-contour.radiusX + corner, -contour.radiusY}, {contour.radiusX - corner, -contour.radiusY}, {contour.radiusX, -contour.radiusY + corner}, {contour.radiusX, contour.radiusY - corner},
+			{contour.radiusX - corner, contour.radiusY}, {-contour.radiusX + corner, contour.radiusY}, {-contour.radiusX, contour.radiusY - corner}, {-contour.radiusX, -contour.radiusY + corner},
+		}
+		for index, point := range points {
+			x, y := rotatePoint(point[0], point[1], contour.rotation)
+			if index == 0 {
+				dc.MoveTo(contour.centerX+x, contour.centerY+y)
+			} else {
+				dc.LineTo(contour.centerX+x, contour.centerY+y)
+			}
+		}
+		dc.ClosePath()
+		return
+	}
+
+	steps := 96
+	power := math.Max(1, contour.curvePower)
+	for step := 0; step <= steps; step++ {
+		angle := (float64(step) / float64(steps)) * math.Pi * 2
+		cosine := math.Cos(angle)
+		sine := math.Sin(angle)
+		px := math.Copysign(math.Pow(math.Abs(cosine), 2/power)*contour.radiusX, cosine)
+		py := math.Copysign(math.Pow(math.Abs(sine), 2/power)*contour.radiusY, sine)
+		rx, ry := rotatePoint(px, py, contour.rotation)
+		if step == 0 {
+			dc.MoveTo(contour.centerX+rx, contour.centerY+ry)
+		} else {
+			dc.LineTo(contour.centerX+rx, contour.centerY+ry)
+		}
+	}
+	dc.ClosePath()
+}
+
+func rotatePoint(x, y, rotation float64) (float64, float64) {
+	cosine := math.Cos(rotation)
+	sine := math.Sin(rotation)
+	return x*cosine - y*sine, x*sine + y*cosine
+}
+
+func drawCyberpunkBackgroundFigures(layer *image.RGBA, bounds image.Rectangle, focus cyberpunkFocusSpec) {
+	dc := gg.NewContextForRGBA(layer)
+	width, height := float64(bounds.Dx()), float64(bounds.Dy())
+	minDimension := math.Max(1, math.Min(width, height))
+	drawCyberpunkCelestialBodies(dc, bounds, focus, width, height, minDimension)
+	drawCyberpunkBuildings(dc, bounds, focus, width, height)
+}
+
+func drawCyberpunkCelestialBodies(dc *gg.Context, bounds image.Rectangle, focus cyberpunkFocusSpec, width, height, minDimension float64) {
+	for i := 0; i < 3+rand.Intn(5); i++ {
+		x := float64(bounds.Min.X) + rand.Float64()*width
+		y := float64(bounds.Min.Y) + rand.Float64()*height*0.70
+		if cyberpunkFocusAmount(x, y, focus) > 0.25 {
+			continue
+		}
+		radius := minDimension * (0.018 + rand.Float64()*0.055)
+		if rand.Intn(100) < 42 {
+			drawCyberpunkMoon(dc, x, y, radius*(1.15+rand.Float64()*0.65))
+		} else {
+			bodyColor := randomCyberpunkColor(82)
+			dc.SetColor(bodyColor)
+			dc.SetLineWidth(math.Max(1.5, radius*0.08))
+			dc.DrawCircle(x, y, radius)
+			dc.Stroke()
+			dc.SetColor(randomCyberpunkColor(58))
+			dc.SetLineWidth(math.Max(1, radius*0.04))
+			dc.DrawEllipse(x, y, radius*(1.45+rand.Float64()*0.80), radius*(0.24+rand.Float64()*0.22))
+			dc.Stroke()
+		}
+	}
+}
+
+func drawCyberpunkBuildings(dc *gg.Context, bounds image.Rectangle, focus cyberpunkFocusSpec, width, height float64) {
+	buildingCount := 4 + rand.Intn(8)
+	for i := 0; i < buildingCount; i++ {
+		buildingWidth := width * (0.018 + rand.Float64()*0.045)
+		buildingHeight := height * (0.10 + rand.Float64()*0.28)
+		x := float64(bounds.Min.X) + rand.Float64()*(width-buildingWidth)
+		y := float64(bounds.Max.Y) - buildingHeight
+		if cyberpunkFocusAmount(x+buildingWidth/2, y+buildingHeight/2, focus) > 0.40 {
+			continue
+		}
+		dc.SetColor(color.RGBA{R: 3, G: 8, B: 22, A: 170})
+		dc.DrawRectangle(x, y, buildingWidth, buildingHeight)
+		dc.Fill()
+		windowColor := randomCyberpunkColor(135)
+		dc.SetColor(windowColor)
+		columns := 2 + rand.Intn(3)
+		rows := 4 + rand.Intn(8)
+		windowWidth := buildingWidth / float64(columns*3)
+		windowHeight := buildingHeight / float64(rows*5)
+		for row := 0; row < rows; row++ {
+			for col := 0; col < columns; col++ {
+				if rand.Intn(100) < 45 {
+					continue
+				}
+				wx := x + buildingWidth*0.20 + float64(col)*buildingWidth/float64(columns)
+				wy := y + buildingHeight*0.12 + float64(row)*buildingHeight/float64(rows)
+				dc.DrawRectangle(wx, wy, windowWidth, windowHeight)
+				dc.Fill()
+			}
+		}
+	}
+}
+
+func drawCyberpunkMoon(dc *gg.Context, x, y, radius float64) {
+	moonColor := color.RGBA{R: 24, G: 202, B: 255, A: 132}
+	hotEdge := color.RGBA{R: 114, G: 247, B: 255, A: 210}
+	dc.SetColor(moonColor)
+	dc.DrawCircle(x, y, radius)
+	dc.Fill()
+	dc.SetColor(color.RGBA{R: 0, G: 0, B: 16, A: 205})
+	dc.DrawCircle(x+radius*(0.30+rand.Float64()*0.30), y-radius*(0.04+rand.Float64()*0.12), radius*(0.78+rand.Float64()*0.18))
+	dc.Fill()
+	dc.SetColor(hotEdge)
+	dc.SetLineWidth(math.Max(1.5, radius*0.11))
+	dc.DrawArc(x, y, radius, math.Pi*0.58, math.Pi*1.42)
+	dc.Stroke()
+	dc.SetColor(color.RGBA{R: 255, G: 36, B: 210, A: 92})
+	dc.SetLineWidth(math.Max(1, radius*0.045))
+	dc.DrawArc(x, y, radius*1.16, math.Pi*0.56, math.Pi*1.44)
+	dc.Stroke()
 }
 
 func mixRGBA(left, right color.RGBA, amount float64) color.RGBA {

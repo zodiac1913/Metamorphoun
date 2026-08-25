@@ -199,6 +199,7 @@ func SetQuoteBlock(currentPic config.PicHistory, img image.Image) (config.PicHis
 
 	opacity := currentPic.QuoteOpacity
 	_ = opacity
+	DrawCyberpunkQuoteBorder(currentPic, dc, textBlockX, textBlockY, textBoxWidth, currentPic.QuoteTextBoxHeight)
 	// Set text color and draw text
 	//Make Text color
 	shouldReturn, currPic2, err := GetTextColor(redColorBackground, greenColorBackground, blueColorBackground, currentPic, dc)

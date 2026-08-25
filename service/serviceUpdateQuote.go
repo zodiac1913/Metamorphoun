@@ -816,7 +816,29 @@ func GetOpacityAndSetBoxBackground(currentPic config.PicHistory, dc *gg.Context,
 	dc.SetColor(color.RGBA{redColorBackground, greenColorBackground, blueColorBackground, uint8(opacity)})
 	dc.DrawRoundedRectangle(textBlockX, textBlockY, textBoxWidth, textBoxHeight, 10)
 	dc.Fill()
+	DrawCyberpunkQuoteBorder(currentPic, dc, textBlockX, textBlockY, textBoxWidth, textBoxHeight)
 	return false, currentPic, nil
+}
+
+func DrawCyberpunkQuoteBorder(currentPic config.PicHistory, dc *gg.Context, textBlockX, textBlockY, textBoxWidth, textBoxHeight float64) {
+	if currentPic.Filter != "cyberpunk" {
+		return
+	}
+	borderCount := 1 + rand.Intn(2)
+	colors := []color.RGBA{
+		{R: 0, G: 232, B: 255, A: 235},
+		{R: 255, G: 35, B: 214, A: 225},
+		{R: 255, G: 242, B: 47, A: 210},
+		{R: 44, G: 255, B: 144, A: 210},
+	}
+	for i := 0; i < borderCount; i++ {
+		offset := float64(i) * 7
+		lineWidth := 2.5 + rand.Float64()*2.5
+		dc.SetColor(colors[rand.Intn(len(colors))])
+		dc.SetLineWidth(lineWidth)
+		dc.DrawRoundedRectangle(textBlockX-offset, textBlockY-offset, textBoxWidth+offset*2, textBoxHeight+offset*2, 10+offset)
+		dc.Stroke()
+	}
 }
 func calculateLuminance(r, g, b uint8) float64 {
 	return 0.299*float64(r) + 0.587*float64(g) + 0.114*float64(b)

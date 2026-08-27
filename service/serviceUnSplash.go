@@ -2,74 +2,143 @@ package service
 
 import (
 	"Metamorphoun/config"
+	"encoding/json"
 	"fmt"
 	"image"
-	"math/rand"
 	"net/http"
-
-	"golang.org/x/net/html"
+	"net/url"
 )
 
-//New Way
+var unsplashRandomPhotoURL = "https://api.unsplash.com/photos/random"
 
-func GetBackgroundUnSplash(imgItem config.Image) (image.Image, string, error) {
-	//=====================================================Get Random Image from page
-	wppArray, wppErr := extractUnSplashImageURLs(imgItem)
-	if wppErr != nil {
-		fmt.Println("Error: getting web urls on ", imgItem.Location, " for ", imgItem.Operation, " on ", wppErr.Error())
-	}
-	//choose image to use
-	if len(wppArray) < 1 {
-		//fmt.Println("Error: No img links found on page ", imgItem.Location, " for ", imgItem.Operation, " on ", wppErr.Error())
-		return nil, "redirect", nil
-	}
-	wppRnd := rand.Intn(len(wppArray))
-	pic := wppArray[wppRnd]
-
-	println("Unsplash Pic:" + pic)
-	img, err := loadFlickrImageFromURL(pic)
-	if err != nil {
-		fmt.Println("failed to fetch image from URL: %w", err)
-		return nil, "", err
-	}
-	return img, pic, nil
+type unsplashPhoto struct {
+	URLs struct {
+		Full string `json:"full"`
+		Raw  string `json:"raw"`
+	} `json:"urls"`
+	Links struct {
+		DownloadLocation string `json:"download_location"`
+	} `json:"links"`
 }
 
-func extractUnSplashImageURLs(imgItem config.Image) ([]string, error) {
-	url := imgItem.Location
-	resp, err := http.Get(url)
+func GetBackgroundUnSplash(imgItem config.Image) (image.Image, string, error) {
+	if imgItem.APIKey == "" {
+		return nil, "", fmt.Errorf("Unsplash API key is not configured")
+	}
+
+	photo, err := getRandomUnsplashWallpaper(imgItem.APIKey)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch URL: %w", err)
+		return nil, "", err
 	}
-	defer resp.Body.Close()
+	if err := trackUnsplashDownload(photo.Links.DownloadLocation, imgItem.APIKey); err != nil {
+		return nil, "", err
+	}
 
-	doc, err := html.Parse(resp.Body)
+	imageURL := buildUnsplashImageURL(photo.URLs.Raw)
+	if imageURL == "" {
+		imageURL = photo.URLs.Full
+	}
+	if imageURL == "" {
+		return nil, "", fmt.Errorf("Unsplash photo did not include an image URL")
+	}
+
+	img, err := loadUnsplashImageFromURL(imageURL)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse HTML: %w", err)
+		return nil, "", err
+	}
+	return img, imageURL, nil
+}
+
+func getRandomUnsplashWallpaper(apiKey string) (unsplashPhoto, error) {
+	endpoint, err := url.Parse(unsplashRandomPhotoURL)
+	if err != nil {
+		return unsplashPhoto{}, err
+	}
+	query := endpoint.Query()
+	query.Set("topics", "wallpapers")
+	query.Set("orientation", "landscape")
+	query.Set("content_filter", "high")
+	endpoint.RawQuery = query.Encode()
+
+	request, err := newUnsplashRequest(endpoint.String(), apiKey)
+	if err != nil {
+		return unsplashPhoto{}, fmt.Errorf("failed to create Unsplash request: %w", err)
+	}
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		return unsplashPhoto{}, fmt.Errorf("failed to fetch Unsplash photo: %w", err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		return unsplashPhoto{}, fmt.Errorf("Unsplash API returned %s", response.Status)
 	}
 
-	var imageURLs []string
-	var f func(*html.Node)
-	f = func(n *html.Node) {
-		if n.Type == html.ElementNode && n.Data == "img" {
-			var src, itemprop string
-			for _, a := range n.Attr {
-				if a.Key == "src" {
-					src = a.Val
-				}
-				if a.Key == "itemprop" {
-					itemprop = a.Val
-				}
-			}
-			if src != "" && itemprop != "" {
-				imageURLs = append(imageURLs, src)
-			}
-		}
-		for c := n.FirstChild; c != nil; c = c.NextSibling {
-			f(c)
-		}
+	var photo unsplashPhoto
+	if err := json.NewDecoder(response.Body).Decode(&photo); err != nil {
+		return unsplashPhoto{}, fmt.Errorf("failed to decode Unsplash response: %w", err)
 	}
-	f(doc)
+	return photo, nil
+}
 
-	return imageURLs, nil
+func trackUnsplashDownload(downloadLocation string, apiKey string) error {
+	if downloadLocation == "" {
+		return fmt.Errorf("Unsplash photo did not include a download tracking URL")
+	}
+	request, err := newUnsplashRequest(downloadLocation, apiKey)
+	if err != nil {
+		return fmt.Errorf("failed to create Unsplash download request: %w", err)
+	}
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		return fmt.Errorf("failed to track Unsplash download: %w", err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		return fmt.Errorf("Unsplash download endpoint returned %s", response.Status)
+	}
+	return nil
+}
+
+func newUnsplashRequest(requestURL string, apiKey string) (*http.Request, error) {
+	request, err := http.NewRequest(http.MethodGet, requestURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	request.Header.Set("Authorization", "Client-ID "+apiKey)
+	request.Header.Set("Accept-Version", "v1")
+	return request, nil
+}
+
+func buildUnsplashImageURL(rawURL string) string {
+	if rawURL == "" {
+		return ""
+	}
+	imageURL, err := url.Parse(rawURL)
+	if err != nil {
+		return rawURL
+	}
+	query := imageURL.Query()
+	query.Set("fm", "jpg")
+	query.Set("fit", "max")
+	query.Set("q", "85")
+	query.Set("w", "3840")
+	imageURL.RawQuery = query.Encode()
+	return imageURL.String()
+}
+
+func loadUnsplashImageFromURL(imageURL string) (image.Image, error) {
+	response, err := http.Get(imageURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch Unsplash image: %w", err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Unsplash image returned %s", response.Status)
+	}
+
+	img, _, err := image.Decode(response.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode Unsplash image: %w", err)
+	}
+	return img, nil
 }

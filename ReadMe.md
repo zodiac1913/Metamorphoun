@@ -8,7 +8,7 @@ Metamorphoun is a flexible wallpaper changer written in Go. It automatically cha
 
 ## ✨ Features
 
-- 🖼️ **Multiple Image Sources**: Bing, NASA, Unsplash, Flickr, PicSum, or local folders
+- 🖼️ **Multiple Image Sources**: Bing, NASA, Flickr, Unsplash, PicSum, Pexels, or local folders
 - 💬 **Quote Overlays**: Display inspirational quotes on your wallpaper
 - 🎨 **Image Filters**: Blur, monochrome, oil painting, vortex, and more
 - 🌐 **Web Interface**: Configure settings through an intuitive web UI at `http://localhost:8080`
@@ -166,9 +166,10 @@ The `config.json` file contains all settings and is managed through the web inte
 ### Built-in Online Sources
 - **Bing**: Daily photo from Bing
 - **NASA**: Astronomy Picture of the Day
-- **Unsplash**: High-quality random photos
+- **Unsplash**: Random landscape wallpapers using your Unsplash API key
 - **Flickr**: Curated collections
 - **PicSum**: Random placeholder images
+- **Pexels**: Curated photos using your Pexels API key
 
 ### Local Folders
 Add any folder containing images through the web interface.

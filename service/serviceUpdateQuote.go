@@ -26,6 +26,10 @@ import (
 
 func UpdateQuote(caller string) error {
 	println("UpdateQuote called from", caller)
+	_, favoriteQuotesErr := ensureFavoriteQuotesFile()
+	if favoriteQuotesErr != nil {
+		return favoriteQuotesErr
+	}
 	trackImage := false
 	if config.ConfigInstance.PicUpdateCalled {
 		return nil

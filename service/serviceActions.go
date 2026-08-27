@@ -1,9 +1,11 @@
 package service
 
 import (
+	"Metamorphoun/config"
+	"Metamorphoun/shared"
 	"encoding/json"
-	"errors"
 	"fmt"
+	"math/rand"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -12,11 +14,6 @@ import (
 
 const metamorphounDirName = ".Metamorphoun"
 const quoteFavoritesFileName = "quoteFavorites.json"
-
-var defaultFavoriteQuote = Quote{
-	Statement: "I don't like traffic cameras. In fact, I hate them. But that doesn't mean I can break the speed limit and run red lights to get to a New Orleans Saints game",
-	Author:    "Senator John Kennedy",
-}
 
 func ensureFavoriteQuotesFile() (string, error) {
 	usr, err := user.Current()
@@ -30,23 +27,56 @@ func ensureFavoriteQuotesFile() (string, error) {
 	}
 
 	filePath := filepath.Join(favQuoteFolder, quoteFavoritesFileName)
-	quotes, err := loadFavoriteQuotes(filePath)
-	if err != nil {
-		if !errors.Is(err, os.ErrNotExist) {
-			return "", err
-		}
-		quotes = []Quote{defaultFavoriteQuote}
-	}
-
-	if len(quotes) == 0 {
-		quotes = []Quote{defaultFavoriteQuote}
-	}
-
-	if err := saveFavoriteQuotes(filePath, quotes); err != nil {
+	if err := initializeFavoriteQuotes(filePath, config.GetConfig()); err != nil {
 		return "", err
 	}
 
 	return filePath, nil
+}
+
+func initializeFavoriteQuotes(filePath string, cfg *config.Config) error {
+	quotes, err := loadFavoriteQuotes(filePath)
+	if err == nil && len(quotes) > 0 {
+		return nil
+	}
+
+	quotes, err = buildInitialFavoriteQuotes(cfg)
+	if err != nil {
+		return err
+	}
+	return saveFavoriteQuotes(filePath, quotes)
+}
+
+func buildInitialFavoriteQuotes(cfg *config.Config) ([]Quote, error) {
+	favorites := make([]Quote, 0, len(cfg.TextLibraries))
+	for _, library := range cfg.TextLibraries {
+		quotesRaw, err := readQuoteLibrary(library)
+		if err != nil {
+			fmt.Printf("Skipping quote source %s while creating favorites: %v\n", library.Name, err)
+			continue
+		}
+
+		var quotes []Quote
+		if err := json.Unmarshal(quotesRaw, &quotes); err != nil {
+			fmt.Printf("Skipping quote source %s while creating favorites: %v\n", library.Name, err)
+			continue
+		}
+		if len(quotes) > 0 {
+			favorites = append(favorites, quotes[rand.Intn(len(quotes))])
+		}
+	}
+
+	if len(favorites) == 0 {
+		return nil, fmt.Errorf("cannot create favorite quotes: no configured quote sources contained valid quotes")
+	}
+	return favorites, nil
+}
+
+func readQuoteLibrary(library config.TextLibrary) ([]byte, error) {
+	if library.Inherent {
+		return shared.GetStaticFSQuotes(library.Location)
+	}
+	return os.ReadFile(library.Location)
 }
 
 func loadFavoriteQuotes(filePath string) ([]Quote, error) {
@@ -88,8 +118,27 @@ func saveFavoriteQuotes(filePath string, quotes []Quote) error {
 		return fmt.Errorf("failed to marshal favorite quotes: %w", err)
 	}
 
-	if err := os.WriteFile(filePath, data, 0644); err != nil {
+	tempFile, err := os.CreateTemp(filepath.Dir(filePath), quoteFavoritesFileName+".*.tmp")
+	if err != nil {
+		return fmt.Errorf("failed to create temporary favorite quotes file: %w", err)
+	}
+	tempPath := tempFile.Name()
+	defer os.Remove(tempPath)
+
+	if _, err := tempFile.Write(data); err != nil {
+		tempFile.Close()
 		return fmt.Errorf("failed to write favorite quotes file: %w", err)
+	}
+	if err := tempFile.Close(); err != nil {
+		return fmt.Errorf("failed to close favorite quotes file: %w", err)
+	}
+	if err := os.Rename(tempPath, filePath); err != nil {
+		if removeErr := os.Remove(filePath); removeErr != nil && !os.IsNotExist(removeErr) {
+			return fmt.Errorf("failed to replace favorite quotes file: %w", err)
+		}
+		if retryErr := os.Rename(tempPath, filePath); retryErr != nil {
+			return fmt.Errorf("failed to write favorite quotes file: %w", retryErr)
+		}
 	}
 
 	return nil

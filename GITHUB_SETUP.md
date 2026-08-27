@@ -94,7 +94,7 @@ This will trigger the GitHub Actions workflow to build binaries for all platform
 First public release of Metamorphoun, a flexible wallpaper changer written in Go!
 
 ## Features
-- 🖼️ Multiple image sources (Bing, NASA, Unsplash, Flickr, local folders)
+- 🖼️ Multiple image sources (Bing, NASA, Unsplash, Flickr, Pexels, local folders)
 - 💬 Quote overlays with custom quotes support
 - 🎨 Image filters (blur, monochrome, oil painting, vortex)
 - 🌐 Web-based configuration interface

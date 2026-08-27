@@ -274,6 +274,8 @@ func backgroundSetSource(currentPic config.PicHistory) (image.Image, error) {
 		img, err = loadNASAImageFromURL(url)
 	} else if currentPic.ImageItem.Name == "PicSum" {
 		img, err = loadPicSumImageFromURL(url)
+	} else if currentPic.ImageItem.Name == "Pexels" {
+		img, err = loadPexelsImageFromURL(url)
 	} else {
 		//WallpapersLocal && Favorites
 		img, err := loadImage(url)

@@ -248,7 +248,7 @@ export default class comms{
             //Location
             let locationDiv=document.createElement("div");
             locationDiv.id=configItem.name + "ImageItemRowLocationDiv";
-            locationDiv.className="col-8";
+            locationDiv.className="col-8 d-flex align-items-center";
 
             let locationTitleDiv=document.createElement("div");
             locationTitleDiv.id="Location" + configItem.name;
@@ -270,6 +270,19 @@ export default class comms{
             anchor.target="_blank";
             anchor.title="Click to open the location";
             locationTitleDiv.appendChild(anchor);
+
+            if(configItem.requiresKey){
+                let apiKeyButton=document.createElement("button");
+                apiKeyButton.id="APIKey" + configItem.name;
+                apiKeyButton.type="button";
+                apiKeyButton.className="btn btn-sm btn-outline-secondary ms-2 flex-shrink-0";
+                apiKeyButton.dataset.name=configItem.name;
+                apiKeyButton.title=configItem.hasApiKey ? "Replace API key" : "Enter API key";
+                apiKeyButton.setAttribute("aria-label", apiKeyButton.title + " for " + configItem.title);
+                apiKeyButton.innerHTML='<i class="bi bi-key" aria-hidden="true"></i>';
+                apiKeyButton.addEventListener("click", async (event)=>{await traffic.apiKeyClicked(event);});
+                locationDiv.appendChild(apiKeyButton);
+            }
             rowDiv.appendChild(locationDiv);
             traffic.imagesDiv.appendChild(rowDiv);
             rowDiv.config=configItem;
@@ -310,6 +323,24 @@ export default class comms{
       console.log(jsonString);
       let apicallRtn=await traffic.apiCall(traffic.server + "/imagesFieldChangeApi",json)
       //return await traffic.fetchConfig(); //flipping out
+    }
+
+    async apiKeyClicked(event){
+        let traffic=this;
+        let button=event.currentTarget;
+        let apiKey=window.prompt("Enter the API key for " + button.dataset.name + ":", "");
+        if(apiKey===null){
+            return;
+        }
+
+        let result=await traffic.apiCall(traffic.server + "/imageApiKeyApi", {
+            name: button.dataset.name,
+            apiKey: apiKey
+        });
+        if(!result.error){
+            button.title=apiKey.trim() ? "Replace API key" : "Enter API key";
+            button.setAttribute("aria-label", button.title + " for " + button.closest(".libraryRow").config.title);
+        }
     }
 
     async locationClicked(event){

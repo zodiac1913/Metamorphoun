@@ -4,7 +4,6 @@ import (
 	"Metamorphoun/config"
 	"Metamorphoun/enum"
 	"Metamorphoun/morphLog"
-	"Metamorphoun/shared"
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
@@ -17,7 +16,6 @@ import (
 	"math/rand"
 	"os"
 	"os/exec"
-	"os/user"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -36,6 +34,10 @@ var ErrBackgroundSourceRetry = errors.New("background source requires reroll")
 
 func BackgroundGenerate(caller string, currentPic config.PicHistory) error {
 	println("BackgroundGenerate called from", caller)
+	_, favoriteQuotesErr := ensureFavoriteQuotesFile()
+	if favoriteQuotesErr != nil {
+		return favoriteQuotesErr
+	}
 	if config.ConfigInstance.BackgroundChangeAttempt > 3 {
 		log.Println("Too many attempts in", caller)
 		config.ConfigInstance.BackgroundChangeAttempt = 0
@@ -640,6 +642,8 @@ func backgroundGenRandomSource(currentPic config.PicHistory) (config.PicHistory,
 		img, url, err = GetBackgroundUnSplash(currentPic.ImageItem)
 	} else if currentPic.ImageItem.Name == "PicSum" {
 		img, url, err = GetBackgroundPicSum(currentPic.ImageItem)
+	} else if currentPic.ImageItem.Name == "Pexels" {
+		img, url, err = GetBackgroundPexels(currentPic.ImageItem)
 	} else if currentPic.ImageItem.Name == "ChristianPD" {
 		img, url, err = GetStaticImagesFolder(currentPic.ImageItem)
 	} else if currentPic.ImageItem.Name == "JudaismPD" {
@@ -652,6 +656,7 @@ func backgroundGenRandomSource(currentPic config.PicHistory) (config.PicHistory,
 		fmt.Println(err)
 		return currentPic, nil, err
 	}
+	currentPic.ImageItem.APIKey = ""
 	currentPic.OriginName = url
 	return currentPic, img, nil
 }
@@ -838,11 +843,6 @@ func picTypeAndFilter(currentPic config.PicHistory, img image.Image, filterChoic
 func GetQuote(currentPic config.PicHistory) (config.PicHistory, error) {
 	config.GetConfig()
 	cfg := config.GetConfig()
-	usr, err := user.Current()
-	if err != nil {
-		fmt.Println("failed to get user home directory:", err)
-		return currentPic, err
-	}
 
 	onQLs := make([]config.TextLibrary, 0)
 	for _, ql := range cfg.TextLibraries {
@@ -851,15 +851,12 @@ func GetQuote(currentPic config.PicHistory) (config.PicHistory, error) {
 		}
 	}
 
-	favQuoteFolder := filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites", "Quotes") //, "quoteFavorites.json"
-	if _, err := os.Stat(favQuoteFolder); os.IsNotExist(err) {
-		//Ignore
-	} else {
-		filePath, err := ensureFavoriteQuotesFile()
-		if err != nil {
-			fmt.Println(err)
-			return currentPic, err
-		}
+	filePath, err := ensureFavoriteQuotesFile()
+	if err != nil {
+		fmt.Println(err)
+		return currentPic, err
+	}
+	if filePath != "" {
 		third := len(onQLs) / 3
 		if third < 1 {
 			third = 1
@@ -889,18 +886,10 @@ func GetQuote(currentPic config.PicHistory) (config.PicHistory, error) {
 
 	quotesRaw := []byte{}
 	err = error(nil)
-	if qLibrary.Inherent {
-		quotesRaw, err = shared.GetStaticFSQuotes(qLibrary.Location)
-		if err != nil {
-			fmt.Println("failed to get static file:", err)
-			return currentPic, err
-		}
-	} else {
-		quotesRaw, err = os.ReadFile(qLibrary.Location)
-		if err != nil {
-			fmt.Println("failed to read file:", err)
-			return currentPic, err
-		}
+	quotesRaw, err = readQuoteLibrary(qLibrary)
+	if err != nil {
+		fmt.Println("failed to read quote file:", err)
+		return currentPic, err
 	}
 
 	// // Read the config file

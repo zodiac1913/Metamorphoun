@@ -88,6 +88,9 @@ type Image struct {
 	Location     string `json:"location"`
 	Operation    string `json:"operation"`
 	AllowDistort bool   `json:"allowDistort"`
+	RequiresKey  bool   `json:"requiresKey"`
+	APIKey       string `json:"apiKey,omitempty"`
+	HasAPIKey    bool   `json:"hasApiKey,omitempty"`
 	Inherent     bool   `json:"inherent"` // Indicates if the image is inherent to the system
 }
 
@@ -308,15 +311,27 @@ func RemoveFromStartup() error {
 
 func UpdateImagesField(imageName string, newValue bool) error {
 	ConfigInstance = GetConfig()
-	var foundImage *Image
 	for i, image := range ConfigInstance.Images {
 		if image.Name == imageName {
-			foundImage = &ConfigInstance.Images[i] // Use pointer assignment
-			break                                  // Exit the loop after finding the image
+			ConfigInstance.Images[i].Use = newValue
+			return SaveConfig(ConfigInstance)
 		}
 	}
-	foundImage.Use = newValue
-	return SaveConfig(ConfigInstance)
+	return fmt.Errorf("image source not found: %s", imageName)
+}
+
+func UpdateImageAPIKey(imageName string, apiKey string) error {
+	ConfigInstance = GetConfig()
+	for i, image := range ConfigInstance.Images {
+		if image.Name == imageName {
+			if !image.RequiresKey {
+				return fmt.Errorf("image source does not require an API key: %s", imageName)
+			}
+			ConfigInstance.Images[i].APIKey = strings.TrimSpace(apiKey)
+			return SaveConfig(ConfigInstance)
+		}
+	}
+	return fmt.Errorf("image source not found: %s", imageName)
 }
 func AddImagesField(use bool, name string, title string,
 	location string, operation string) error {
@@ -443,6 +458,7 @@ func MigrateConfig(cfg *Config) bool {
 			changed = true
 		}
 	}
+	changed = syncCanonicalImageMetadata(cfg.Images, canonImgs) || changed
 
 	// Repair stale embedded image locations from old build-cache binaries.
 	for idx, img := range cfg.Images {
@@ -509,10 +525,41 @@ func canonicalImages() []Image {
 		{Use: false, Name: "Bing", Title: "Bing Photo of the Day", Location: "https://bing.gifposter.com", Operation: "Webpage", AllowDistort: true, Inherent: true},
 		{Use: false, Name: "Flickr", Title: "DR Flickr Photos", Location: "https://www.flickr.com/photos/202229109@N02", Operation: "WebPicPage", AllowDistort: true, Inherent: true},
 		{Use: false, Name: "NASA", Title: "NASA's Astronomy Random Picture of the Day", Location: "https://apod.nasa.gov/apod/random_apod.html", Operation: "Webpage", AllowDistort: true, Inherent: true},
-		{Use: false, Name: "UnSplash", Title: "Photos from Unsplash.com", Location: "https://unsplash.com", Operation: "WebPicPage", AllowDistort: true, Inherent: true},
+		{Use: false, Name: "UnSplash", Title: "Wallpapers from Unsplash", Location: "https://unsplash.com/t/wallpapers", Operation: "API", AllowDistort: true, RequiresKey: true, Inherent: true},
 		{Use: false, Name: "PicSum", Title: "Pictures from PicSum random photos API", Location: "https://picsum.photos/1920/1080", Operation: "WebPicPage", AllowDistort: true, Inherent: true},
+		{Use: false, Name: "Pexels", Title: "Photos from Pexels", Location: "https://www.pexels.com", Operation: "API", AllowDistort: true, RequiresKey: true, Inherent: true},
 		{Use: true, Name: "WallpapersLocal", Title: "Wallpapers", Location: wallpaperDir, Operation: "Folder", AllowDistort: true, Inherent: true},
 	}
+}
+
+func findCanonicalImage(images []Image, name string) (Image, bool) {
+	for _, image := range images {
+		if image.Name == name {
+			return image, true
+		}
+	}
+	return Image{}, false
+}
+
+func syncCanonicalImageMetadata(images []Image, canonicalImages []Image) bool {
+	changed := false
+	for idx, image := range images {
+		canonical, ok := findCanonicalImage(canonicalImages, image.Name)
+		if !ok {
+			continue
+		}
+		if image.RequiresKey != canonical.RequiresKey {
+			images[idx].RequiresKey = canonical.RequiresKey
+			changed = true
+		}
+		if image.Inherent && (image.Title != canonical.Title || image.Location != canonical.Location || image.Operation != canonical.Operation) {
+			images[idx].Title = canonical.Title
+			images[idx].Location = canonical.Location
+			images[idx].Operation = canonical.Operation
+			changed = true
+		}
+	}
+	return changed
 }
 
 // SaveConfig writes the configuration to the JSON file
@@ -612,10 +659,11 @@ func CreateConfig() (*Config, error) {
 			{
 				Use:          false,
 				Name:         "UnSplash",
-				Title:        "Photos from Unsplash.com",
-				Location:     "https://unsplash.com",
-				Operation:    "WebPicPage",
+				Title:        "Wallpapers from Unsplash",
+				Location:     "https://unsplash.com/t/wallpapers",
+				Operation:    "API",
 				AllowDistort: true,
+				RequiresKey:  true,
 				Inherent:     true,
 			},
 			{
@@ -625,6 +673,16 @@ func CreateConfig() (*Config, error) {
 				Location:     "https://picsum.photos/1920/1080",
 				Operation:    "WebPicPage",
 				AllowDistort: true,
+				Inherent:     true,
+			},
+			{
+				Use:          false,
+				Name:         "Pexels",
+				Title:        "Photos from Pexels",
+				Location:     "https://www.pexels.com",
+				Operation:    "API",
+				AllowDistort: true,
+				RequiresKey:  true,
 				Inherent:     true,
 			},
 			{

@@ -84,6 +84,7 @@ func Serve(cfg config.Config) bool { //serverUrl string, serverPort int
 	http.HandleFunc("/configApi", configApi)
 	http.HandleFunc("/configapi", configApi)
 	http.HandleFunc("/imagesFieldChangeApi", imagesFieldChangeApi)
+	http.HandleFunc("/imageApiKeyApi", imageAPIKeyAPI)
 	http.HandleFunc("/textFieldChangeApi", textFieldChangeApi)
 	http.HandleFunc("/openLocationApi", openLocationApi)
 	http.HandleFunc("/localFontApi", localFontApi)
@@ -268,6 +269,25 @@ func imagesFieldChangeApi(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Configuration updated successfully"))
 }
 
+func imageAPIKeyAPI(w http.ResponseWriter, r *http.Request) {
+	var request struct {
+		Name   string `json:"name"`
+		APIKey string `json:"apiKey"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	if err := config.UpdateImageAPIKey(request.Name, request.APIKey); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]bool{"saved": true})
+}
+
 func textFieldChangeApi(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("Made it to textFieldChangeApi\r\n")
 
@@ -322,16 +342,29 @@ func textFieldChangeApi(w http.ResponseWriter, r *http.Request) {
 
 func configApi(w http.ResponseWriter, r *http.Request) {
 	configPath := config.GetFolderPath(enum.PathLoc.ConfigFile)
-	// Read config file
 	jsonData, err := os.ReadFile(configPath)
 	if err != nil {
 		fmt.Println("Failed to read config file:", err)
 		http.Error(w, "Failed to read config file", http.StatusInternalServerError)
 		return
 	}
-	// Set Content-Type header
+
+	var responseConfig config.Config
+	if err := json.Unmarshal(jsonData, &responseConfig); err != nil {
+		http.Error(w, "Failed to parse config file", http.StatusInternalServerError)
+		return
+	}
+	for idx := range responseConfig.Images {
+		responseConfig.Images[idx].HasAPIKey = responseConfig.Images[idx].APIKey != ""
+		responseConfig.Images[idx].APIKey = ""
+	}
+	jsonData, err = json.Marshal(responseConfig)
+	if err != nil {
+		http.Error(w, "Failed to prepare config response", http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	// Write JSON data to response
 	_, err = w.Write(jsonData)
 	if err != nil {
 		fmt.Println("Failed to write response:", err)

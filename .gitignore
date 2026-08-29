@@ -6,6 +6,12 @@
 Metamorphoun
 __debug_bin*
 
+# Go
+vendor/
+*.cover
+*.prof
+coverage.out
+
 # Test and debug files
 *on_exit_*.txt
 *.test

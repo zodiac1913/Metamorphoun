@@ -240,6 +240,14 @@ func MosaicSet(currentPic config.PicHistory, img image.Image) (image.Image, erro
 	scaledW, scaledH := scaledBounds.Dx(), scaledBounds.Dy()
 	tileW := origWidth / numberOfTiles
 	tileH := origHeight / numberOfTiles
+	// Guard against tiny images where numberOfTiles exceeds the pixel dimensions,
+	// which would make tileW/tileH zero and cause a divide-by-zero below.
+	if tileW < 1 {
+		tileW = 1
+	}
+	if tileH < 1 {
+		tileH = 1
+	}
 
 	stretchRatioX := float64(origWidth) / float64(scaledW)
 	stretchRatioY := float64(origHeight) / float64(scaledH)
@@ -287,16 +295,26 @@ func MosaicSet(currentPic config.PicHistory, img image.Image) (image.Image, erro
 				tileHeightScaled = scaledH - scaledY
 			}
 
-			cropRect := image.Rect(scaledX, scaledY, scaledX+tileWidthScaled, scaledY+tileHeightScaled)
+			// imaging.Crop returns a tile whose bounds start at scaledBounds.Min,
+			// so offset the crop rect by the scaled image's origin.
+			cropRect := image.Rect(
+				scaledBounds.Min.X+scaledX, scaledBounds.Min.Y+scaledY,
+				scaledBounds.Min.X+scaledX+tileWidthScaled, scaledBounds.Min.Y+scaledY+tileHeightScaled,
+			)
 			tile := imaging.Crop(scaledImg, cropRect)
 
 			jitterX := rand.Intn(maxJitter*2+1) - maxJitter
 			jitterY := rand.Intn(maxJitter*2+1) - maxJitter
 
-			pastePoint := image.Pt(x+jitterX, y+jitterY)
-			destRect := tile.Bounds().Add(pastePoint)
+			// Paste relative to the mosaic's origin (bounds.Min), which is not
+			// guaranteed to be (0,0). Draw from the tile's own Min as the source point.
+			pastePoint := image.Pt(bounds.Min.X+x+jitterX, bounds.Min.Y+y+jitterY)
+			destRect := image.Rectangle{
+				Min: pastePoint,
+				Max: pastePoint.Add(image.Pt(tile.Bounds().Dx(), tile.Bounds().Dy())),
+			}
 
-			draw.Draw(mosaic, destRect, tile, image.Point{}, draw.Over)
+			draw.Draw(mosaic, destRect, tile, tile.Bounds().Min, draw.Over)
 		}
 	}
 	//saveImage(mosaic, "mosaicEnd.jpg")

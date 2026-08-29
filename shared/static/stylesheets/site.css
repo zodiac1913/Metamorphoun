@@ -51,15 +51,9 @@ header {
 :has(#tab-1:checked) [for="tab-1"],
 :has(#tab-2:checked) [for="tab-2"],
 :has(#tab-3:checked) [for="tab-3"],
-:has(#tab-4:checked) [for="tab-4"]{
-  cursor: pointer;
-  background-color: rgb(255 255 255 / 80%);
-  transform: scale(1.1);
-  margin-top: -0.3rem;
-  padding-top: 0.75rem;
-  z-index: 30;
-}
-:has(#tab-3:checked) [for="tab-5"]{
+:has(#tab-4:checked) [for="tab-4"],
+:has(#tab-5:checked) [for="tab-5"],
+:has(#tab-6:checked) [for="tab-6"]{
   cursor: pointer;
   background-color: rgb(255 255 255 / 80%);
   transform: scale(1.1);
@@ -102,6 +96,7 @@ header {
 .content:has([id="tab-3"]:checked)>section:nth-child(3),
 .content:has([id="tab-4"]:checked)>section:nth-child(4) {display: flex;}
 .content:has([id="tab-5"]:checked)>section:nth-child(5) {display: flex;}
+.content:has([id="tab-6"]:checked)>section:nth-child(6) {display: flex;}
 
 /*   Open state of the dialog  */
 dialog[open] {
@@ -164,4 +159,96 @@ because the nesting selector cannot represent pseudo-elements. */
   background: linear-gradient(112.9deg, rgb(92 27 141 / 30%) -0.14%, rgb(221 177 18 / 22%) 45.98%, rgb(107 21 153 / 29%) 100.47%);
   transition: all 0.3s ease 0s;
   font-family: 'Oswald', sans-serif;
+}
+
+/* ---- Current/History pic cards ---- */
+/* Thumbnail ~1 inch wide by 1.5 inch tall (96dpi baseline). */
+.picThumb {
+  width: 96px;
+  height: 144px;
+  object-fit: cover;
+  border: 2px solid rgba(127, 255, 212, 0.6); /* Aquamarine-ish */
+  border-radius: 0.4rem;
+  cursor: pointer;
+  background-color: rgb(0 0 0 / 40%);
+  transition: transform 0.15s ease;
+}
+
+.picThumb:hover {
+  transform: scale(1.05);
+}
+
+.picThumbEmpty {
+  color: #999;
+  font-size: 0.8rem;
+  cursor: default;
+}
+
+.picCard {
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.copyPathBtn {
+  color: #7fffd4;
+  vertical-align: baseline;
+}
+.copyPathBtn:hover {
+  color: #ffffff;
+}
+
+/* Compact inline info chips: each takes only the space it needs and wraps. */
+.picChip {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  background-color: rgb(255 255 255 / 8%);
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 0.75rem;
+  padding: 0.1rem 0.55rem;
+  margin: 0.15rem 0.35rem 0.15rem 0;
+}
+
+/* Scrollable history list */
+.historyScroll {
+  max-height: calc(100vh - 12rem);
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+/* Full-size image popup overlay with top-right close */
+.picFullSizeOverlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgb(0 0 0 / 85%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.picFullSizeImg {
+  max-width: 92vw;
+  max-height: 92vh;
+  object-fit: contain;
+  border-radius: 0.5rem;
+  box-shadow: 0 0 30px rgb(0 0 0 / 70%);
+}
+
+.picFullSizeClose {
+  position: fixed;
+  top: 1rem;
+  right: 1.5rem;
+  font-size: 2.2rem;
+  line-height: 1;
+  color: #ffffff;
+  background: rgb(0 0 0 / 40%);
+  border: none;
+  border-radius: 50%;
+  width: 3rem;
+  height: 3rem;
+  cursor: pointer;
+  z-index: 2010;
+}
+.picFullSizeClose:hover {
+  background: rgb(220 20 60 / 80%); /* crimson */
 }

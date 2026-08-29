@@ -638,8 +638,6 @@ func backgroundGenRandomSource(currentPic config.PicHistory) (config.PicHistory,
 		img, url, err = GetBackgroundFlickr(currentPic.ImageItem)
 	} else if currentPic.ImageItem.Name == "NASA" {
 		img, url, err = GetBackgroundNASA(currentPic.ImageItem)
-	} else if currentPic.ImageItem.Name == "UnSplash" {
-		img, url, err = GetBackgroundUnSplash(currentPic.ImageItem)
 	} else if currentPic.ImageItem.Name == "PicSum" {
 		img, url, err = GetBackgroundPicSum(currentPic.ImageItem)
 	} else if currentPic.ImageItem.Name == "Pexels" {
@@ -657,8 +655,45 @@ func backgroundGenRandomSource(currentPic config.PicHistory) (config.PicHistory,
 		return currentPic, nil, err
 	}
 	currentPic.ImageItem.APIKey = ""
-	currentPic.OriginName = url
+
+	// Sources that return a random remote image (PicSum, Pexels, etc.) hand back
+	// an http URL that cannot be re-fetched to the same picture. Persist the
+	// fetched original to a unique per-pic file so the History view can show it
+	// later, and point OriginName at that stable local file. The saved originals
+	// are cleaned up as they age out of the history (see AddPicHistory).
+	if strings.HasPrefix(strings.ToLower(url), "http") {
+		localOriginal, saveErr := savePicOriginal(img)
+		if saveErr != nil {
+			// Non-fatal: fall back to the remote URL (thumbnail just won't persist).
+			fmt.Println("Failed to persist original image:", saveErr)
+			currentPic.OriginName = url
+		} else {
+			currentPic.OriginName = localOriginal
+		}
+	} else {
+		currentPic.OriginName = url
+	}
 	return currentPic, img, nil
+}
+
+// savePicOriginal writes the fetched (pre-filter) image to a unique file in the
+// config directory and returns its absolute path. Used for non-refetchable
+// remote sources so the original survives for the History view.
+func savePicOriginal(img image.Image) (string, error) {
+	if img == nil {
+		return "", fmt.Errorf("cannot save a nil original image")
+	}
+	dir := GetFolderPath(enum.PathLoc.Config)
+	path := filepath.Join(dir, "origin-"+uuid.New().String()+".png")
+	outFile, err := os.Create(path)
+	if err != nil {
+		return "", err
+	}
+	defer outFile.Close()
+	if err := png.Encode(outFile, img); err != nil {
+		return "", err
+	}
+	return path, nil
 }
 
 func picTypeAndFilter(currentPic config.PicHistory, img image.Image, filterChoice string) (config.PicHistory, image.Image, error) {

@@ -264,13 +264,23 @@ func backgroundSetSource(currentPic config.PicHistory) (image.Image, error) {
 	var err error
 	url := currentPic.OriginName
 
+	// Random remote sources persist their original to a local file at fetch time,
+	// so OriginName is a local path we can just reload from disk. Only re-fetch
+	// when OriginName is still an http URL (older history entries or stable URLs).
+	if !strings.HasPrefix(strings.ToLower(url), "http") {
+		img, err = loadImage(url)
+		if err != nil {
+			fmt.Println("failed to load original image from disk:", err)
+			return nil, err
+		}
+		return img, nil
+	}
+
 	if currentPic.ImageItem.Name == "Bing" {
 		img, err = loadBingImageFromURL(url)
 	} else if currentPic.ImageItem.Name == "Flickr" {
 		img, err = loadFlickrImageFromURL(url)
 	} else if currentPic.ImageItem.Name == "NASA" {
-		img, err = loadNASAImageFromURL(url)
-	} else if currentPic.ImageItem.Name == "UnSplash" {
 		img, err = loadNASAImageFromURL(url)
 	} else if currentPic.ImageItem.Name == "PicSum" {
 		img, err = loadPicSumImageFromURL(url)

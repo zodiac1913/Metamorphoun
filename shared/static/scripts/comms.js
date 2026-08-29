@@ -205,10 +205,17 @@ export default class comms{
 
         let headerLocationDiv=document.createElement("div");
         headerLocationDiv.id="HeaderRowLocationDiv";
-        headerLocationDiv.className="col-8";
+        headerLocationDiv.className="col-6";
         headerLocationDiv.innerText="Location"
         headerLocationDiv.title="The URL or Folder Location of the image library"
         headerDiv.appendChild(headerLocationDiv);
+
+        let headerApiDiv=document.createElement("div");
+        headerApiDiv.id="HeaderRowApiDiv";
+        headerApiDiv.className="col-2";
+        headerApiDiv.innerText="API"
+        headerApiDiv.title="API-based sources that require an API key"
+        headerDiv.appendChild(headerApiDiv);
 
 
 
@@ -248,7 +255,7 @@ export default class comms{
             //Location
             let locationDiv=document.createElement("div");
             locationDiv.id=configItem.name + "ImageItemRowLocationDiv";
-            locationDiv.className="col-8 d-flex align-items-center";
+            locationDiv.className="col-6 d-flex align-items-center";
 
             let locationTitleDiv=document.createElement("div");
             locationTitleDiv.id="Location" + configItem.name;
@@ -271,19 +278,38 @@ export default class comms{
             anchor.title="Click to open the location";
             locationTitleDiv.appendChild(anchor);
 
+            rowDiv.appendChild(locationDiv);
+
+            //API column: dedicated cell for API-key sources.
+            let apiDiv=document.createElement("div");
+            apiDiv.id=configItem.name + "ImageItemRowApiDiv";
+            apiDiv.className="col-2 d-flex align-items-center";
             if(configItem.requiresKey){
+                let apiStatus=document.createElement("span");
+                apiStatus.id="APIStatus" + configItem.name;
+                apiStatus.className=configItem.hasApiKey ? "badge bg-DarkGreen me-2" : "badge bg-secondary me-2";
+                apiStatus.innerText=configItem.hasApiKey ? "Key set" : "No key";
+
                 let apiKeyButton=document.createElement("button");
                 apiKeyButton.id="APIKey" + configItem.name;
                 apiKeyButton.type="button";
-                apiKeyButton.className="btn btn-sm btn-outline-secondary ms-2 flex-shrink-0";
+                apiKeyButton.className="btn btn-sm btn-outline-secondary flex-shrink-0";
                 apiKeyButton.dataset.name=configItem.name;
                 apiKeyButton.title=configItem.hasApiKey ? "Replace API key" : "Enter API key";
                 apiKeyButton.setAttribute("aria-label", apiKeyButton.title + " for " + configItem.title);
                 apiKeyButton.innerHTML='<i class="bi bi-key" aria-hidden="true"></i>';
                 apiKeyButton.addEventListener("click", async (event)=>{await traffic.apiKeyClicked(event);});
-                locationDiv.appendChild(apiKeyButton);
+
+                apiDiv.appendChild(apiStatus);
+                apiDiv.appendChild(apiKeyButton);
+            }else{
+                let apiNone=document.createElement("span");
+                apiNone.className="text-muted";
+                apiNone.innerText="\u2014"; // em dash: not an API source
+                apiDiv.appendChild(apiNone);
             }
-            rowDiv.appendChild(locationDiv);
+            rowDiv.appendChild(apiDiv);
+
             traffic.imagesDiv.appendChild(rowDiv);
             rowDiv.config=configItem;
             //wire
@@ -338,8 +364,14 @@ export default class comms{
             apiKey: apiKey
         });
         if(!result.error){
-            button.title=apiKey.trim() ? "Replace API key" : "Enter API key";
+            let hasKey=!!apiKey.trim();
+            button.title=hasKey ? "Replace API key" : "Enter API key";
             button.setAttribute("aria-label", button.title + " for " + button.closest(".libraryRow").config.title);
+            let statusBadge=document.querySelector("#APIStatus" + button.dataset.name);
+            if(statusBadge){
+                statusBadge.className=hasKey ? "badge bg-DarkGreen me-2" : "badge bg-secondary me-2";
+                statusBadge.innerText=hasKey ? "Key set" : "No key";
+            }
         }
     }
 
@@ -498,6 +530,191 @@ export default class comms{
 
 
     async currentInfoUpdate(){
+        let traffic=this;
+        const currentPic=typeof(window.pic)==="object"?window.pic:JSON.parse(window.pic); // this is the current picture object from the server
+        let picInfoEle=document.querySelector("#infoPic");
+        if(!picInfoEle) return;
+        picInfoEle.innerHTML = traffic.buildPicCard(currentPic, "Current");
+        traffic.wirePicCards(picInfoEle);
+    }
+
+    // ---- New compact pic-card renderer (used by Current + History) --------
+
+    // Escape text for safe insertion into HTML attributes/content.
+    escapeHtml(value){
+        return String(value == null ? "" : value)
+            .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+            .replaceAll('"',"&quot;").replaceAll("'","&#39;");
+    }
+
+    // Return a browsable image src for a local path or http URL, or "" if none.
+    picImageSrc(path){
+        if(!path) return "";
+        if(path.toLowerCase().startsWith("http")) return path;
+        return "/imageFileApi?path=" + encodeURIComponent(path);
+    }
+
+    // Small copy-to-clipboard icon button that shows the path in its title.
+    copyPathIcon(path){
+        if(!path) return "";
+        let safe = this.escapeHtml(path);
+        return '<button type="button" class="btn btn-sm btn-link p-0 ms-1 copyPathBtn" '
+            + 'data-path="' + safe + '" title="' + safe + '" '
+            + 'aria-label="Copy path to clipboard">'
+            + '<i class="bi bi-clipboard"></i></button>';
+    }
+
+    // Build one compact card for a pic (current or history entry).
+    // label is shown as the card heading (e.g. "Current" or "#2").
+    buildPicCard(pic, label){
+        let esc = this.escapeHtml.bind(this);
+        let ii = pic.imageItem || {};
+
+        // Original source image: originName. For random remote sources (PicSum,
+        // Pexels, etc.) the server now persists the original to a unique local
+        // file and stores that path in originName, so it displays correctly and
+        // survives in history. Older entries may still hold an http URL.
+        let originalPath = pic.originName || "";
+        // Altered/applied image: the saved wallpaper file.
+        let alteredPath = pic.saveName || "";
+
+        let originalSrc = this.picImageSrc(originalPath);
+        let alteredSrc = this.picImageSrc(alteredPath);
+
+        let fontPath = pic.quoteFont || "";
+        let quote = pic.quoteStatement || "";
+        let author = pic.quoteAuthor || "";
+
+        let thumb = (src, path, caption) => {
+            let inner = src
+                ? '<img src="' + esc(src) + '" class="picThumb" alt="' + esc(caption) + '" '
+                    + 'data-full="' + esc(src) + '" data-caption="' + esc(caption) + '" '
+                    + 'loading="lazy"/>'
+                : '<div class="picThumb picThumbEmpty d-flex align-items-center justify-content-center">n/a</div>';
+            return '<div class="text-center">'
+                + '<div class="small fw-bold text-info mb-1">' + esc(caption) + '</div>'
+                + inner
+                + '<div class="small text-truncate" style="max-width:130px">'
+                +   (path ? esc(path.split(/[\\/]/).pop()) : "")
+                +   this.copyPathIcon(path)
+                + '</div>'
+                + '</div>';
+        };
+
+        // Compact inline "chip": label + value in a pill that takes only the
+        // space it needs. extraHtml lets the Font chip append its copy icon.
+        let chip = (lbl, val, extraHtml) => (val === undefined || val === null || val === "")
+            ? ""
+            : '<span class="picChip">'
+                + '<span class="fw-bold text-LightSalmon">' + esc(lbl) + '</span>'
+                + '<span class="text-warning fst-italic ms-1">' + esc(val) + '</span>'
+                + (extraHtml || "")
+                + '</span>';
+
+        let fontName = fontPath ? fontPath.split(/[\\/]/).pop() : "";
+
+        return ''
+        + '<div class="picCard bg-dark text-light rounded-3 p-2 mb-3 mx-2">'
+        +   '<div class="d-flex justify-content-between align-items-start">'
+        +     thumb(originalSrc, originalPath, "Original")
+        +     '<div class="text-center flex-grow-1 px-2">'
+        +       '<div class="h6 text-Aquamarine mb-1">' + esc(label) + '</div>'
+        +       (quote ? '<div class="fst-italic small">&ldquo;' + esc(quote) + '&rdquo;</div>' : '')
+        +       (author ? '<div class="small text-info">&mdash; ' + esc(author) + '</div>' : '')
+        +     '</div>'
+        +     thumb(alteredSrc, alteredPath, "Altered")
+        +   '</div>'
+        +   '<div class="d-flex flex-wrap mt-2 small">'
+        +     chip("Source:", ii.name)
+        +     chip("Info:", ii.title)
+        +     chip("Operation:", ii.operation)
+        +     chip("Filter:", pic.filter)
+        +     chip("Sizing:", pic.sizing)
+        +     chip("Font:", fontName, this.copyPathIcon(fontPath))
+        +   '</div>'
+        + '</div>';
+    }
+
+    // Wire up clipboard buttons and thumbnail click-to-fullsize within a container.
+    wirePicCards(container){
+        let traffic=this;
+        container.querySelectorAll(".copyPathBtn").forEach(btn=>{
+            btn.addEventListener("click", async (e)=>{
+                e.stopPropagation();
+                await traffic.copyToClipboard(btn.dataset.path, btn);
+            });
+        });
+        container.querySelectorAll(".picThumb[data-full]").forEach(img=>{
+            img.addEventListener("click", ()=>{
+                traffic.showFullSizeImage(img.dataset.full, img.dataset.caption);
+            });
+        });
+    }
+
+    async copyToClipboard(text, btn){
+        try{
+            await navigator.clipboard.writeText(text);
+        }catch(err){
+            // Fallback for non-secure contexts.
+            let ta=document.createElement("textarea");
+            ta.value=text; ta.style.position="fixed"; ta.style.opacity="0";
+            document.body.appendChild(ta); ta.select();
+            try{ document.execCommand("copy"); }catch(e){ console.warn("copy failed", e); }
+            document.body.removeChild(ta);
+        }
+        if(btn){
+            let icon=btn.querySelector("i");
+            if(icon){
+                let prev=icon.className;
+                icon.className="bi bi-clipboard-check text-success";
+                setTimeout(()=>{ icon.className=prev; }, 1200);
+            }
+        }
+    }
+
+    // Full-size image popup with a top-right X to close.
+    showFullSizeImage(src, caption){
+        if(!src) return;
+        let existing=document.querySelector("#picFullSizeOverlay");
+        if(existing) existing.remove();
+        let overlay=document.createElement("div");
+        overlay.id="picFullSizeOverlay";
+        overlay.className="picFullSizeOverlay";
+        overlay.innerHTML=''
+            + '<button type="button" class="picFullSizeClose" aria-label="Close">&times;</button>'
+            + '<img src="' + this.escapeHtml(src) + '" alt="' + this.escapeHtml(caption||"") + '" class="picFullSizeImg"/>';
+        overlay.addEventListener("click",(e)=>{
+            if(e.target===overlay || e.target.classList.contains("picFullSizeClose")){
+                overlay.remove();
+            }
+        });
+        document.addEventListener("keydown", function esc(e){
+            if(e.key==="Escape"){ let o=document.querySelector("#picFullSizeOverlay"); if(o) o.remove(); document.removeEventListener("keydown", esc); }
+        });
+        document.body.appendChild(overlay);
+    }
+
+    // Render the History tab: current + last 9 (10 total), newest first.
+    async renderHistory(){
+        let traffic=this;
+        let container=document.querySelector("#historyList");
+        if(!container) return;
+        let cfg=await traffic.getConfig();
+        let histories=(cfg && cfg.picHistories) ? cfg.picHistories : [];
+        if(histories.length===0){
+            container.innerHTML='<div class="text-warning p-3">No history yet.</div>';
+            return;
+        }
+        let html="";
+        histories.slice(0,10).forEach((pic, idx)=>{
+            let label = idx===0 ? "Current" : "#" + (idx+1);
+            html += traffic.buildPicCard(pic, label);
+        });
+        container.innerHTML=html;
+        traffic.wirePicCards(container);
+    }
+
+    async currentInfoUpdateOLD(){
         let traffic=this;
         const currentPic=typeof(window.pic)==="object"?window.pic:JSON.parse(window.pic); // this is the current picture object from the server
         let randomIIPicked={i:"ImageItemData",c:"bg-AliceBlue fw-bolder text-FireBrick mx-5",b:[]}

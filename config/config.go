@@ -15,8 +15,8 @@ import (
 	"sync"
 )
 
-const AppVersion = "2026.08.20.1"
-const PublishedOn = "2026-08-20.1"
+const AppVersion = "2026.08.29.1"
+const PublishedOn = "2026-08-29.1"
 
 //ugh
 
@@ -377,14 +377,21 @@ func UpdateQuotesField(quotesName string, newValue interface{}) error {
 
 // AddPicHistory adds a new PicHistory to the stack, updates PicNum,
 // and ensures the stack size does not exceed the limit.
+const picHistoryLimit = 10
+
 func (cfg *Config) AddPicHistory(newPic PicHistory) error {
 	ConfigInstance = GetConfig()
 	// Prepend the new PicHistory to the stack
 	ConfigInstance.PicHistories = append([]PicHistory{newPic}, ConfigInstance.PicHistories...)
 
-	// Ensure the stack size does not exceed the limit (5 for now)
-	if len(ConfigInstance.PicHistories) > 5 {
-		ConfigInstance.PicHistories = ConfigInstance.PicHistories[:5]
+	// Ensure the stack size does not exceed the limit (10 for the History tab).
+	// Entries that fall off the end have their locally-cached image files
+	// (unique per-pic originals and saved wallpapers) deleted so they don't
+	// accumulate on disk.
+	if len(ConfigInstance.PicHistories) > picHistoryLimit {
+		dropped := ConfigInstance.PicHistories[picHistoryLimit:]
+		ConfigInstance.PicHistories = ConfigInstance.PicHistories[:picHistoryLimit]
+		cleanupDroppedPicFiles(dropped, ConfigInstance.PicHistories)
 	}
 
 	// Update PicNum for all PicHistories in the stack
@@ -392,6 +399,51 @@ func (cfg *Config) AddPicHistory(newPic PicHistory) error {
 		ConfigInstance.PicHistories[i].PicNum = int16(i)
 	}
 	return SaveConfig(ConfigInstance)
+}
+
+// cleanupDroppedPicFiles deletes the locally-cached image files belonging to
+// pic-history entries that have aged off the end of the stack. It only removes
+// files inside the config directory (so user folders like Favorites/Pictures
+// are never touched) and never removes a file still referenced by a retained
+// entry.
+func cleanupDroppedPicFiles(dropped []PicHistory, retained []PicHistory) {
+	configDir, err := filepath.Abs(GetFolderPath(enum.PathLoc.Config))
+	if err != nil || configDir == "" {
+		return
+	}
+
+	// Collect paths still in use so we never delete a shared/duplicate file.
+	stillUsed := make(map[string]bool)
+	for _, pic := range retained {
+		stillUsed[pic.OriginName] = true
+		stillUsed[pic.SaveName] = true
+	}
+
+	inConfigDir := func(path string) bool {
+		absPath, absErr := filepath.Abs(path)
+		if absErr != nil {
+			return false
+		}
+		rel, relErr := filepath.Rel(configDir, absPath)
+		return relErr == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(os.PathSeparator))
+	}
+
+	for _, pic := range dropped {
+		for _, path := range []string{pic.OriginName, pic.SaveName} {
+			if path == "" || stillUsed[path] {
+				continue
+			}
+			if strings.HasPrefix(strings.ToLower(path), "http") {
+				continue // remote URL, nothing on disk
+			}
+			if !inConfigDir(path) {
+				continue // outside the config sandbox (e.g. Favorites, user Pictures)
+			}
+			if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+				fmt.Println("AddPicHistory: failed to remove aged pic file:", path, err)
+			}
+		}
+	}
 }
 
 // LoadConfig reads the configuration from the JSON file
@@ -460,6 +512,14 @@ func MigrateConfig(cfg *Config) bool {
 	}
 	changed = syncCanonicalImageMetadata(cfg.Images, canonImgs) || changed
 
+	// --- Retired image sources --------------------------------------------
+	// Remove sources that have been discontinued so existing users stop
+	// seeing them. Unsplash was dropped because it competes with its own
+	// wallpaper product.
+	if removed := removeRetiredImageSources(cfg); removed {
+		changed = true
+	}
+
 	// Repair stale embedded image locations from old build-cache binaries.
 	for idx, img := range cfg.Images {
 		if img.Inherent && (img.Name == "Christian" || img.Name == "Judaism") {
@@ -475,6 +535,18 @@ func MigrateConfig(cfg *Config) bool {
 		}
 	}
 
+	// --- Inherent filter keys ---------------------------------------------
+	// Boolean filter flags added in newer versions are absent from configs
+	// written by older builds. An absent JSON key unmarshals to false, which
+	// is the correct default, but the key never gets written back unless we
+	// force a save. Without the key persisted, the settings UI cannot show or
+	// toggle the new filter. Detect any missing filter keys in the raw config
+	// file and flag a re-save so SaveConfig serializes the full struct.
+	if filterKeysMissingFromDisk() {
+		fmt.Println("MigrateConfig: persisting newly added wallpaper filter keys")
+		changed = true
+	}
+
 	// --- Version stamp ----------------------------------------------------
 	if cfg.Version != AppVersion {
 		cfg.Version = AppVersion
@@ -483,6 +555,71 @@ func MigrateConfig(cfg *Config) bool {
 	}
 
 	return changed
+}
+
+// knownFilterKeys lists every wallpaper filter JSON key the current schema
+// serializes. Keep this in sync with the WallpaperFilter* fields on Config.
+var knownFilterKeys = []string{
+	"wallpaperFilterOriginal",
+	"wallpaperFilterBlurSoft",
+	"wallpaperFilterBlurHard",
+	"wallpaperFilterPixelate",
+	"wallpaperFilterOilify",
+	"wallpaperFilterWavy",
+	"wallpaperFilterVortex",
+	"wallpaperFilterMosaic",
+	"wallpaperFilterJigsawPuzzle",
+	"wallpaperFilterGraffiti",
+	"wallpaperFilterCartoon",
+	"wallpaperFilterCyberpunk",
+	"wallpaperFilterMonochrome",
+}
+
+// filterKeysMissingFromDisk reports whether the on-disk config file is missing
+// any known filter key. Booleans cannot distinguish "absent" from "false"
+// after unmarshalling into the struct, so this inspects the raw JSON instead.
+func filterKeysMissingFromDisk() bool {
+	configPath := GetFolderPath(enum.PathLoc.ConfigFile)
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		// If the file is unreadable, let other migration steps / save handle it.
+		return false
+	}
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return false
+	}
+	for _, key := range knownFilterKeys {
+		if _, ok := raw[key]; !ok {
+			return true
+		}
+	}
+	return false
+}
+
+// retiredImageSourceNames lists image source names that have been removed from
+// the product. MigrateConfig strips these from existing users' configs.
+var retiredImageSourceNames = []string{"UnSplash"}
+
+// removeRetiredImageSources deletes any retired image sources from the config's
+// Images slice. Returns true if anything was removed.
+func removeRetiredImageSources(cfg *Config) bool {
+	retired := make(map[string]bool, len(retiredImageSourceNames))
+	for _, name := range retiredImageSourceNames {
+		retired[name] = true
+	}
+	filtered := cfg.Images[:0]
+	removed := false
+	for _, img := range cfg.Images {
+		if retired[img.Name] {
+			fmt.Println("MigrateConfig: removing retired image source:", img.Name)
+			removed = true
+			continue
+		}
+		filtered = append(filtered, img)
+	}
+	cfg.Images = filtered
+	return removed
 }
 
 // canonicalTextLibraries returns the full set of inherent text libraries
@@ -525,7 +662,6 @@ func canonicalImages() []Image {
 		{Use: false, Name: "Bing", Title: "Bing Photo of the Day", Location: "https://bing.gifposter.com", Operation: "Webpage", AllowDistort: true, Inherent: true},
 		{Use: false, Name: "Flickr", Title: "DR Flickr Photos", Location: "https://www.flickr.com/photos/202229109@N02", Operation: "WebPicPage", AllowDistort: true, Inherent: true},
 		{Use: false, Name: "NASA", Title: "NASA's Astronomy Random Picture of the Day", Location: "https://apod.nasa.gov/apod/random_apod.html", Operation: "Webpage", AllowDistort: true, Inherent: true},
-		{Use: false, Name: "UnSplash", Title: "Wallpapers from Unsplash", Location: "https://unsplash.com/t/wallpapers", Operation: "API", AllowDistort: true, RequiresKey: true, Inherent: true},
 		{Use: false, Name: "PicSum", Title: "Pictures from PicSum random photos API", Location: "https://picsum.photos/1920/1080", Operation: "WebPicPage", AllowDistort: true, Inherent: true},
 		{Use: false, Name: "Pexels", Title: "Photos from Pexels", Location: "https://www.pexels.com", Operation: "API", AllowDistort: true, RequiresKey: true, Inherent: true},
 		{Use: true, Name: "WallpapersLocal", Title: "Wallpapers", Location: wallpaperDir, Operation: "Folder", AllowDistort: true, Inherent: true},
@@ -654,16 +790,6 @@ func CreateConfig() (*Config, error) {
 				Location:     "https://apod.nasa.gov/apod/random_apod.html",
 				Operation:    "Webpage",
 				AllowDistort: true,
-				Inherent:     true,
-			},
-			{
-				Use:          false,
-				Name:         "UnSplash",
-				Title:        "Wallpapers from Unsplash",
-				Location:     "https://unsplash.com/t/wallpapers",
-				Operation:    "API",
-				AllowDistort: true,
-				RequiresKey:  true,
 				Inherent:     true,
 			},
 			{

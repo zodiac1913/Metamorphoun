@@ -27,6 +27,7 @@
 		<label class="nav" for="tab-2">Wallpaper</label>
 		<label class="nav" for="tab-3">Quotes</label>
 		<label class="nav" for="tab-4">Current</label>
+		<label class="nav" for="tab-6">History</label>
 		<label class="nav" for="tab-5">Information</label>
 		<span class="d-flex justify-content-end w-100">
 			<div id="bgProgressEnvelope" class="d-none align-items-center me-2" style="gap:6px">
@@ -421,6 +422,15 @@
 					<a href="https:/paypal.me/zodiac1913" class="btn btn-primary">Donate via PayPal</a>
 			</div>
 		</section>
+		<section>
+			<!-- Content for Tab 6: History (current + last 9) -->
+			<div class="container-fluid ms-4">
+				<h2 class="text-Aquamarine">History</h2>
+				<div id="historyList" class="historyScroll container-fluid">
+					<div class="text-warning p-3">Loading history…</div>
+				</div>
+			</div>
+		</section>
 	
 
 		<input type="radio" name="tabs" id="tab-1" hidden checked />
@@ -428,6 +438,7 @@
 		<input type="radio" name="tabs" id="tab-3" hidden />
 		<input type="radio" name="tabs" id="tab-4" hidden />
 		<input type="radio" name="tabs" id="tab-5" hidden />
+		<input type="radio" name="tabs" id="tab-6" hidden />
 	  </article>
 
 	</div>
@@ -513,6 +524,10 @@
 				if (tabInput.checked) {
 					localStorage.setItem(ACTIVE_TAB_STORAGE_KEY, tabInput.id);
 					localStorage.setItem(RETURN_PAGE_STORAGE_KEY, "index.html");
+					// Refresh the History tab each time it's opened.
+					if (tabInput.id === "tab-6" && window.comms && window.comms.renderHistory) {
+						window.comms.renderHistory();
+					}
 				}
 			});
 		}
@@ -530,6 +545,11 @@
 		// console.log(JSON.stringify(kjv));
 		await window.tnt.wireConfigProperties(config);	
 		await window.comms.getFonts();
+		// If History is the restored active tab, populate it on load.
+		let historyTab=document.getElementById("tab-6");
+		if(historyTab && historyTab.checked){
+			await window.comms.renderHistory();
+		}
 	})
 </script>
 

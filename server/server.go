@@ -88,6 +88,7 @@ func Serve(cfg config.Config) bool { //serverUrl string, serverPort int
 	http.HandleFunc("/textFieldChangeApi", textFieldChangeApi)
 	http.HandleFunc("/openLocationApi", openLocationApi)
 	http.HandleFunc("/localFontApi", localFontApi)
+	http.HandleFunc("/imageFileApi", imageFileApi)
 	http.HandleFunc("/addImagesField", addImagesField)
 	http.HandleFunc("/editImagesField", editImagesField)
 	http.HandleFunc("/currentInfoApi", currentInfoApi)
@@ -531,6 +532,70 @@ func localFontApi(w http.ResponseWriter, r *http.Request) {
 
 	// Write the JSON response
 	w.Write(jsonResponse)
+}
+
+// imageFileApi serves a local image file for display in the UI (thumbnails and
+// full-size popups). Saved wallpapers, originals and favorites live outside the
+// embedded static FS (under ~/.Metamorphoun and the bundled images dir), so we
+// serve them through this sandboxed handler.
+//
+// Security: the requested path is cleaned and must resolve inside one of the
+// allowed roots (the config dir and the executable's static images dir). This
+// prevents arbitrary local file reads over the loopback HTTP server.
+func imageFileApi(w http.ResponseWriter, r *http.Request) {
+	requested := r.URL.Query().Get("path")
+	if requested == "" {
+		http.Error(w, "missing path", http.StatusBadRequest)
+		return
+	}
+
+	// Resolve to an absolute, cleaned path.
+	absPath, err := filepath.Abs(filepath.Clean(requested))
+	if err != nil {
+		http.Error(w, "invalid path", http.StatusBadRequest)
+		return
+	}
+
+	// Only allow known image extensions.
+	switch strings.ToLower(filepath.Ext(absPath)) {
+	case ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp":
+	default:
+		http.Error(w, "unsupported file type", http.StatusForbidden)
+		return
+	}
+
+	// Sandbox: the file must live inside one of the allowed roots.
+	allowedRoots := []string{
+		GetFolderPath(enum.PathLoc.Config),                                        // ~/.Metamorphoun (saved wallpapers, favorites, caches)
+		filepath.Join(GetFolderPath(enum.PathLoc.Executable), "shared", "static"), // bundled originals (ChristianPD, JudaismPD)
+	}
+	permitted := false
+	for _, root := range allowedRoots {
+		if root == "" {
+			continue
+		}
+		absRoot, rootErr := filepath.Abs(root)
+		if rootErr != nil {
+			continue
+		}
+		rel, relErr := filepath.Rel(absRoot, absPath)
+		if relErr == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
+			permitted = true
+			break
+		}
+	}
+	if !permitted {
+		http.Error(w, "path not permitted", http.StatusForbidden)
+		return
+	}
+
+	info, statErr := os.Stat(absPath)
+	if statErr != nil || info.IsDir() {
+		http.NotFound(w, r)
+		return
+	}
+
+	http.ServeFile(w, r, absPath)
 }
 
 // getFontFiles returns a slice of all font file paths in the given directory

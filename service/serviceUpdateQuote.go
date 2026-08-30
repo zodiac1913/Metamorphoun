@@ -21,7 +21,6 @@ import (
 
 	"github.com/fogleman/gg"
 	"github.com/kbinani/screenshot"
-	"github.com/reujab/wallpaper"
 )
 
 func UpdateQuote(caller string) error {
@@ -157,8 +156,8 @@ func UpdateQuote(caller string) error {
 	}
 
 	// Per-screen: each screen gets its own random pic + random quote (fully independent)
-	if runtime.GOOS == "linux" && config.ConfigInstance.DifferentWallpaperPerScreen && screenshot.NumActiveDisplays() > 1 && SetPerScreenWallpapers != nil {
-		numDisplays := screenshot.NumActiveDisplays()
+	if runtime.GOOS == "linux" && config.ConfigInstance.DifferentWallpaperPerScreen && len(GetScreenInfo()) > 1 && SetPerScreenWallpapers != nil {
+		numDisplays := len(GetScreenInfo())
 		wallpaperPaths := make([]string, 0, numDisplays)
 		seenFingerprints := make(map[string]struct{}, numDisplays)
 
@@ -264,7 +263,7 @@ func UpdateQuote(caller string) error {
 	if config.ConfigInstance.PicUpdateCalled {
 		return nil
 	}
-	err = wallpaper.SetFromFile(fileLoc)
+	err = setWallpaper(fileLoc)
 	if err != nil {
 		fmt.Println("Failed to set wallpaper:", err)
 	} else {
@@ -461,19 +460,26 @@ func BeepHighTwice() {
 		//time.Sleep(time.Millisecond * 100) // Small delay between beeps
 	}
 }
-func GetScreenInfo() []screenInfo {
-	var screenInfoRange []screenInfo
+func GetScreenInfo() []ScreenInfo {
+	// Use the platform-provided implementation when registered (e.g. Linux
+	// Wayland via hyprctl, or Linux X11 via xrandr). Falls back to the
+	// kbinani/screenshot library for Windows, macOS, and any platform that
+	// hasn't registered an override.
+	if GetDisplayInfo != nil {
+		return GetDisplayInfo()
+	}
+	var screenInfoRange []ScreenInfo
 	displayCount := screenshot.NumActiveDisplays()
 	for i := 0; i < displayCount; i++ {
 		// Get the bounds of the display
 		bounds := screenshot.GetDisplayBounds(i)
 		width := bounds.Dx()  // Width of the display
 		height := bounds.Dy() // Height of the display
-		var screen screenInfo
+		var screen ScreenInfo
 		screen.Number = int16(i)
 		screen.Width = width
 		screen.Height = height
-		screenInfoRange = append([]screenInfo{screen}, screenInfoRange...)
+		screenInfoRange = append([]ScreenInfo{screen}, screenInfoRange...)
 	}
 	return screenInfoRange
 }

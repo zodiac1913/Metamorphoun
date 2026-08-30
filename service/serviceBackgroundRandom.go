@@ -30,6 +30,27 @@ import (
 var SetRandomQuote func(config.PicHistory, image.Image) (config.PicHistory, image.Image, error)
 var SetPerScreenWallpapers func([]string) error
 
+// SetSingleWallpaper may be registered by a platform-specific init() to
+// override the default wallpaper-setting behaviour for single-screen paths.
+// When nil, setWallpaper falls back to github.com/reujab/wallpaper.
+var SetSingleWallpaper func(string) error
+
+// GetDisplayInfo may be registered by a platform-specific init() to provide
+// screen geometry without using kbinani/screenshot (which requires X11 and
+// fails on Wayland). When nil, GetScreenInfo uses screenshot directly.
+var GetDisplayInfo func() []ScreenInfo
+
+// setWallpaper is the single call-site for setting a wallpaper file path.
+// It delegates to the platform-registered SetSingleWallpaper when available,
+// and falls back to reujab/wallpaper for macOS, Windows, and any Linux
+// environment that has not registered an override.
+func setWallpaper(path string) error {
+	if SetSingleWallpaper != nil {
+		return SetSingleWallpaper(path)
+	}
+	return wallpaper.SetFromFile(path)
+}
+
 var ErrBackgroundSourceRetry = errors.New("background source requires reroll")
 
 func BackgroundGenerate(caller string, currentPic config.PicHistory) error {
@@ -79,7 +100,7 @@ func BackgroundGenerate(caller string, currentPic config.PicHistory) error {
 			config.ConfigInstance.BackgroundChangeAttempt = 0
 			return nil
 		}
-		if runtime.GOOS == "linux" && config.ConfigInstance.DifferentWallpaperPerScreen && screenshot.NumActiveDisplays() > 1 && SetPerScreenWallpapers != nil {
+		if runtime.GOOS == "linux" && config.ConfigInstance.DifferentWallpaperPerScreen && len(GetScreenInfo()) > 1 && SetPerScreenWallpapers != nil {
 			err = saveLinuxWallpapersForAllScreens(wallpaperMain, currentPic, img, sourceExt)
 			if err != nil {
 				fmt.Println("Failed to set individual Linux wallpapers:", err)
@@ -152,7 +173,7 @@ func BackgroundGenerate(caller string, currentPic config.PicHistory) error {
 		fmt.Println("Attempting to set wallpaper from path:", fileLoc)
 		fmt.Println("Caller:", caller)
 		BeepHighTwice()
-		err = wallpaper.SetFromFile(fileLoc)
+		err = setWallpaper(fileLoc)
 		if err != nil {
 			fmt.Println("Failed to set wallpaper:", err)
 		} else {
@@ -364,7 +385,9 @@ func recordDarwinDistinctAsset(pic config.PicHistory, usedOrigins map[string]str
 }
 
 func saveLinuxWallpapersForAllScreens(wallpaperMain string, currentPic config.PicHistory, img image.Image, sourceExt string) error {
-	numDisplays := screenshot.NumActiveDisplays()
+	// Use GetScreenInfo() so this works on Wayland (via the platform-injected
+	// GetDisplayInfo) as well as X11 (via kbinani/screenshot fallback).
+	numDisplays := len(GetScreenInfo())
 	if numDisplays < 2 {
 		return fmt.Errorf("individual wallpapers requested without multiple displays")
 	}

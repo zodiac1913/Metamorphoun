@@ -120,6 +120,14 @@ func normalizeConfigDefaults(cfg *config.Config) {
 		saveNeeded = true
 	}
 
+	// On platforms that can't show a different wallpaper per screen (e.g.
+	// Omarchy/Hyprland, whose Quickshell background accepts one image), force
+	// the option off so the feature never runs and the UI can hide it.
+	if !config.PerScreenSupported && cfg.DifferentWallpaperPerScreen {
+		cfg.DifferentWallpaperPerScreen = false
+		saveNeeded = true
+	}
+
 	if saveNeeded {
 		config.SaveConfig(cfg)
 	}

@@ -114,6 +114,17 @@ export default class dynamite{
         });
         //End Web Actions
 
+        // Hide the "different picture per screen" toggle on platforms that
+        // can't support it (e.g. Omarchy/Hyprland). perScreenSupported is a
+        // runtime flag injected by the server into the config response; it is
+        // undefined on older backends, so treat only an explicit false as
+        // "unsupported" and leave the toggle visible otherwise.
+        if(config.perScreenSupported === false){
+            let perScreenEnvelope=document.querySelector("#differentWallpaperPerScreenEnvelope");
+            if(perScreenEnvelope){ perScreenEnvelope.classList.add("d-none"); }
+            let perScreenToggle=document.querySelector("#differentWallpaperPerScreen");
+            if(perScreenToggle){ perScreenToggle.checked=false; }
+        }
 
     }
 

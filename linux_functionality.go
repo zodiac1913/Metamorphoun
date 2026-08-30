@@ -2,6 +2,19 @@
 // +build linux
 
 // linux_functionality.go
+//
+// Generic Linux glue and the wallpaper dispatch layer. Environment/DE-specific
+// backends live in dedicated files organised by genre:
+//
+//	linux_detect / (this file)      — session + display detection, dispatch
+//	linux_distro_omarchy.go         — Omarchy / Hyprland / Quickshell
+//	linux_distro_gnome.go           — GNOME family (gsettings)
+//	linux_wallpaper_wayland.go      — Wayland single-screen dispatch
+//	linux_wallpaper_x11.go          — X11 single-screen dispatch
+//	linux_wallpaper_multiscreen.go  — X11 multi-screen (composite + xwallpaper)
+//
+// To support a new distro/compositor: add a linux_distro_<name>.go (and, if it
+// needs its own probe, a branch in the appropriate linux_wallpaper_*.go file).
 package main
 
 import (
@@ -14,24 +27,24 @@ import (
 	"encoding/json"
 	"fmt"
 	"image"
-	"image/draw"
 	_ "image/jpeg"
-	"image/png"
 	"log"
 	"math/rand"
 	"os"
 	"os/exec"
 	"os/user"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
-	"github.com/disintegration/imaging"
 	"github.com/fogleman/gg"
 )
 
 var mbcQuotes []byte
+
+// ---------------------------------------------------------------------------
+// Shared types for the Linux wallpaper backends
+// ---------------------------------------------------------------------------
 
 type linuxWallpaperModule struct {
 	name     string
@@ -55,52 +68,175 @@ type linuxWallpaperContext struct {
 	outputs     []linuxOutput
 }
 
-// linuxWallpaperModules is an ordered list of wallpaper backends. The first
+// linuxWallpaperModules is the ordered multi-screen backend table. The first
 // module whose supports() returns true handles the request. Composite modules
-// (which set a single spanned image via the desktop's settings daemon) are
-// listed first because desktops like Cinnamon and GNOME own the root window
-// and will overwrite anything set directly by root-window tools like
-// xwallpaper. The xwallpaper modules remain as a fallback for bare window
-// managers (i3, bspwm, openbox, etc.) that do not manage the background.
+// (single spanned image via the settings daemon) are listed first because
+// GNOME/Cinnamon own the root window and overwrite tools like xwallpaper.
+// Implementations live in linux_wallpaper_multiscreen.go.
 var linuxWallpaperModules = []linuxWallpaperModule{
-	{
-		name:     "cinnamon-gsettings-composite",
-		supports: supportsCinnamonGsettings,
-		apply:    applyCinnamonGsettingsComposite,
-	},
-	{
-		name:     "gnome-gsettings-composite",
-		supports: supportsGnomeGsettings,
-		apply:    applyGnomeGsettingsComposite,
-	},
-	{
-		name:     "gnome-x11-xwallpaper",
-		supports: supportsGnomeX11,
-		apply:    applyXwallpaperModule,
-	},
-	{
-		name:     "kde-x11-xwallpaper",
-		supports: supportsKDEX11,
-		apply:    applyXwallpaperModule,
-	},
-	{
-		name:     "cinnamon-x11-xwallpaper",
-		supports: supportsCinnamonX11,
-		apply:    applyXwallpaperModule,
-	},
-	{
-		name:     "ubuntu-family-x11-xwallpaper",
-		supports: supportsUbuntuFamilyX11,
-		apply:    applyXwallpaperModule,
-	},
+	{name: "cinnamon-gsettings-composite", supports: supportsCinnamonGsettings, apply: applyCinnamonGsettingsComposite},
+	{name: "gnome-gsettings-composite", supports: supportsGnomeGsettings, apply: applyGnomeGsettingsComposite},
+	{name: "gnome-x11-xwallpaper", supports: supportsGnomeX11, apply: applyXwallpaperModule},
+	{name: "kde-x11-xwallpaper", supports: supportsKDEX11, apply: applyXwallpaperModule},
+	{name: "cinnamon-x11-xwallpaper", supports: supportsCinnamonX11, apply: applyXwallpaperModule},
+	{name: "ubuntu-family-x11-xwallpaper", supports: supportsUbuntuFamilyX11, apply: applyXwallpaperModule},
 }
 
 func init() {
 	service.SetPerScreenWallpapers = setLinuxPerScreenWallpapersImpl
+	service.SetSingleWallpaper = setLinuxSingleWallpaperImpl
+	service.GetDisplayInfo = getLinuxDisplayInfo
+
+	// Omarchy's Quickshell background layer only accepts a single image, so the
+	// "different picture per screen" option can't work there. Mark it
+	// unsupported so the web UI hides the toggle. The config value itself is
+	// forced off in main() (ConfigInstance isn't set until then).
+	if isOmarchy() {
+		config.PerScreenSupported = false
+	}
+
 	loadMBCQuotes()
 }
 
+// ---------------------------------------------------------------------------
+// Display detection
+// ---------------------------------------------------------------------------
+
+// getLinuxDisplayInfo returns screen geometry without using kbinani/screenshot,
+// which requires X11 and spams XGB errors on Wayland.
+//
+//	Wayland (Hyprland): hyprctl monitors -j  (see linux_distro_omarchy.go)
+//	X11 / fallback:     xrandr --query
+//	last resort:        one 1920x1080 entry so callers indexing [0] never panic
+func getLinuxDisplayInfo() []service.ScreenInfo {
+	sessionType := detectLinuxSessionTypeRobust()
+	if sessionType == "wayland" {
+		if screens, err := getDisplaysFromHyprctl(); err == nil && len(screens) > 0 {
+			return screens
+		}
+	}
+	if screens, err := getDisplaysFromXrandr(); err == nil && len(screens) > 0 {
+		return screens
+	}
+	fmt.Println("[display] could not detect displays; assuming 1920x1080")
+	return []service.ScreenInfo{{Number: 0, Width: 1920, Height: 1080}}
+}
+
+// getDisplaysFromXrandr parses `xrandr --query` for connected display geometry.
+// Uses parseXRandRGeometry / getXRandROutputs are in the multiscreen file; here
+// we only need width/height for text layout, so we parse directly.
+func getDisplaysFromXrandr() ([]service.ScreenInfo, error) {
+	if _, err := exec.LookPath("xrandr"); err != nil {
+		return nil, fmt.Errorf("xrandr not found")
+	}
+	out, err := exec.Command("xrandr", "--query").Output()
+	if err != nil {
+		return nil, fmt.Errorf("xrandr --query failed: %w", err)
+	}
+
+	screens := make([]service.ScreenInfo, 0)
+	idx := 0
+	for _, line := range strings.Split(string(out), "\n") {
+		if !strings.Contains(line, " connected") {
+			continue
+		}
+		fields := strings.Fields(line)
+		for _, field := range fields[1:] {
+			if w, h, _, _, ok := parseXRandRGeometry(field); ok {
+				screens = append(screens, service.ScreenInfo{Number: int16(idx), Width: w, Height: h})
+				idx++
+				break
+			}
+		}
+	}
+	fmt.Printf("[display] xrandr: found %d monitor(s)\n", len(screens))
+	return screens, nil
+}
+
+// detectLinuxSessionTypeRobust determines the session type without relying
+// solely on environment variables, which are often absent when the app is
+// launched outside the desktop session.
+//
+// Order (most reliable → least):
+//  1. HYPRLAND_INSTANCE_SIGNATURE env var (set by Hyprland in child processes)
+//  2. Hyprland runtime socket on disk (/run/user/<uid>/hypr/*)
+//  3. WAYLAND_DISPLAY env var
+//  4. XDG_SESSION_TYPE env var
+//  5. DISPLAY env var → x11
+func detectLinuxSessionTypeRobust() string {
+	if os.Getenv("HYPRLAND_INSTANCE_SIGNATURE") != "" {
+		return "wayland"
+	}
+	uid := fmt.Sprintf("%d", os.Getuid())
+	hyprDir := filepath.Join("/run/user", uid, "hypr")
+	if entries, err := os.ReadDir(hyprDir); err == nil && len(entries) > 0 {
+		return "wayland"
+	}
+	if os.Getenv("WAYLAND_DISPLAY") != "" {
+		return "wayland"
+	}
+	if st := strings.ToLower(os.Getenv("XDG_SESSION_TYPE")); st != "" {
+		return st
+	}
+	if os.Getenv("DISPLAY") != "" {
+		return "x11"
+	}
+	return "unknown"
+}
+
+// ---------------------------------------------------------------------------
+// Wallpaper dispatch
+// ---------------------------------------------------------------------------
+
+// setLinuxSingleWallpaperImpl routes a single-screen wallpaper request to the
+// Wayland or X11 backend based on detected session type. Implementations are
+// in linux_wallpaper_wayland.go and linux_wallpaper_x11.go.
+func setLinuxSingleWallpaperImpl(filePath string) error {
+	sessionType := detectLinuxSessionTypeRobust()
+	fmt.Printf("[wallpaper] session type detected: %q  file: %s\n", sessionType, filePath)
+	if sessionType == "wayland" {
+		return setWaylandWallpaper(filePath)
+	}
+	return setX11Wallpaper(filePath)
+}
+
+// setLinuxPerScreenWallpapersImpl handles the "different wallpaper per screen"
+// mode. Omarchy/Quickshell renders per-monitor itself, so we just hand it the
+// primary image. Other X11 desktops go through the linuxWallpaperModules table.
 func setLinuxPerScreenWallpapersImpl(wallpaperPaths []string) error {
+	if len(wallpaperPaths) == 0 {
+		return fmt.Errorf("no wallpaper paths provided")
+	}
+
+	// Omarchy / Quickshell (Wayland). Quickshell only accepts a single
+	// background image and paints it on every monitor, so to show a different
+	// picture per screen we composite the per-screen images into one spanned
+	// PNG sized to the whole virtual desktop (using Hyprland's monitor
+	// geometry), then hand that single image to omarchy-theme-bg-set.
+	if _, err := exec.LookPath("omarchy-theme-bg-set"); err == nil {
+		outputs, geoErr := getOutputsFromHyprctl()
+		var bgPath string
+		if geoErr == nil && len(outputs) > 1 && len(wallpaperPaths) > 1 {
+			fmt.Printf("[wallpaper] per-screen: compositing %d images across %d monitors\n", len(wallpaperPaths), len(outputs))
+			composite, buildErr := buildCompositeWallpaper(outputs, wallpaperPaths)
+			if buildErr != nil {
+				fmt.Printf("[wallpaper] composite failed, falling back to single image: %v\n", buildErr)
+				bgPath = wallpaperPaths[0]
+			} else {
+				bgPath = composite
+			}
+		} else {
+			// Single monitor, or geometry unavailable: use the first image.
+			bgPath = wallpaperPaths[0]
+		}
+		out, err := exec.Command("omarchy-theme-bg-set", bgPath).CombinedOutput()
+		if err != nil {
+			return fmt.Errorf("omarchy-theme-bg-set failed: %w: %s", err, strings.TrimSpace(string(out)))
+		}
+		fmt.Println("[wallpaper] per-screen: omarchy-theme-bg-set OK")
+		return nil
+	}
+
 	ctx, err := detectLinuxWallpaperContext()
 	if err != nil {
 		return err
@@ -113,13 +249,14 @@ func setLinuxPerScreenWallpapersImpl(wallpaperPaths []string) error {
 	return fmt.Errorf("no Linux wallpaper module for distro %s desktop %v on %s", ctx.distroID, ctx.desktops, ctx.sessionType)
 }
 
+// detectLinuxWallpaperContext builds the context used by the multi-screen
+// module table. Multi-screen currently requires X11.
 func detectLinuxWallpaperContext() (linuxWallpaperContext, error) {
 	ctx := linuxWallpaperContext{}
 	releaseData, err := os.ReadFile("/etc/os-release")
 	if err != nil {
 		return ctx, fmt.Errorf("failed to read /etc/os-release: %w", err)
 	}
-
 	for _, line := range strings.Split(string(releaseData), "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" || strings.HasPrefix(line, "#") {
@@ -152,10 +289,11 @@ func detectLinuxWallpaperContext() (linuxWallpaperContext, error) {
 	if len(ctx.outputs) == 0 {
 		return ctx, fmt.Errorf("xrandr returned no connected outputs")
 	}
-
 	return ctx, nil
 }
 
+// detectLinuxSessionType is the simple env-var based check used for the
+// multi-screen (X11-only) path.
 func detectLinuxSessionType() string {
 	sessionType := strings.ToLower(os.Getenv("XDG_SESSION_TYPE"))
 	if sessionType == "" && os.Getenv("DISPLAY") != "" {
@@ -198,276 +336,9 @@ func splitDesktopNames(source string) []string {
 	return results
 }
 
-func supportsGnomeX11(ctx linuxWallpaperContext) bool {
-	return supportsDesktopFamilyX11(ctx, "gnome", "ubuntu")
-}
-
-func supportsKDEX11(ctx linuxWallpaperContext) bool {
-	return supportsDesktopFamilyX11(ctx, "kde", "plasma")
-}
-
-func supportsCinnamonX11(ctx linuxWallpaperContext) bool {
-	return supportsDesktopFamilyX11(ctx, "cinnamon")
-}
-
-func supportsUbuntuFamilyX11(ctx linuxWallpaperContext) bool {
-	if ctx.sessionType != "x11" {
-		return false
-	}
-	if ctx.distroID == "ubuntu" || ctx.distroID == "linuxmint" || ctx.distroID == "mint" {
-		return true
-	}
-	for _, like := range ctx.idLike {
-		if like == "ubuntu" || like == "debian" {
-			return true
-		}
-	}
-	return false
-}
-
-func supportsDesktopFamilyX11(ctx linuxWallpaperContext, families ...string) bool {
-	if ctx.sessionType != "x11" {
-		return false
-	}
-	for _, desktop := range ctx.desktops {
-		for _, family := range families {
-			if desktop == family || strings.HasPrefix(desktop, family+"-") {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-// supportsCinnamonGsettings reports whether the Cinnamon desktop (Linux Mint's
-// default) is running. Cinnamon owns the root window through its settings
-// daemon, so the composite-via-gsettings backend is required; xwallpaper does
-// not stick.
-func supportsCinnamonGsettings(ctx linuxWallpaperContext) bool {
-	if !hasGsettings() {
-		return false
-	}
-	return desktopMatches(ctx, "cinnamon")
-}
-
-// supportsGnomeGsettings reports whether a GNOME-based desktop is running.
-// GNOME (and Ubuntu's GNOME session) also manages the background itself.
-func supportsGnomeGsettings(ctx linuxWallpaperContext) bool {
-	if !hasGsettings() {
-		return false
-	}
-	return desktopMatches(ctx, "gnome", "ubuntu", "unity")
-}
-
-// desktopMatches reports whether any detected desktop belongs to one of the
-// given families. Unlike supportsDesktopFamilyX11 it does not require X11,
-// leaving room for future Wayland-capable composite backends.
-func desktopMatches(ctx linuxWallpaperContext, families ...string) bool {
-	for _, desktop := range ctx.desktops {
-		for _, family := range families {
-			if desktop == family || strings.HasPrefix(desktop, family+"-") {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func hasGsettings() bool {
-	_, err := exec.LookPath("gsettings")
-	return err == nil
-}
-
-// applyCinnamonGsettingsComposite builds one spanned image for the whole
-// virtual desktop and applies it through Cinnamon's gsettings schema.
-func applyCinnamonGsettingsComposite(ctx linuxWallpaperContext, wallpaperPaths []string) error {
-	return applyGsettingsComposite(ctx, wallpaperPaths, "org.cinnamon.desktop.background")
-}
-
-// applyGnomeGsettingsComposite does the same for the GNOME schema.
-func applyGnomeGsettingsComposite(ctx linuxWallpaperContext, wallpaperPaths []string) error {
-	return applyGsettingsComposite(ctx, wallpaperPaths, "org.gnome.desktop.background")
-}
-
-// applyGsettingsComposite composites each display's wallpaper onto a single
-// canvas sized to the full virtual desktop, writes it to disk, and points the
-// desktop's background schema at it using the "spanned" layout. This produces
-// distinct art per monitor on desktops that only accept a single background
-// image.
-func applyGsettingsComposite(ctx linuxWallpaperContext, wallpaperPaths []string, schema string) error {
-	if len(wallpaperPaths) == 0 {
-		return fmt.Errorf("no wallpaper paths provided")
-	}
-	if len(ctx.outputs) == 0 {
-		return fmt.Errorf("no connected outputs detected")
-	}
-
-	compositePath, err := buildCompositeWallpaper(ctx.outputs, wallpaperPaths)
-	if err != nil {
-		return err
-	}
-
-	uri := "file://" + compositePath
-	if out, err := exec.Command("gsettings", "set", schema, "picture-options", "spanned").CombinedOutput(); err != nil {
-		return fmt.Errorf("gsettings set picture-options failed: %w: %s", err, strings.TrimSpace(string(out)))
-	}
-	if out, err := exec.Command("gsettings", "set", schema, "picture-uri", uri).CombinedOutput(); err != nil {
-		return fmt.Errorf("gsettings set picture-uri failed: %w: %s", err, strings.TrimSpace(string(out)))
-	}
-	// GNOME 42+ honors picture-uri-dark for the dark theme; set it too when the
-	// key exists so the wallpaper applies regardless of theme. Failure here is
-	// non-fatal (Cinnamon has no such key).
-	_ = exec.Command("gsettings", "set", schema, "picture-uri-dark", uri).Run()
-	return nil
-}
-
-// buildCompositeWallpaper assembles a single image spanning the entire virtual
-// desktop. Each output's assigned wallpaper is scaled to fill that monitor's
-// rectangle and drawn at the monitor's pixel offset. Returns the path to the
-// written composite PNG.
-func buildCompositeWallpaper(outputs []linuxOutput, wallpaperPaths []string) (string, error) {
-	// Determine the bounding box of all outputs.
-	maxX, maxY := 0, 0
-	for _, out := range outputs {
-		if out.width <= 0 || out.height <= 0 {
-			return "", fmt.Errorf("output %s has unknown geometry; cannot composite", out.name)
-		}
-		if right := out.x + out.width; right > maxX {
-			maxX = right
-		}
-		if bottom := out.y + out.height; bottom > maxY {
-			maxY = bottom
-		}
-	}
-	if maxX <= 0 || maxY <= 0 {
-		return "", fmt.Errorf("invalid virtual desktop size %dx%d", maxX, maxY)
-	}
-
-	canvas := image.NewRGBA(image.Rect(0, 0, maxX, maxY))
-
-	for index, out := range outputs {
-		pathIndex := index
-		if pathIndex >= len(wallpaperPaths) {
-			pathIndex = len(wallpaperPaths) - 1
-		}
-		srcFile, err := os.Open(wallpaperPaths[pathIndex])
-		if err != nil {
-			return "", fmt.Errorf("failed to open wallpaper %s: %w", wallpaperPaths[pathIndex], err)
-		}
-		srcImg, _, decodeErr := image.Decode(srcFile)
-		srcFile.Close()
-		if decodeErr != nil {
-			return "", fmt.Errorf("failed to decode wallpaper %s: %w", wallpaperPaths[pathIndex], decodeErr)
-		}
-
-		// Scale-to-fill the monitor rectangle (crop overflow, no distortion).
-		filled := imaging.Fill(srcImg, out.width, out.height, imaging.Center, imaging.Lanczos)
-		destRect := image.Rect(out.x, out.y, out.x+out.width, out.y+out.height)
-		draw.Draw(canvas, destRect, filled, image.Point{}, draw.Src)
-	}
-
-	compositePath := filepath.Join(GetFolderPath(enum.PathLoc.Config), "linux-composite-wallpaper.png")
-	outFile, err := os.Create(compositePath)
-	if err != nil {
-		return "", fmt.Errorf("failed to create composite wallpaper file: %w", err)
-	}
-	defer outFile.Close()
-	if err := png.Encode(outFile, canvas); err != nil {
-		return "", fmt.Errorf("failed to encode composite wallpaper: %w", err)
-	}
-	return compositePath, nil
-}
-
-func applyXwallpaperModule(ctx linuxWallpaperContext, wallpaperPaths []string) error {
-	if _, err := exec.LookPath("xwallpaper"); err != nil {
-		return fmt.Errorf("xwallpaper is required for Linux multi-screen wallpapers: %w", err)
-	}
-	if len(wallpaperPaths) == 0 {
-		return fmt.Errorf("no wallpaper paths provided")
-	}
-
-	args := make([]string, 0, len(ctx.outputs)*4)
-	for index, output := range ctx.outputs {
-		pathIndex := index
-		if pathIndex >= len(wallpaperPaths) {
-			pathIndex = len(wallpaperPaths) - 1
-		}
-		args = append(args, "--output", output.name, "--zoom", wallpaperPaths[pathIndex])
-	}
-
-	cmd := exec.Command("xwallpaper", args...)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("xwallpaper failed: %w: %s", err, strings.TrimSpace(string(output)))
-	}
-	return nil
-}
-
-// getXRandROutputs enumerates connected displays along with their pixel
-// geometry (resolution and position within the virtual X screen). The geometry
-// is needed to composite per-screen wallpapers into a single spanned image for
-// desktops that only accept one background image.
-func getXRandROutputs() ([]linuxOutput, error) {
-	if _, err := exec.LookPath("xrandr"); err != nil {
-		return nil, fmt.Errorf("xrandr is required to enumerate Linux displays: %w", err)
-	}
-
-	cmd := exec.Command("xrandr", "--query")
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return nil, fmt.Errorf("xrandr failed: %w: %s", err, strings.TrimSpace(string(output)))
-	}
-
-	outputs := make([]linuxOutput, 0)
-	for _, line := range strings.Split(string(output), "\n") {
-		if !strings.Contains(line, " connected") {
-			continue
-		}
-		fields := strings.Fields(line)
-		if len(fields) == 0 {
-			continue
-		}
-		out := linuxOutput{name: fields[0]}
-		// Find the geometry token, e.g. "1920x1080+1920+0". It is the first
-		// field matching WxH+X+Y; "primary" and other flags are skipped.
-		for _, field := range fields[1:] {
-			if w, h, x, y, ok := parseXRandRGeometry(field); ok {
-				out.width, out.height, out.x, out.y = w, h, x, y
-				break
-			}
-		}
-		outputs = append(outputs, out)
-	}
-
-	return outputs, nil
-}
-
-// parseXRandRGeometry parses an xrandr geometry token of the form
-// "1920x1080+1920+0" into its width, height and x/y offsets.
-func parseXRandRGeometry(token string) (width, height, x, y int, ok bool) {
-	// Expected layout: <w>x<h>+<x>+<y>
-	xIndex := strings.IndexByte(token, 'x')
-	plusIndex := strings.IndexByte(token, '+')
-	if xIndex <= 0 || plusIndex <= xIndex {
-		return 0, 0, 0, 0, false
-	}
-	rest := token[plusIndex:] // "+1920+0"
-	offsets := strings.Split(strings.TrimPrefix(rest, "+"), "+")
-	if len(offsets) != 2 {
-		return 0, 0, 0, 0, false
-	}
-	w, errW := strconv.Atoi(token[:xIndex])
-	h, errH := strconv.Atoi(token[xIndex+1 : plusIndex])
-	px, errX := strconv.Atoi(offsets[0])
-	py, errY := strconv.Atoi(offsets[1])
-	if errW != nil || errH != nil || errX != nil || errY != nil {
-		return 0, 0, 0, 0, false
-	}
-	if w <= 0 || h <= 0 {
-		return 0, 0, 0, 0, false
-	}
-	return w, h, px, py, true
-}
+// ---------------------------------------------------------------------------
+// Generic Linux glue (quotes, startup, paths, fonts, lock screen)
+// ---------------------------------------------------------------------------
 
 func loadMBCQuotes() {
 	mbcData, err := shared.GetStaticFSQuotes("quotes/mbc.json")
@@ -583,8 +454,6 @@ func findFonts(currentPic config.PicHistory) (float64, string, bool, config.PicH
 		if err != nil {
 			continue
 		}
-
-		// Walk through directory recursively
 		filepath.Walk(expandedDir, func(path string, info os.FileInfo, err error) error {
 			if err == nil && !info.IsDir() && (filepath.Ext(path) == ".ttf" || filepath.Ext(path) == ".otf") {
 				foundFonts = append(foundFonts, path)
@@ -594,8 +463,6 @@ func findFonts(currentPic config.PicHistory) (float64, string, bool, config.PicH
 	}
 
 	if config.ConfigInstance.QuoteFontRandom {
-
-		// Select a random valid font
 		fileRnd := rand.Intn(len(foundFonts))
 		fontPath := foundFonts[fileRnd]
 		lEntry := morphLog.LogItem{
@@ -615,7 +482,6 @@ func findFonts(currentPic config.PicHistory) (float64, string, bool, config.PicH
 		} else {
 			fontPath = foundFonts[0]
 		}
-
 	}
 	fmt.Println("Selected font:", fontPath)
 	currentPic.QuoteFont = fontPath
@@ -721,13 +587,11 @@ func SetRandomQuote(currentPic config.PicHistory, img image.Image) (config.PicHi
 		return currentPic, img, err
 	}
 	currentPic = currPic2
-	//dc.SetColor(color.White)
 
 	service.DrawQuoteText(dc, wrappedQuoteText, authorText, textBlockX, textBlockY, textBoxWidth)
 
 	imgWithQuote := dc.Image()
 	return currentPic, imgWithQuote, err
-
 }
 
 func ChangeLockScreen(pic config.PicHistory) error {

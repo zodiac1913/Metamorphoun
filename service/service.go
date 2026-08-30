@@ -455,7 +455,7 @@ func saveImage(img image.Image, fileName string) {
 	saveImg(img, fileIn)
 }
 
-type screenInfo struct {
+type ScreenInfo struct {
 	Number int16 `json:"number"`
 	Width  int   `json:"width"`
 	Height int   `json:"height"`

@@ -47,7 +47,7 @@ func UpdateLogs(entry LogItem) []LogItem {
 	// Read and parse the log file
 	logItems, err := getLog(logFilePath)
 	if err != nil {
-		fmt.Errorf("failed to read log file: %w", err)
+		fmt.Printf("morphLog: failed to read log file %s: %v\n", logFilePath, err)
 	}
 
 	// Insert the new log entry at the first position
@@ -56,13 +56,14 @@ func UpdateLogs(entry LogItem) []LogItem {
 	// Marshal the updated log items to JSON
 	data, err := json.Marshal(logItems)
 	if err != nil {
-		fmt.Errorf("failed to marshal JSON: %w", err)
+		fmt.Printf("morphLog: failed to marshal JSON: %v\n", err)
+		return logItems
 	}
 
 	// Write the updated JSON data back to the file
 	err = os.WriteFile(logFilePath, data, 0644)
 	if err != nil {
-		fmt.Errorf("failed to write file: %w", err)
+		fmt.Printf("morphLog: failed to write log file %s: %v\n", logFilePath, err)
 	}
 
 	return logItems

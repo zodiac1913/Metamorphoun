@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/fogleman/gg"
-	"github.com/reujab/wallpaper"
 )
 
 func RecallBackground(caller string, pastImg int32) error {
@@ -133,7 +132,7 @@ func BackgroundSet(caller string, currentPic config.PicHistory) error {
 		// Set the wallpaper
 		fmt.Println("Attempting to set wallpaper from path:", fileLoc)
 		fmt.Println("Caller:", caller)
-		err = wallpaper.SetFromFile(fileLoc)
+		err = setWallpaper(fileLoc)
 		if err != nil {
 			fmt.Println("Failed to set wallpaper:", err)
 		} else {

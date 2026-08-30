@@ -365,6 +365,18 @@ func configApi(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Inject runtime-only platform capability flags into the response without
+	// touching the persisted config struct. The web UI uses perScreenSupported
+	// to hide the "different picture per screen" toggle where it does nothing
+	// (e.g. Omarchy/Hyprland).
+	var responseMap map[string]interface{}
+	if err := json.Unmarshal(jsonData, &responseMap); err == nil {
+		responseMap["perScreenSupported"] = config.PerScreenSupported
+		if enriched, mErr := json.Marshal(responseMap); mErr == nil {
+			jsonData = enriched
+		}
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	_, err = w.Write(jsonData)
 	if err != nil {

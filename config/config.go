@@ -141,6 +141,15 @@ type PicHistoryVortex struct {
 
 var ConfigInstance *Config
 
+// PerScreenSupported reports whether the current platform can display a
+// different wallpaper on each screen. It defaults to true so Windows, macOS,
+// and standard Linux desktops are unaffected. A platform-specific init() may
+// set it to false (e.g. Omarchy/Hyprland, whose Quickshell background layer
+// only accepts a single image). It is a runtime flag and is never persisted
+// to the config file; the server injects it into the /configApi response so
+// the web UI can hide the per-screen toggle where it does nothing.
+var PerScreenSupported = true
+
 var (
 	loadedConfig *Config
 	loadOnce     sync.Once

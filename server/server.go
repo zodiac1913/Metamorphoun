@@ -39,6 +39,29 @@ var (
 	heartbeatMu   sync.Mutex
 )
 
+func effectiveCurrentPerScreenPics(cfg *config.Config) []config.PicHistory {
+	if cfg == nil || !cfg.DifferentWallpaperPerScreen {
+		return nil
+	}
+	if len(cfg.PicHistories) > 0 && len(cfg.PicHistories[0].PerScreenPics) > 1 {
+		return cfg.PicHistories[0].PerScreenPics
+	}
+	if runtime.GOOS == "darwin" && len(cfg.DarwinPerScreenPicHistories) > 1 {
+		return cfg.DarwinPerScreenPicHistories
+	}
+	return nil
+}
+
+func enrichCurrentPerScreenPics(cfg *config.Config) {
+	if cfg == nil || len(cfg.PicHistories) == 0 {
+		return
+	}
+	perScreenPics := effectiveCurrentPerScreenPics(cfg)
+	if len(perScreenPics) > 1 {
+		cfg.PicHistories[0].PerScreenPics = perScreenPics
+	}
+}
+
 // HasRecentHeartbeat returns true if a browser tab has sent a heartbeat
 // within the given duration.
 func HasRecentHeartbeat(within time.Duration) bool {
@@ -359,6 +382,7 @@ func configApi(w http.ResponseWriter, r *http.Request) {
 		responseConfig.Images[idx].HasAPIKey = responseConfig.Images[idx].APIKey != ""
 		responseConfig.Images[idx].APIKey = ""
 	}
+	enrichCurrentPerScreenPics(&responseConfig)
 	jsonData, err = json.Marshal(responseConfig)
 	if err != nil {
 		http.Error(w, "Failed to prepare config response", http.StatusInternalServerError)
@@ -796,6 +820,9 @@ func currentInfoApi(w http.ResponseWriter, r *http.Request) {
 		config.ConfigInstance.PicHistories = append(config.ConfigInstance.PicHistories, picHistory)
 	}
 	var picHist = config.ConfigInstance.PicHistories[0]
+	if perScreenPics := effectiveCurrentPerScreenPics(config.ConfigInstance); len(perScreenPics) > 1 {
+		picHist.PerScreenPics = perScreenPics
+	}
 	w.Header().Set("Content-Type", "application/json")
 
 	// Wrap response so the frontend can see picUpdateCalled for progress-bar sync

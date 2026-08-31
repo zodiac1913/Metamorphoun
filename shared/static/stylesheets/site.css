@@ -188,12 +188,158 @@ because the nesting selector cannot represent pseudo-elements. */
   border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
+.picVariantStack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.picVariantGrid {
+  display: grid;
+  grid-template-columns: minmax(110px, 140px) minmax(220px, 1fr) minmax(110px, 140px);
+  gap: 0.9rem;
+  align-items: start;
+}
+
+.picStripLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.picStripGroup {
+  min-width: 0;
+}
+
+.picStripGroupOriginal {
+  justify-self: start;
+}
+
+.picStripGroupAltered {
+  justify-self: end;
+}
+
+.picStripRow {
+  display: flex;
+  gap: 0.55rem;
+  align-items: flex-start;
+  flex-wrap: nowrap;
+}
+
+.picStripRowOriginal {
+  justify-content: flex-start;
+}
+
+.picStripRowAltered {
+  justify-content: flex-end;
+}
+
+.picStripItem {
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+  flex: 1 1 0;
+}
+
+.picScreenInfoList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.picScreenInfoRow {
+  display: grid;
+  grid-template-columns: auto auto auto minmax(0, 1fr) auto auto;
+  gap: 0.55rem;
+  align-items: center;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid rgb(255 255 255 / 10%);
+  border-radius: 0.5rem;
+  background-color: rgb(255 255 255 / 5%);
+}
+
+.picScreenInfoIndex,
+.picScreenInfoLabel,
+.picScreenInfoSource,
+.picScreenInfoFilter {
+  white-space: nowrap;
+}
+
+.picScreenInfoIndex {
+  color: #7fffd4;
+  font-weight: 700;
+}
+
+.picScreenInfoLabel {
+  color: #ffd27f;
+  font-weight: 700;
+}
+
+.picScreenInfoSource {
+  color: #ffa07a;
+}
+
+.picScreenInfoFile {
+  min-width: 0;
+  color: #d8e6ff;
+  overflow-wrap: anywhere;
+}
+
+.picScreenInfoFilter {
+  color: #ffe16a;
+}
+
+.picVariantColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.picVariantColumnItem {
+  display: flex;
+  justify-content: center;
+}
+
+.picVariantMetaStack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.picVariantMetaLine {
+  padding: 0.4rem 0.55rem;
+  border: 1px solid rgb(255 255 255 / 10%);
+  border-radius: 0.5rem;
+  background-color: rgb(255 255 255 / 5%);
+}
+
+.picVariantRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.picVariantMeta {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .copyPathBtn {
   color: #7fffd4;
   vertical-align: baseline;
 }
 .copyPathBtn:hover {
   color: #ffffff;
+}
+
+@media (max-width: 767.98px) {
+  .picThumb {
+    width: 48px;
+    height: 72px;
+  }
 }
 
 /* Compact inline info chips: each takes only the space it needs and wraps. */
@@ -213,6 +359,37 @@ because the nesting selector cannot represent pseudo-elements. */
   max-height: calc(100vh - 12rem);
   overflow-y: auto;
   padding-right: 0.5rem;
+}
+
+@media (max-width: 480px) {
+  .picVariantGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .picStripLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .picStripRow {
+    flex-wrap: wrap;
+  }
+
+  .picScreenInfoRow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .picVariantColumn {
+    align-items: center;
+  }
+
+  .picVariantRow {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .picVariantMeta {
+    width: 100%;
+  }
 }
 
 /* Full-size image popup overlay with top-right close */

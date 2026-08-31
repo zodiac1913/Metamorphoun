@@ -71,30 +71,18 @@ func (s *Service) Start() error {
 }
 
 func removeAllPic0s() error {
-	//Delete all files in the picture folder with pic0*.*
-	wallpaperMain := GetFolderPath(enum.PathLoc.Config)
-	//wallpaperFavs := filepath.Join(usr.HomeDir, ".Metamorphoun", "Favorites")
-	pic0Files, err := filepath.Glob(filepath.Join(wallpaperMain, "pic*.*"))
-	if err != nil {
-		fmt.Println("Error finding pic0 files:", err)
-	}
-	for _, file := range pic0Files {
-		err = os.Remove(file)
-		if err != nil {
-			fmt.Println("Error deleting pic0 file:", err)
-		}
-	}
-	pic1Files, err := filepath.Glob(filepath.Join(wallpaperMain, "btrfly*.*"))
-	if err != nil {
-		fmt.Println("Error finding btrfly files:", err)
-	}
-	for _, file := range pic1Files {
-		err = os.Remove(file)
-		if err != nil {
-			fmt.Println("Error deleting btrfly file:", err)
-		}
-	}
+	// History entries now retain their own generated wallpaper files until they
+	// age beyond the 10-item stack and are cleaned up by config.AddPicHistory.
+	// Broad pre-save deletion here was removing still-referenced history files.
 	return nil
+}
+
+func retainedWallpaperPath(sourceExt string) string {
+	if sourceExt == "" {
+		sourceExt = ".png"
+	}
+	wallpaperMain := GetFolderPath(enum.PathLoc.Config)
+	return filepath.Join(wallpaperMain, fmt.Sprintf("wallpaper-%d%s", time.Now().UnixNano(), sourceExt))
 }
 
 // Choose the scaling choice and scale image

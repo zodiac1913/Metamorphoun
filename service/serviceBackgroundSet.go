@@ -96,7 +96,6 @@ func BackgroundSet(caller string, currentPic config.PicHistory) error {
 	}
 	//Step 6: Save the image
 	removeAllPic0s()
-	wallpaperMain := GetFolderPath(enum.PathLoc.Config)
 
 	sourceExt = filepath.Ext(currentPic.OriginName)
 	if sourceExt == "" {
@@ -111,11 +110,21 @@ func BackgroundSet(caller string, currentPic config.PicHistory) error {
 		fileName := filepath.Base(dt + sourceExt)
 		fileLoc := filepath.Join(GetFolderPath(enum.PathLoc.FavWithoutQuote), fileName)
 		saveImg(img, fileLoc)
-		config.ConfigInstance.PicHistories[0] = currentPic
+		currentPic.PerScreenPics = nil
+		if err := config.UpdateConfig(func(cfg *config.Config) error {
+			if len(cfg.PicHistories) == 0 {
+				cfg.PicHistories = append(cfg.PicHistories, currentPic)
+			} else {
+				cfg.PicHistories[0] = currentPic
+			}
+			return nil
+		}); err != nil {
+			return err
+		}
 		return nil
 	} else {
-		currentPic.SaveName = filepath.Join(wallpaperMain, "pic0"+sourceExt)
-		config.ConfigInstance.PicHistories[0] = currentPic
+		currentPic.SaveName = retainedWallpaperPath(sourceExt)
+		currentPic.PerScreenPics = nil
 		fileLoc := currentPic.SaveName
 
 		// Save the resulting image to the bufferPic path
@@ -139,7 +148,17 @@ func BackgroundSet(caller string, currentPic config.PicHistory) error {
 			fmt.Println("Wallpaper set successfully!")
 		}
 		//Step 6: Save the image
-		config.ConfigInstance.PicUpdateCalled = false
+		if err := config.UpdateConfig(func(cfg *config.Config) error {
+			if len(cfg.PicHistories) == 0 {
+				cfg.PicHistories = append(cfg.PicHistories, currentPic)
+			} else {
+				cfg.PicHistories[0] = currentPic
+			}
+			cfg.PicUpdateCalled = false
+			return nil
+		}); err != nil {
+			return err
+		}
 
 		return nil
 	}

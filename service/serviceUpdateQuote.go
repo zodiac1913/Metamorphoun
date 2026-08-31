@@ -165,6 +165,9 @@ func UpdateQuote(caller string) error {
 		firstPath := filepath.Join(wallpaperMain, fmt.Sprintf("linux-screen-0-q%s", sourceExt))
 		saveImageForDisplay(img, firstPath, 0)
 		wallpaperPaths = append(wallpaperPaths, firstPath)
+		perScreenPics := []config.PicHistory{}
+		currentPic.SaveName = firstPath
+		perScreenPics = append(perScreenPics, currentPic)
 		if fp, fpErr := wallpaperAssetFingerprint(currentPic, img); fpErr == nil {
 			seenFingerprints[fp] = struct{}{}
 		}
@@ -175,14 +178,14 @@ func UpdateQuote(caller string) error {
 			if genErr != nil || nextImg == nil {
 				return fmt.Errorf("display %d: independent generation failed: %w", displayIndex, genErr)
 			}
-			_ = nextPic
 			nextPath := filepath.Join(wallpaperMain, fmt.Sprintf("linux-screen-%d-q%s", displayIndex, nextExt))
 			saveImageForDisplay(nextImg, nextPath, displayIndex)
+			nextPic.SaveName = nextPath
 			wallpaperPaths = append(wallpaperPaths, nextPath)
+			perScreenPics = append(perScreenPics, nextPic)
 		}
 
-		currentPic.SaveName = firstPath
-		config.ConfigInstance.PicHistories[0] = currentPic
+		currentPic = attachPerScreenPics(currentPic, perScreenPics)
 		if config.ConfigInstance.PicUpdateCalled {
 			return nil
 		}
@@ -190,6 +193,16 @@ func UpdateQuote(caller string) error {
 		if perScreenErr != nil {
 			fmt.Println("UpdateQuote: per-screen wallpaper failed, falling back to single:", perScreenErr)
 		} else {
+			if err := config.UpdateConfig(func(cfg *config.Config) error {
+				if len(cfg.PicHistories) == 0 {
+					cfg.PicHistories = append(cfg.PicHistories, currentPic)
+				} else {
+					cfg.PicHistories[0] = currentPic
+				}
+				return nil
+			}); err != nil {
+				return err
+			}
 			fmt.Println("UpdateQuote: per-screen wallpapers set successfully!")
 			BeepLowShort()
 			return nil
@@ -210,6 +223,9 @@ func UpdateQuote(caller string) error {
 		firstPath := windowsWallpaperPath(wallpaperMain, 0, sourceExt)
 		saveImageForDisplay(img, firstPath, 0)
 		wallpaperPaths = append(wallpaperPaths, firstPath)
+		perScreenPics := []config.PicHistory{}
+		currentPic.SaveName = firstPath
+		perScreenPics = append(perScreenPics, currentPic)
 		if fp, fpErr := wallpaperAssetFingerprint(currentPic, img); fpErr == nil {
 			seenFingerprints[fp] = struct{}{}
 		}
@@ -219,14 +235,14 @@ func UpdateQuote(caller string) error {
 			if genErr != nil || nextImg == nil {
 				return fmt.Errorf("display %d: independent generation failed: %w", displayIndex, genErr)
 			}
-			_ = nextPic
 			nextPath := windowsWallpaperPath(wallpaperMain, displayIndex, nextExt)
 			saveImageForDisplay(nextImg, nextPath, displayIndex)
+			nextPic.SaveName = nextPath
 			wallpaperPaths = append(wallpaperPaths, nextPath)
+			perScreenPics = append(perScreenPics, nextPic)
 		}
 
-		currentPic.SaveName = firstPath
-		config.ConfigInstance.PicHistories[0] = currentPic
+		currentPic = attachPerScreenPics(currentPic, perScreenPics)
 		if config.ConfigInstance.PicUpdateCalled {
 			return nil
 		}
@@ -234,6 +250,16 @@ func UpdateQuote(caller string) error {
 		if perScreenErr != nil {
 			return fmt.Errorf("UpdateQuote: per-screen wallpaper failed: %w", perScreenErr)
 		} else {
+			if err := config.UpdateConfig(func(cfg *config.Config) error {
+				if len(cfg.PicHistories) == 0 {
+					cfg.PicHistories = append(cfg.PicHistories, currentPic)
+				} else {
+					cfg.PicHistories[0] = currentPic
+				}
+				return nil
+			}); err != nil {
+				return err
+			}
 			fmt.Println("UpdateQuote: per-screen wallpapers set successfully!")
 			BeepLowShort()
 			return nil
@@ -241,8 +267,8 @@ func UpdateQuote(caller string) error {
 	}
 
 	// Fallback: single wallpaper for all screens
-	currentPic.SaveName = filepath.Join(wallpaperMain, "pic0"+sourceExt)
-	config.ConfigInstance.PicHistories[0] = currentPic
+	currentPic.SaveName = retainedWallpaperPath(sourceExt)
+	currentPic.PerScreenPics = nil
 	fileLoc := currentPic.SaveName
 
 	// Save the resulting image to the bufferPic path
@@ -268,6 +294,16 @@ func UpdateQuote(caller string) error {
 		fmt.Println("Failed to set wallpaper:", err)
 	} else {
 		fmt.Println("Wallpaper set successfully!")
+	}
+	if err := config.UpdateConfig(func(cfg *config.Config) error {
+		if len(cfg.PicHistories) == 0 {
+			cfg.PicHistories = append(cfg.PicHistories, currentPic)
+		} else {
+			cfg.PicHistories[0] = currentPic
+		}
+		return nil
+	}); err != nil {
+		return err
 	}
 	BeepLowShort()
 	return nil
@@ -311,17 +347,20 @@ func updateDarwinPerScreenQuotes() error {
 		}
 	}
 
-	config.ConfigInstance.DarwinPerScreenPicHistories = updatedPics
-	if len(config.ConfigInstance.PicHistories) == 0 {
-		config.ConfigInstance.PicHistories = append(config.ConfigInstance.PicHistories, updatedPics[0])
-	} else {
-		config.ConfigInstance.PicHistories[0] = updatedPics[0]
-	}
-	if err := config.SaveConfig(config.ConfigInstance); err != nil {
+	if err := setDarwinWallpapers(wallpaperPaths); err != nil {
 		return err
 	}
 
-	if err := setDarwinWallpapers(wallpaperPaths); err != nil {
+	updatedRoot := attachPerScreenPics(updatedPics[0], updatedPics)
+	if err := config.UpdateConfig(func(cfg *config.Config) error {
+		cfg.DarwinPerScreenPicHistories = clonePerScreenPics(updatedPics)
+		if len(cfg.PicHistories) == 0 {
+			cfg.PicHistories = append(cfg.PicHistories, updatedRoot)
+		} else {
+			cfg.PicHistories[0] = updatedRoot
+		}
+		return nil
+	}); err != nil {
 		return err
 	}
 	BeepLowShort()

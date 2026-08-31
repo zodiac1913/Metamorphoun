@@ -109,6 +109,7 @@ type PicHistory struct {
 	PicNum                int16              `json:"picNum"`
 	OriginName            string             `json:"originName"`
 	SaveName              string             `json:"saveName"`
+	PerScreenPics         []PicHistory       `json:"perScreenPics,omitempty"`
 	ImageItem             Image              `json:"imageItem"`
 	Filter                string             `json:"filter"`
 	FilterVortices        []PicHistoryVortex `json:"filterVortices"`
@@ -154,6 +155,7 @@ var (
 	loadedConfig *Config
 	loadOnce     sync.Once
 	loadError    error
+	configMu     sync.RWMutex
 )
 
 func init() {
@@ -162,6 +164,9 @@ func init() {
 
 // GetConfig returns the current Config instance
 func GetConfig() *Config {
+	configMu.Lock()
+	defer configMu.Unlock()
+
 	if loadedConfig != nil {
 		loadedConfig.Version = AppVersion
 		loadedConfig.Published = PublishedOn
@@ -192,13 +197,39 @@ func GetConfig() *Config {
 //		return ConfigInstance
 //	}
 func GetConfigCopy() Config {
+	configMu.RLock()
+	defer configMu.RUnlock()
 	return *ConfigInstance
 }
 
 // SetConfig updates the Config instance and saves it to the file
 func SetConfig(newConfig *Config) error {
+	configMu.Lock()
+	defer configMu.Unlock()
 	ConfigInstance = newConfig
-	return SaveConfig(newConfig)
+	loadedConfig = newConfig
+	return saveConfigUnlocked(newConfig)
+}
+
+func UpdateConfig(mutator func(cfg *Config) error) error {
+	configMu.Lock()
+	defer configMu.Unlock()
+
+	if ConfigInstance == nil {
+		if loadedConfig != nil {
+			ConfigInstance = loadedConfig
+		} else {
+			return fmt.Errorf("config not loaded")
+		}
+	}
+
+	if err := mutator(ConfigInstance); err != nil {
+		return err
+	}
+	ConfigInstance.Version = AppVersion
+	ConfigInstance.Published = PublishedOn
+	loadedConfig = ConfigInstance
+	return saveConfigUnlocked(ConfigInstance)
 }
 
 // create a function to load a config.ConfigInstance.Image by name
@@ -212,10 +243,10 @@ func GetImageByName(name string) *Image {
 }
 
 func UpdateConfigField(propertyName string, newValue interface{}) error {
-	ConfigInstance = GetConfig()
-	//typeName := reflect.TypeOf(newValue).String()
-	SetConfigField(propertyName, newValue)
-	return SaveConfig(ConfigInstance)
+	return UpdateConfig(func(cfg *Config) error {
+		ConfigInstance = cfg
+		return SetConfigField(propertyName, newValue)
+	})
 }
 
 func SetConfigField(fieldName string, value interface{}) error {
@@ -319,68 +350,75 @@ func RemoveFromStartup() error {
 }
 
 func UpdateImagesField(imageName string, newValue bool) error {
-	ConfigInstance = GetConfig()
-	for i, image := range ConfigInstance.Images {
-		if image.Name == imageName {
-			ConfigInstance.Images[i].Use = newValue
-			return SaveConfig(ConfigInstance)
+	return UpdateConfig(func(cfg *Config) error {
+		for i, image := range cfg.Images {
+			if image.Name == imageName {
+				cfg.Images[i].Use = newValue
+				return nil
+			}
 		}
-	}
-	return fmt.Errorf("image source not found: %s", imageName)
+		return fmt.Errorf("image source not found: %s", imageName)
+	})
 }
 
 func UpdateImageAPIKey(imageName string, apiKey string) error {
-	ConfigInstance = GetConfig()
-	for i, image := range ConfigInstance.Images {
-		if image.Name == imageName {
-			if !image.RequiresKey {
-				return fmt.Errorf("image source does not require an API key: %s", imageName)
+	return UpdateConfig(func(cfg *Config) error {
+		for i, image := range cfg.Images {
+			if image.Name == imageName {
+				if !image.RequiresKey {
+					return fmt.Errorf("image source does not require an API key: %s", imageName)
+				}
+				cfg.Images[i].APIKey = strings.TrimSpace(apiKey)
+				return nil
 			}
-			ConfigInstance.Images[i].APIKey = strings.TrimSpace(apiKey)
-			return SaveConfig(ConfigInstance)
 		}
-	}
-	return fmt.Errorf("image source not found: %s", imageName)
+		return fmt.Errorf("image source not found: %s", imageName)
+	})
 }
 func AddImagesField(use bool, name string, title string,
 	location string, operation string) error {
-	ConfigInstance = GetConfig()
-	ConfigInstance.Images = append(ConfigInstance.Images, Image{
-		Use:       use,
-		Name:      name,
-		Title:     title,
-		Location:  location,
-		Operation: operation,
+	return UpdateConfig(func(cfg *Config) error {
+		cfg.Images = append(cfg.Images, Image{
+			Use:       use,
+			Name:      name,
+			Title:     title,
+			Location:  location,
+			Operation: operation,
+		})
+		return nil
 	})
-	return SaveConfig(ConfigInstance)
 }
 func EditImagesField(use bool, name string, title string,
 	location string, operation string) error {
-	ConfigInstance = GetConfig()
-	cfg := GetImageByName(name)
-	if cfg.Inherent {
-		fmt.Println("Cannot edit inherent image:", name)
-		return fmt.Errorf("cannot edit inherent image: %s", name)
-	} else {
-		cfg.Use = use
-		cfg.Title = title
-		cfg.Location = location
-		cfg.Operation = operation
-		return SaveConfig(ConfigInstance)
-	}
+	return UpdateConfig(func(cfg *Config) error {
+		for i := range cfg.Images {
+			if cfg.Images[i].Name != name {
+				continue
+			}
+			if cfg.Images[i].Inherent {
+				fmt.Println("Cannot edit inherent image:", name)
+				return fmt.Errorf("cannot edit inherent image: %s", name)
+			}
+			cfg.Images[i].Use = use
+			cfg.Images[i].Title = title
+			cfg.Images[i].Location = location
+			cfg.Images[i].Operation = operation
+			return nil
+		}
+		return fmt.Errorf("image source not found: %s", name)
+	})
 }
 
 func UpdateQuotesField(quotesName string, newValue interface{}) error {
-	ConfigInstance = GetConfig()
-	var foundQuotes *TextLibrary
-	for i, textLib := range ConfigInstance.TextLibraries {
-		if textLib.Name == quotesName {
-			foundQuotes = &ConfigInstance.TextLibraries[i] // Use pointer assignment
-			break                                          // Exit the loop after finding the image
+	return UpdateConfig(func(cfg *Config) error {
+		for i, textLib := range cfg.TextLibraries {
+			if textLib.Name == quotesName {
+				cfg.TextLibraries[i].Use = zutil.AsBool(newValue.(string))
+				return nil
+			}
 		}
-	}
-	foundQuotes.Use = zutil.AsBool(newValue.(string))
-	return SaveConfig(ConfigInstance)
+		return fmt.Errorf("text library not found: %s", quotesName)
+	})
 
 }
 
@@ -388,26 +426,43 @@ func UpdateQuotesField(quotesName string, newValue interface{}) error {
 // and ensures the stack size does not exceed the limit.
 const picHistoryLimit = 10
 
-func (cfg *Config) AddPicHistory(newPic PicHistory) error {
-	ConfigInstance = GetConfig()
+func (cfg *Config) AddPicHistoryInPlace(newPic PicHistory) error {
 	// Prepend the new PicHistory to the stack
-	ConfigInstance.PicHistories = append([]PicHistory{newPic}, ConfigInstance.PicHistories...)
+	cfg.PicHistories = append([]PicHistory{newPic}, cfg.PicHistories...)
 
 	// Ensure the stack size does not exceed the limit (10 for the History tab).
 	// Entries that fall off the end have their locally-cached image files
 	// (unique per-pic originals and saved wallpapers) deleted so they don't
 	// accumulate on disk.
-	if len(ConfigInstance.PicHistories) > picHistoryLimit {
-		dropped := ConfigInstance.PicHistories[picHistoryLimit:]
-		ConfigInstance.PicHistories = ConfigInstance.PicHistories[:picHistoryLimit]
-		cleanupDroppedPicFiles(dropped, ConfigInstance.PicHistories)
+	if len(cfg.PicHistories) > picHistoryLimit {
+		dropped := cfg.PicHistories[picHistoryLimit:]
+		cfg.PicHistories = cfg.PicHistories[:picHistoryLimit]
+		cleanupDroppedPicFiles(dropped, cfg.PicHistories)
 	}
 
 	// Update PicNum for all PicHistories in the stack
-	for i := range ConfigInstance.PicHistories {
-		ConfigInstance.PicHistories[i].PicNum = int16(i)
+	for i := range cfg.PicHistories {
+		cfg.PicHistories[i].PicNum = int16(i)
 	}
-	return SaveConfig(ConfigInstance)
+	return nil
+}
+
+func (cfg *Config) AddPicHistory(newPic PicHistory) error {
+	return UpdateConfig(func(currentCfg *Config) error {
+		return currentCfg.AddPicHistoryInPlace(newPic)
+	})
+}
+
+func collectReferencedPicPaths(paths map[string]bool, pic PicHistory) {
+	if pic.OriginName != "" {
+		paths[pic.OriginName] = true
+	}
+	if pic.SaveName != "" {
+		paths[pic.SaveName] = true
+	}
+	for _, perScreenPic := range pic.PerScreenPics {
+		collectReferencedPicPaths(paths, perScreenPic)
+	}
 }
 
 // cleanupDroppedPicFiles deletes the locally-cached image files belonging to
@@ -424,8 +479,10 @@ func cleanupDroppedPicFiles(dropped []PicHistory, retained []PicHistory) {
 	// Collect paths still in use so we never delete a shared/duplicate file.
 	stillUsed := make(map[string]bool)
 	for _, pic := range retained {
-		stillUsed[pic.OriginName] = true
-		stillUsed[pic.SaveName] = true
+		collectReferencedPicPaths(stillUsed, pic)
+	}
+	for _, pic := range ConfigInstance.DarwinPerScreenPicHistories {
+		collectReferencedPicPaths(stillUsed, pic)
 	}
 
 	inConfigDir := func(path string) bool {
@@ -438,7 +495,11 @@ func cleanupDroppedPicFiles(dropped []PicHistory, retained []PicHistory) {
 	}
 
 	for _, pic := range dropped {
-		for _, path := range []string{pic.OriginName, pic.SaveName} {
+		picPaths := []string{pic.OriginName, pic.SaveName}
+		for _, perScreenPic := range pic.PerScreenPics {
+			picPaths = append(picPaths, perScreenPic.OriginName, perScreenPic.SaveName)
+		}
+		for _, path := range picPaths {
 			if path == "" || stillUsed[path] {
 				continue
 			}
@@ -481,7 +542,10 @@ func LoadConfig() (*Config, error) {
 			loadError = fmt.Errorf("failed to unmarshal config: %w", err)
 			return
 		}
+		configMu.Lock()
 		loadedConfig = &config
+		ConfigInstance = &config
+		configMu.Unlock()
 	})
 	return loadedConfig, loadError
 }
@@ -710,13 +774,47 @@ func syncCanonicalImageMetadata(images []Image, canonicalImages []Image) bool {
 // SaveConfig writes the configuration to the JSON file
 // SaveConfig would likely need to write back to the file if you make changes.
 func SaveConfig(cfg *Config) error {
+	configMu.Lock()
+	defer configMu.Unlock()
+	if cfg == nil {
+		cfg = ConfigInstance
+	}
+	if cfg == nil {
+		return fmt.Errorf("config not loaded")
+	}
+	cfg.Version = AppVersion
+	cfg.Published = PublishedOn
+	loadedConfig = cfg
+	ConfigInstance = cfg
+	return saveConfigUnlocked(cfg)
+}
+
+func saveConfigUnlocked(cfg *Config) error {
 	configPath := GetFolderPath(enum.PathLoc.ConfigFile)
 	data, err := json.MarshalIndent(cfg, "", "    ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
-	err = os.WriteFile(configPath, data, 0644)
+	configDir := filepath.Dir(configPath)
+	tempFile, err := os.CreateTemp(configDir, "config-*.json")
 	if err != nil {
+		return fmt.Errorf("failed to create temp config file: %w", err)
+	}
+	tempPath := tempFile.Name()
+	if _, err = tempFile.Write(data); err != nil {
+		_ = tempFile.Close()
+		_ = os.Remove(tempPath)
+		return fmt.Errorf("failed to write temp config file: %w", err)
+	}
+	if err = tempFile.Close(); err != nil {
+		_ = os.Remove(tempPath)
+		return fmt.Errorf("failed to close temp config file: %w", err)
+	}
+	if err = os.Rename(tempPath, configPath); err != nil {
+		_ = os.Remove(tempPath)
+		return fmt.Errorf("failed to replace config file: %w", err)
+	}
+	if err = os.Chmod(configPath, 0644); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 	return nil
@@ -1057,8 +1155,10 @@ func CreateConfig() (*Config, error) {
 		return nil, fmt.Errorf("failed to write config file: %w", err)
 	}
 
+	configMu.Lock()
 	loadedConfig = &cfg
 	ConfigInstance = &cfg
+	configMu.Unlock()
 	return &cfg, nil
 }
 

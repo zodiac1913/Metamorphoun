@@ -37,6 +37,15 @@ export default class comms{
                 if(response.imageItem.name==="PicSum"){
                     traffic.picSumSave=await response.saveName.replaceAll("pic0","picSumCache");
                 }
+                if((!Array.isArray(response.perScreenPics) || response.perScreenPics.length < 2)){
+                    let cfg = traffic.config;
+                    if(!cfg || cfg.differentWallpaperPerScreen === undefined){
+                        cfg = await traffic.getConfig();
+                    }
+                    if(cfg && cfg.differentWallpaperPerScreen && Array.isArray(cfg.darwinPerScreenPicHistories) && cfg.darwinPerScreenPicHistories.length > 1){
+                        response.perScreenPics = cfg.darwinPerScreenPicHistories;
+                    }
+                }
                 //not necessarily needed
                 window.pic = JSON.stringify(response);
                 let currInfoLoading = document.querySelector("#currentInfoLoading");
@@ -151,14 +160,17 @@ export default class comms{
             "sourceCurrentBackgroundName,sourceCurrentBackgroundFolder," +
             "originalCurrentBackgroundFolder,currentBackgroundName,currentBackgroundFolder" +
             ",backgroundChangingBlock,backgroundChangeAttempt,textLibraries,currentQuoteStatement" + 
-            ",currentQuoteAuthor,picHistories,picUpdateCalled,version,published,mbcMonth,mbcValue".split(',');
+            ",currentQuoteAuthor,picHistories,darwinPerScreenPicHistories,picUpdateCalled,version,published,mbcMonth,mbcValue,perScreenSupported".split(',');
 //IF THE input value is null (below) it means the dontProcessFields is not used for a non-DOM config.
 //Add the fields not to process above            
         for (const [key, value] of Object.entries(traffic.config)) {
             console.log(`${key}: ${value}`);
             if(!dontProcessFields.includes(key)){
                 let input=document.querySelector("#" + key);
-                if(input===null) console.log("input is null above. Its because the developer added a config field that is not a DOM element");
+                if(input===null) {
+                    console.log("input is null above. Its because the developer added a config field that is not a DOM element");
+                    continue;
+                }
                 console.log(`${key}: ${value}`);
                 if(input.nodeName === "SELECT"){
                     for(let option of input.options){
@@ -534,7 +546,8 @@ export default class comms{
         const currentPic=typeof(window.pic)==="object"?window.pic:JSON.parse(window.pic); // this is the current picture object from the server
         let picInfoEle=document.querySelector("#infoPic");
         if(!picInfoEle) return;
-        picInfoEle.innerHTML = traffic.buildPicCard(currentPic, "Current");
+        picInfoEle.innerHTML = "";
+        picInfoEle.insertAdjacentHTML("beforeend", jsonToHtml(traffic.buildPicCardJml(currentPic, "Current")));
         traffic.wirePicCards(picInfoEle);
     }
 
@@ -554,122 +567,256 @@ export default class comms{
         return "/imageFileApi?path=" + encodeURIComponent(path);
     }
 
-    // Small copy-to-clipboard icon button that shows the path in its title.
-    copyPathIcon(path){
-        if(!path) return "";
-        let safe = this.escapeHtml(path);
-        return '<button type="button" class="btn btn-sm btn-link p-0 ms-1 copyPathBtn" '
-            + 'data-path="' + safe + '" title="' + safe + '" '
-            + 'aria-label="Copy path to clipboard">'
-            + '<i class="bi bi-clipboard"></i></button>';
+    buildThumbJml(src, path, caption){
+        let fileName=path ? path.split(/[\\/]/).pop() : "";
+        let thumbBody = src
+            ? {
+                n:"img",
+                src: src,
+                c:"picThumb",
+                alt: caption,
+                "data-full": src,
+                "data-caption": caption,
+                loading:"lazy"
+            }
+            : {n:"div", c:"picThumb picThumbEmpty d-flex align-items-center justify-content-center", t:"n/a"};
+        let fileLineChildren = [];
+        if(fileName){
+            fileLineChildren.push({n:"span", t:fileName});
+        }
+        return {
+            c:"text-center",
+            b:[
+                ...(caption ? [{c:"small fw-bold text-info mb-1", t:caption}] : []),
+                thumbBody,
+                {c:"small text-truncate", s:"max-width:130px", b:fileLineChildren}
+            ]
+        };
     }
 
-    // Build one compact card for a pic (current or history entry).
-    // label is shown as the card heading (e.g. "Current" or "#2").
-    buildPicCard(pic, label){
-        let esc = this.escapeHtml.bind(this);
-        let ii = pic.imageItem || {};
 
-        // Original source image: originName. For random remote sources (PicSum,
-        // Pexels, etc.) the server now persists the original to a unique local
-        // file and stores that path in originName, so it displays correctly and
-        // survives in history. Older entries may still hold an http URL.
+    getPerScreenPicsForCard(pic){
+        let traffic=this;
+        let perScreenPics = Array.isArray(pic?.perScreenPics)
+            ? pic.perScreenPics.filter(screenPic => screenPic && (screenPic.saveName || screenPic.originName))
+            : [];
+        if(perScreenPics.length < 2 && traffic.config?.differentWallpaperPerScreen && pic?.picNum === 0){
+            let darwinPerScreenPics = Array.isArray(traffic.config?.darwinPerScreenPicHistories)
+                ? traffic.config.darwinPerScreenPicHistories.filter(screenPic => screenPic && (screenPic.saveName || screenPic.originName))
+                : [];
+            if(darwinPerScreenPics.length > 1){
+                perScreenPics = darwinPerScreenPics;
+            }
+        }
+        perScreenPics.sort((leftPic, rightPic)=>{
+            let leftIndex = Number.isFinite(leftPic?.picNum) ? leftPic.picNum : Number.MAX_SAFE_INTEGER;
+            let rightIndex = Number.isFinite(rightPic?.picNum) ? rightPic.picNum : Number.MAX_SAFE_INTEGER;
+            return leftIndex - rightIndex;
+        });
+        return perScreenPics;
+    }
+
+    buildPerScreenColumnJml(pics, side){
+        let traffic=this;
+        let title = side === "original" ? "Original" : "Altered";
+        let items = pics.map((screenPic)=>{
+            let path = side === "original" ? (screenPic.originName || "") : (screenPic.saveName || "");
+            return {
+                c:"picVariantColumnItem",
+                b:[traffic.buildThumbJml(traffic.picImageSrc(path), path, "")]
+            };
+        });
+        return {
+            c:"picVariantColumn",
+            b:[
+                {c:"small fw-bold text-info mb-2 text-center", t:title},
+                ...items
+            ]
+        };
+    }
+
+    buildPerScreenGroupJml(pics, side){
+        let traffic=this;
+        let title = side === "original" ? "Original(s)" : "Altered";
+        let headingClass = side === "original"
+            ? "small fw-bold text-info mb-2 text-start"
+            : "small fw-bold text-info mb-2 text-end";
+        let groupClass = side === "original"
+            ? "picStripGroup picStripGroupOriginal"
+            : "picStripGroup picStripGroupAltered";
+        let rowClass = side === "original"
+            ? "picStripRow picStripRowOriginal"
+            : "picStripRow picStripRowAltered";
+        let items = pics.map((screenPic, idx)=>{
+            let path = side === "original" ? (screenPic.originName || "") : (screenPic.saveName || "");
+            return {
+                c:"picStripItem",
+                b:[traffic.buildThumbJml(traffic.picImageSrc(path), path, "")]
+            };
+        });
+        return {
+            c:groupClass,
+            b:[
+                {c:headingClass, t:title},
+                {c:rowClass, b:items}
+            ]
+        };
+    }
+
+    buildPerScreenInfoRowsJml(pics){
+        return {
+            c:"picScreenInfoList mt-3",
+            b:pics.map((screenPic, idx)=>{
+                let displayIndex = Number.isFinite(screenPic?.picNum) ? Number(screenPic.picNum) + 1 : idx + 1;
+                let filePath = screenPic.originName || screenPic.saveName || "";
+                let fileName = filePath ? filePath.split(/[\\/]/).pop() : "";
+                let filter = screenPic.filter || "original";
+                return {
+                    c:"picScreenInfoRow",
+                    b:[
+                        {n:"span", c:"picScreenInfoIndex", t:String(displayIndex)},
+                        {n:"span", c:"picScreenInfoLabel", t:"Screen " + displayIndex},
+                        {n:"span", c:"picScreenInfoSource", t:screenPic.imageItem?.name || ""},
+                        {n:"span", c:"picScreenInfoFile", t:fileName},
+                        {n:"span", c:"picScreenInfoFilter", t:filter}
+                    ]
+                };
+            })
+        };
+    }
+
+    buildPerScreenMetaJml(pics, label, quote, author){
+        return {
+            c:"picVariantMetaStack text-center px-2",
+            b:[
+                {c:"h6 text-Aquamarine mb-2", t:label},
+                ...(quote ? [{c:"fst-italic small mb-1", t:'"' + quote + '"'}] : []),
+                ...(author ? [{c:"small text-info mb-2", t:"- " + author}] : []),
+                ...pics.map((screenPic, idx)=>({
+                    c:"picVariantMetaLine",
+                    b:[
+                        {c:"small fw-bold text-warning", t:"Screen " + (idx + 1)},
+                        {c:"small text-LightSalmon text-break", t:screenPic.imageItem?.name || ""},
+                        {c:"small text-info text-break", t:screenPic.originName || ""}
+                    ]
+                }))
+            ]
+        };
+    }
+    buildChipJml(label, value, extraChildren){
+        if(value === undefined || value === null || value === "") return null;
+        let babies = [
+            {n:"span", c:"fw-bold text-LightSalmon", t:label},
+            {n:"span", c:"text-warning fst-italic ms-1", t:String(value)}
+        ];
+        if(Array.isArray(extraChildren) && extraChildren.length){
+            babies.push(...extraChildren);
+        }
+        return {n:"span", c:"picChip", b:babies};
+    }
+
+    buildScreenVariantJml(pic, index){
         let originalPath = pic.originName || "";
-        // Altered/applied image: the saved wallpaper file.
         let alteredPath = pic.saveName || "";
+        return {
+            c:"picVariantRow",
+            b:[
+                this.buildThumbJml(this.picImageSrc(originalPath), originalPath, "Original"),
+                {
+                    c:"picVariantMeta text-center px-2",
+                    b:[
+                        {c:"h6 text-Aquamarine mb-1", t:"Screen " + (index + 1)},
+                        {c:"small text-warning text-break", t:(pic.imageItem && pic.imageItem.name) ? pic.imageItem.name : ""},
+                        {c:"small text-info text-break", t:originalPath}
+                    ]
+                },
+                this.buildThumbJml(this.picImageSrc(alteredPath), alteredPath, "Altered")
+            ]
+        };
+    }
 
-        let originalSrc = this.picImageSrc(originalPath);
-        let alteredSrc = this.picImageSrc(alteredPath);
-
+    buildPicCardJml(pic, label){
+        let traffic=this;
+        let ii = pic.imageItem || {};
         let fontPath = pic.quoteFont || "";
+        let fontName = fontPath ? fontPath.split(/[\\/]/).pop() : "";
+        let perScreenPics = traffic.getPerScreenPicsForCard(pic);
+        let showPerScreen = perScreenPics.length > 1;
         let quote = pic.quoteStatement || "";
         let author = pic.quoteAuthor || "";
 
-        let thumb = (src, path, caption) => {
-            let inner = src
-                ? '<img src="' + esc(src) + '" class="picThumb" alt="' + esc(caption) + '" '
-                    + 'data-full="' + esc(src) + '" data-caption="' + esc(caption) + '" '
-                    + 'loading="lazy"/>'
-                : '<div class="picThumb picThumbEmpty d-flex align-items-center justify-content-center">n/a</div>';
-            return '<div class="text-center">'
-                + '<div class="small fw-bold text-info mb-1">' + esc(caption) + '</div>'
-                + inner
-                + '<div class="small text-truncate" style="max-width:130px">'
-                +   (path ? esc(path.split(/[\\/]/).pop()) : "")
-                +   this.copyPathIcon(path)
-                + '</div>'
-                + '</div>';
+        let visualSection;
+        let summarySection = null;
+        let perScreenInfoSection = null;
+        if(showPerScreen){
+            visualSection = {
+                c:"picStripLayout",
+                b:[
+                    traffic.buildPerScreenGroupJml(perScreenPics, "original"),
+                    traffic.buildPerScreenGroupJml(perScreenPics, "altered")
+                ]
+            };
+            summarySection = {
+                c:"text-center mt-2",
+                b:[
+                    {c:"h6 text-Aquamarine mb-1", t:label},
+                    ...(quote ? [{c:"fst-italic small mb-1", t:'"' + quote + '"'}] : []),
+                    ...(author ? [{c:"small text-info", t:"- " + author}] : [])
+                ]
+            };
+            perScreenInfoSection = traffic.buildPerScreenInfoRowsJml(perScreenPics);
+        } else {
+            let originalPath = pic.originName || "";
+            let alteredPath = pic.saveName || "";
+            visualSection = {
+                c:"d-flex justify-content-between align-items-start picVariantRow picVariantRowSingle",
+                b:[
+                    traffic.buildThumbJml(traffic.picImageSrc(originalPath), originalPath, "Original"),
+                    {
+                        c:"text-center flex-grow-1 px-2",
+                        b:[
+                            {c:"h6 text-Aquamarine mb-1", t:label},
+                            ...(quote ? [{c:"fst-italic small", t:'"' + quote + '"'}] : []),
+                            ...(author ? [{c:"small text-info", t:"- " + author}] : [])
+                        ]
+                    },
+                    traffic.buildThumbJml(traffic.picImageSrc(alteredPath), alteredPath, "Altered")
+                ]
+            };
+        }
+
+        let chipRow = [
+            traffic.buildChipJml("Source:", ii.name),
+            traffic.buildChipJml("Info:", ii.title),
+            traffic.buildChipJml("Operation:", ii.operation),
+            traffic.buildChipJml("Filter:", pic.filter),
+            traffic.buildChipJml("Sizing:", pic.sizing),
+            traffic.buildChipJml("Font:", fontName)
+        ].filter(Boolean);
+
+        if(showPerScreen){
+            chipRow.unshift({n:"div", c:"w-100 small text-secondary mb-1", t:"One picture per screen mode"});
+        }
+
+        return {
+            c:"picCard bg-dark text-light rounded-3 p-2 mb-3 mx-2",
+            b:[
+                visualSection,
+                ...(summarySection ? [summarySection] : []),
+                ...(perScreenInfoSection ? [perScreenInfoSection] : []),
+                {c:"d-flex flex-wrap mt-2 small", b:chipRow}
+            ]
         };
-
-        // Compact inline "chip": label + value in a pill that takes only the
-        // space it needs. extraHtml lets the Font chip append its copy icon.
-        let chip = (lbl, val, extraHtml) => (val === undefined || val === null || val === "")
-            ? ""
-            : '<span class="picChip">'
-                + '<span class="fw-bold text-LightSalmon">' + esc(lbl) + '</span>'
-                + '<span class="text-warning fst-italic ms-1">' + esc(val) + '</span>'
-                + (extraHtml || "")
-                + '</span>';
-
-        let fontName = fontPath ? fontPath.split(/[\\/]/).pop() : "";
-
-        return ''
-        + '<div class="picCard bg-dark text-light rounded-3 p-2 mb-3 mx-2">'
-        +   '<div class="d-flex justify-content-between align-items-start">'
-        +     thumb(originalSrc, originalPath, "Original")
-        +     '<div class="text-center flex-grow-1 px-2">'
-        +       '<div class="h6 text-Aquamarine mb-1">' + esc(label) + '</div>'
-        +       (quote ? '<div class="fst-italic small">&ldquo;' + esc(quote) + '&rdquo;</div>' : '')
-        +       (author ? '<div class="small text-info">&mdash; ' + esc(author) + '</div>' : '')
-        +     '</div>'
-        +     thumb(alteredSrc, alteredPath, "Altered")
-        +   '</div>'
-        +   '<div class="d-flex flex-wrap mt-2 small">'
-        +     chip("Source:", ii.name)
-        +     chip("Info:", ii.title)
-        +     chip("Operation:", ii.operation)
-        +     chip("Filter:", pic.filter)
-        +     chip("Sizing:", pic.sizing)
-        +     chip("Font:", fontName, this.copyPathIcon(fontPath))
-        +   '</div>'
-        + '</div>';
     }
 
-    // Wire up clipboard buttons and thumbnail click-to-fullsize within a container.
+    // Wire up thumbnail click-to-fullsize within a container.
     wirePicCards(container){
         let traffic=this;
-        container.querySelectorAll(".copyPathBtn").forEach(btn=>{
-            btn.addEventListener("click", async (e)=>{
-                e.stopPropagation();
-                await traffic.copyToClipboard(btn.dataset.path, btn);
-            });
-        });
         container.querySelectorAll(".picThumb[data-full]").forEach(img=>{
             img.addEventListener("click", ()=>{
                 traffic.showFullSizeImage(img.dataset.full, img.dataset.caption);
             });
         });
-    }
-
-    async copyToClipboard(text, btn){
-        try{
-            await navigator.clipboard.writeText(text);
-        }catch(err){
-            // Fallback for non-secure contexts.
-            let ta=document.createElement("textarea");
-            ta.value=text; ta.style.position="fixed"; ta.style.opacity="0";
-            document.body.appendChild(ta); ta.select();
-            try{ document.execCommand("copy"); }catch(e){ console.warn("copy failed", e); }
-            document.body.removeChild(ta);
-        }
-        if(btn){
-            let icon=btn.querySelector("i");
-            if(icon){
-                let prev=icon.className;
-                icon.className="bi bi-clipboard-check text-success";
-                setTimeout(()=>{ icon.className=prev; }, 1200);
-            }
-        }
     }
 
     // Full-size image popup with a top-right X to close.
@@ -701,16 +848,26 @@ export default class comms{
         if(!container) return;
         let cfg=await traffic.getConfig();
         let histories=(cfg && cfg.picHistories) ? cfg.picHistories : [];
+        let currentPic=typeof(window.pic)==="object"?window.pic:JSON.parse(window.pic || "{}");
+        if(currentPic && (currentPic.saveName || currentPic.originName) && histories.length > 0){
+            histories[0] = currentPic;
+        }
+        if(cfg && cfg.differentWallpaperPerScreen && histories.length > 0 && (!Array.isArray(histories[0].perScreenPics) || histories[0].perScreenPics.length < 2)){
+            if(Array.isArray(cfg.darwinPerScreenPicHistories) && cfg.darwinPerScreenPicHistories.length > 1){
+                histories[0].perScreenPics = cfg.darwinPerScreenPicHistories;
+            }
+        }
         if(histories.length===0){
             container.innerHTML='<div class="text-warning p-3">No history yet.</div>';
             return;
         }
-        let html="";
+        let cardsJml=[];
         histories.slice(0,10).forEach((pic, idx)=>{
             let label = idx===0 ? "Current" : "#" + (idx+1);
-            html += traffic.buildPicCard(pic, label);
+            cardsJml.push(traffic.buildPicCardJml(pic, label));
         });
-        container.innerHTML=html;
+        container.innerHTML="";
+        container.insertAdjacentHTML("beforeend", jsonToHtml(cardsJml));
         traffic.wirePicCards(container);
     }
 

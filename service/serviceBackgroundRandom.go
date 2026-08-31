@@ -128,9 +128,9 @@ func BackgroundGenerate(caller string, currentPic config.PicHistory) error {
 		if runtime.GOOS == "darwin" {
 			currentPic.SaveName = filepath.Join(wallpaperMain, "btrfly"+uuid.New().String()+sourceExt)
 		} else {
-			currentPic.SaveName = filepath.Join(wallpaperMain, "pic0"+sourceExt)
+			currentPic.SaveName = retainedWallpaperPath(sourceExt)
 		}
-		config.ConfigInstance.AddPicHistory(currentPic)
+		currentPic.PerScreenPics = nil
 
 		fileLoc := ""
 		if runtime.GOOS == "windows" {
@@ -176,8 +176,14 @@ func BackgroundGenerate(caller string, currentPic config.PicHistory) error {
 		err = setWallpaper(fileLoc)
 		if err != nil {
 			fmt.Println("Failed to set wallpaper:", err)
+			config.ConfigInstance.PicUpdateCalled = false
+			return err
 		} else {
 			fmt.Println("Wallpaper set successfully!")
+		}
+		if err := config.ConfigInstance.AddPicHistory(currentPic); err != nil {
+			config.ConfigInstance.PicUpdateCalled = false
+			return err
 		}
 
 	}
@@ -283,9 +289,6 @@ func saveDarwinWallpapersForAllScreens(wallpaperMain string, currentPic config.P
 	}
 	fmt.Printf("Display %d assigned wallpaper: %s\n", 0, firstPath)
 	currentPic.SaveName = firstPath
-	if err := config.ConfigInstance.AddPicHistory(currentPic); err != nil {
-		return err
-	}
 	wallpaperPaths = append(wallpaperPaths, firstPath)
 	perScreenPics = append(perScreenPics, currentPic)
 	recordDarwinDistinctAsset(currentPic, usedOrigins, usedQuotes)
@@ -308,12 +311,18 @@ func saveDarwinWallpapersForAllScreens(wallpaperMain string, currentPic config.P
 		recordDarwinDistinctAsset(nextPic, usedOrigins, usedQuotes)
 	}
 
-	config.ConfigInstance.DarwinPerScreenPicHistories = perScreenPics
-	if err := config.SaveConfig(config.ConfigInstance); err != nil {
+	currentPic = attachPerScreenPics(currentPic, perScreenPics)
+	if err := setDarwinWallpapers(wallpaperPaths); err != nil {
+		return err
+	}
+	if err := config.UpdateConfig(func(cfg *config.Config) error {
+		cfg.DarwinPerScreenPicHistories = clonePerScreenPics(perScreenPics)
+		return cfg.AddPicHistoryInPlace(currentPic)
+	}); err != nil {
 		return err
 	}
 
-	return setDarwinWallpapers(wallpaperPaths)
+	return nil
 }
 
 func generateDistinctDarwinWallpaperAsset(usedOrigins map[string]struct{}, usedQuotes map[string]struct{}) (config.PicHistory, image.Image, string, error) {
@@ -403,19 +412,18 @@ func saveLinuxWallpapersForAllScreens(wallpaperMain string, currentPic config.Pi
 	seenFingerprints[firstFingerprint] = struct{}{}
 
 	wallpaperPaths := make([]string, 0, numDisplays)
+	perScreenPics := make([]config.PicHistory, 0, numDisplays)
 	firstPath := linuxWallpaperPath(wallpaperMain, 0, sourceExt)
 	if err := saveImageForDisplay(img, firstPath, 0); err != nil {
 		return err
 	}
 	fmt.Printf("Display %d assigned wallpaper: %s\n", 0, firstPath)
 	currentPic.SaveName = firstPath
-	if err := config.ConfigInstance.AddPicHistory(currentPic); err != nil {
-		return err
-	}
 	wallpaperPaths = append(wallpaperPaths, firstPath)
+	perScreenPics = append(perScreenPics, currentPic)
 
 	for displayIndex := 1; displayIndex < numDisplays; displayIndex++ {
-		_, nextImg, nextExt, err := generateDistinctWallpaperAsset(seenFingerprints, 8)
+		nextPic, nextImg, nextExt, err := generateDistinctWallpaperAsset(seenFingerprints, 8)
 		if err != nil {
 			return fmt.Errorf("display %d wallpaper generation failed: %w", displayIndex, err)
 		}
@@ -424,10 +432,20 @@ func saveLinuxWallpapersForAllScreens(wallpaperMain string, currentPic config.Pi
 			return err
 		}
 		fmt.Printf("Display %d assigned wallpaper: %s\n", displayIndex, nextPath)
+		nextPic.SaveName = nextPath
 		wallpaperPaths = append(wallpaperPaths, nextPath)
+		perScreenPics = append(perScreenPics, nextPic)
 	}
 
-	return SetPerScreenWallpapers(wallpaperPaths)
+	currentPic = attachPerScreenPics(currentPic, perScreenPics)
+	if err := SetPerScreenWallpapers(wallpaperPaths); err != nil {
+		return err
+	}
+	if err := config.ConfigInstance.AddPicHistory(currentPic); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func saveWindowsWallpapersForAllScreens(wallpaperMain string, currentPic config.PicHistory, img image.Image, sourceExt string) error {
@@ -449,19 +467,18 @@ func saveWindowsWallpapersForAllScreens(wallpaperMain string, currentPic config.
 	seenFingerprints[firstFingerprint] = struct{}{}
 
 	wallpaperPaths := make([]string, 0, numDisplays)
+	perScreenPics := make([]config.PicHistory, 0, numDisplays)
 	firstPath := windowsWallpaperPath(wallpaperMain, 0, sourceExt)
 	if err := saveImageForDisplay(img, firstPath, 0); err != nil {
 		return err
 	}
 	fmt.Printf("Display %d assigned wallpaper: %s\n", 0, firstPath)
 	currentPic.SaveName = firstPath
-	if err := config.ConfigInstance.AddPicHistory(currentPic); err != nil {
-		return err
-	}
 	wallpaperPaths = append(wallpaperPaths, firstPath)
+	perScreenPics = append(perScreenPics, currentPic)
 
 	for displayIndex := 1; displayIndex < numDisplays; displayIndex++ {
-		_, nextImg, nextExt, err := generateDistinctWallpaperAsset(seenFingerprints, 8)
+		nextPic, nextImg, nextExt, err := generateDistinctWallpaperAsset(seenFingerprints, 8)
 		if err != nil {
 			return fmt.Errorf("display %d wallpaper generation failed: %w", displayIndex, err)
 		}
@@ -470,10 +487,20 @@ func saveWindowsWallpapersForAllScreens(wallpaperMain string, currentPic config.
 			return err
 		}
 		fmt.Printf("Display %d assigned wallpaper: %s\n", displayIndex, nextPath)
+		nextPic.SaveName = nextPath
 		wallpaperPaths = append(wallpaperPaths, nextPath)
+		perScreenPics = append(perScreenPics, nextPic)
 	}
 
-	return SetPerScreenWallpapers(wallpaperPaths)
+	currentPic = attachPerScreenPics(currentPic, perScreenPics)
+	if err := SetPerScreenWallpapers(wallpaperPaths); err != nil {
+		return err
+	}
+	if err := config.ConfigInstance.AddPicHistory(currentPic); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func darwinWallpaperPath(wallpaperMain string, displayIndex int, sourceExt string) string {

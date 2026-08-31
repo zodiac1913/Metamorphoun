@@ -31,6 +31,9 @@ func main() {
 	service.SetRandomQuote = setRandomQuoteImpl
 	cfg := loadOrCreateConfig()
 	normalizeConfigDefaults(cfg)
+	if err := service.RepairRetainedHistoryAssets(); err != nil {
+		fmt.Println("Failed to repair retained history assets:", err)
+	}
 	PrintPlatformMessage()
 
 	config.SetupSystemFolders()

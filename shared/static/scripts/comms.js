@@ -167,8 +167,12 @@ export default class comms{
             console.log(`${key}: ${value}`);
             if(!dontProcessFields.includes(key)){
                 let input=document.querySelector("#" + key);
-                if(input===null) {
-                    console.log("input is null above. Its because the developer added a config field that is not a DOM element");
+                if(input===null){
+                    // Config field with no matching DOM element (e.g. runtime
+                    // flags like darwinPerScreenPicHistories / perScreenSupported).
+                    // Skip it instead of throwing, which would abort init and
+                    // leave later wiring (Add Library button, etc.) unwired.
+                    console.log("Skipping non-DOM config field: " + key);
                     continue;
                 }
                 console.log(`${key}: ${value}`);
@@ -504,11 +508,14 @@ export default class comms{
         let jsonString=json;
         let fonts=await traffic.apiCall(traffic.server + "/localFontApi",jsonString)
         let fontsSelect=document.querySelector("#textFontFile");
+        if(!fontsSelect) return;
         fontsSelect.innerHTML="";
-        // let rndOption=document.createElement("option");
-        // rndOption.value="random";
-        // rndOption.innerText="random";
-        // fontsSelect.appendChild(rndOption)
+        // Guard against a non-array response (error object or null) so this
+        // never throws and aborts initialization.
+        if(!Array.isArray(fonts)){
+            console.warn("getFonts: expected an array, got:", fonts);
+            return;
+        }
         for(let font of fonts){
             let fontFile = font.split("\\").pop();
             let fontName = fontFile.split(".")[0];

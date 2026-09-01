@@ -376,20 +376,27 @@ func UpdateImageAPIKey(imageName string, apiKey string) error {
 	})
 }
 func AddImagesField(use bool, name string, title string,
-	location string, operation string) error {
+	location string, operation string, allowDistort bool, requiresKey bool, inherent bool) error {
 	return UpdateConfig(func(cfg *Config) error {
+		operation = strings.TrimSpace(operation)
+		if strings.EqualFold(operation, "Immich") {
+			requiresKey = true
+		}
 		cfg.Images = append(cfg.Images, Image{
-			Use:       use,
-			Name:      name,
-			Title:     title,
-			Location:  location,
-			Operation: operation,
+			Use:          use,
+			Name:         name,
+			Title:        title,
+			Location:     location,
+			Operation:    operation,
+			AllowDistort: allowDistort,
+			RequiresKey:  requiresKey,
+			Inherent:     inherent,
 		})
 		return nil
 	})
 }
 func EditImagesField(use bool, name string, title string,
-	location string, operation string) error {
+	location string, operation string, allowDistort bool, requiresKey bool) error {
 	return UpdateConfig(func(cfg *Config) error {
 		for i := range cfg.Images {
 			if cfg.Images[i].Name != name {
@@ -399,10 +406,16 @@ func EditImagesField(use bool, name string, title string,
 				fmt.Println("Cannot edit inherent image:", name)
 				return fmt.Errorf("cannot edit inherent image: %s", name)
 			}
+			operation = strings.TrimSpace(operation)
+			if strings.EqualFold(operation, "Immich") {
+				requiresKey = true
+			}
 			cfg.Images[i].Use = use
 			cfg.Images[i].Title = title
 			cfg.Images[i].Location = location
 			cfg.Images[i].Operation = operation
+			cfg.Images[i].AllowDistort = allowDistort
+			cfg.Images[i].RequiresKey = requiresKey
 			return nil
 		}
 		return fmt.Errorf("image source not found: %s", name)

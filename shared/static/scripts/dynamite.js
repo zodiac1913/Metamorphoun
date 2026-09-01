@@ -211,21 +211,21 @@ export default class dynamite{
     async popupAddLibrary() {
         let bang = this;
         let appDiv = document.querySelector("#app");
-        appDiv.classList.add("d-none");
-    
-        // Check if the dialog already exists
-        let existingDialog = document.querySelector("#AddLibraryModal");
-        if (existingDialog) {
-            existingDialog.showModal();
-            return;
-        }
-    
+        let operationChoices = [
+            {n:"option",value:"Folder",t:"Folder"},
+            {n:"option",value:"Immich",t:"Immich Server"}
+        ];
+        try {
+            let existingDialog = document.querySelector("#AddLibraryModal");
+            if (existingDialog) {
+                existingDialog.remove();
+            }
 
-        let dialog = {n:"dialog",i:"AddLibraryModal",c:"w-50",b:[]}
-        let card = {i:"AddLibraryModalCard",c:"card bg-Bisque",b:[]}
+            let dialog = {n:"dialog",i:"AddLibraryModal",c:"w-50",b:[]}
+            let card = {i:"AddLibraryModalCard",c:"card bg-Bisque",b:[]}
 
-        let cardHeader = {c:"card-header",t:"Add New Image Library",ttl:"Add parts of this library",b:[]};
-        let cardBody = {i:"CardBodyAddLibrary",c:"card-body d-flex flex-column align-items-center",b:[]};
+            let cardHeader = {c:"card-header",t:"Add New Image Library",ttl:"Add parts of this library",b:[]};
+            let cardBody = {i:"CardBodyAddLibrary",c:"card-body d-flex flex-column align-items-center",b:[]};
     
         //FORM FIELDS
         //USE
@@ -257,7 +257,7 @@ export default class dynamite{
         let locationInputRow = {c:"flex-row d-flex my-2 w-100",b:[]};
         let labelLocation = {n:"label",for:"LibraryLocationInput",t:"Location:"}
         let locationInput = {n:"input",i:"LibraryLocationInput",type:"text",c:"form-control ms-2"
-            ,placeholder:"Enter library location",required:true};
+            ,placeholder:"Enter folder path",required:true};
         locationInputRow.b.push(labelLocation,locationInput);
 
         
@@ -269,59 +269,75 @@ export default class dynamite{
 
 
 
-        card.b.push(cardHeader,cardBody);
-        dialog.b.push(card);
-        let dialogHTM=jsonToHtml(dialog);
-        let mdl = document.querySelector("#modal");
-        mdl.insertAdjacentHTML("afterbegin",dialogHTM);
-        let dialogEle=mdl.querySelector("dialog"); // Get the dialog element after inserting HTML
-        mdl.classList.add("openPopup");
-        let cardBodyDiv=document.querySelector("#CardBodyAddLibrary");
+            card.b.push(cardHeader,cardBody);
+            dialog.b.push(card);
+            let dialogHTM=jsonToHtml(dialog);
+            let mdl = document.querySelector("#modal");
+            mdl.innerHTML="";
+            mdl.insertAdjacentHTML("afterbegin",dialogHTM);
+            let dialogEle=mdl.querySelector("dialog"); // Get the dialog element after inserting HTML
+            mdl.classList.add("openPopup");
+            let cardBodyDiv=document.querySelector("#CardBodyAddLibrary");
         //Operation
-        let opInputRow={c:"flex-row d-flex my-2 w-100",b:[]};
-        let opLabel={n:"label",for:"LibraryOperationInput",t:"Operation:"}
-        let opInput={n:"input",i:"LibraryOperationInput",type:"text",value:"Folder", 
-            required:true,c: "form-control ms-2"};
-        opInputRow.b.push(opLabel);
-        opInputRow.b.push(opInput);
-        let opInputRowHtml=jsonToHtml(opInputRow);
-        cardBodyDiv.insertAdjacentHTML('beforeend',opInputRowHtml);
+            let opInputRow={c:"flex-row d-flex my-2 w-100",b:[]};
+            let opLabel={n:"label",for:"LibraryOperationInput",t:"Operation:"}
+            let opInput={n:"select",i:"LibraryOperationInput",required:true,c: "form-select ms-2",b:operationChoices};
+            opInputRow.b.push(opLabel);
+            opInputRow.b.push(opInput);
+            let opInputRowHtml=jsonToHtml(opInputRow);
+            cardBodyDiv.insertAdjacentHTML('beforeend',opInputRowHtml);
+
+            let operationHelpRow={c:"my-2 w-100 small text-muted",b:[
+                {n:"div",i:"LibraryOperationHelp",t:"Folder sources use a local directory path."}
+            ]};
+            cardBodyDiv.insertAdjacentHTML('beforeend',jsonToHtml(operationHelpRow));
         
-        let inherentInputRow={c:"flex-row d-flex my-2 w-100",b:[]};
-        let inherentInput={n:"input",i:"LibraryInherentInput",type:"hidden",value:false };
-        inherentInputRow.b.push(inherentInput);
-        let inherentInputRowHtml=jsonToHtml(inherentInputRow);
-        cardBodyDiv.insertAdjacentHTML('beforeend',inherentInputRowHtml);
+            let inherentInputRow={c:"flex-row d-flex my-2 w-100",b:[]};
+            let inherentInput={n:"input",i:"LibraryInherentInput",type:"hidden",value:false };
+            let requiresKeyInput={n:"input",i:"LibraryRequiresKeyInput",type:"hidden",value:false };
+            inherentInputRow.b.push(inherentInput,requiresKeyInput);
+            let inherentInputRowHtml=jsonToHtml(inherentInputRow);
+            cardBodyDiv.insertAdjacentHTML('beforeend',inherentInputRowHtml);
 
         //Allow (Harsh) Distortions
-        let allowDistortCheckboxRow = {c:"flex-row d-flex my-2 w-100",b:[]}
-        let allowDistortCheckbox = {n:"input",i:"AllowDistortLibraryCheckbox",type:"checkbox"};
-        let allowDistortCheckboxName = {n:"label",for:"allowDistortNameInput",t:"Allow Harsh Distortions"
-            ,ttl:"This forbids distortions like Dali or Vortex from distorting to a level that can be unacceptable to the user."}
-        allowDistortCheckboxRow.b.push(allowDistortCheckbox,allowDistortCheckboxName);
-        cardBodyDiv.b.push(allowDistortCheckboxRow);
+            let allowDistortCheckboxRow = {c:"flex-row d-flex my-2 w-100",b:[]}
+            let allowDistortCheckbox = {n:"input",i:"AllowDistortLibraryCheckbox",type:"checkbox"};
+            let allowDistortCheckboxName = {n:"label",for:"allowDistortNameInput",t:"Allow Harsh Distortions"
+                ,ttl:"This forbids distortions like Dali or Vortex from distorting to a level that can be unacceptable to the user."}
+            allowDistortCheckboxRow.b.push(allowDistortCheckbox,allowDistortCheckboxName);
+            let allowDistortCheckboxRowHtml=jsonToHtml(allowDistortCheckboxRow);
+            cardBodyDiv.insertAdjacentHTML('beforeend',allowDistortCheckboxRowHtml);
 
                 
-        let buttonsDivRow={c:"d-flex justify-content-between my-2 w-100",b:[]};
-        let closeButton={n:"button",type:"button",
-            i:"AddImageLibraryCloseButton",
-            title:"Close form do NOT save data",t:"Close",
-            c:"btn btn-secondary text-warning mx-2"};
-        buttonsDivRow.b.push(closeButton);
-        let saveButton={n:"button",type:"button",
-            i:"AddImageLibrarySaveButton",
-            title:"Save Library",t:"Save",
-            c:"btn btn-success text-warning mx-2"};
-        buttonsDivRow.b.push(saveButton);
-        let buttonsDivRowHtml=jsonToHtml(buttonsDivRow);
-        cardBodyDiv.insertAdjacentHTML('beforeend',buttonsDivRowHtml);
-        cardBodyDiv.insertAdjacentHTML('beforeend',inherentInputRowHtml);
-        mdl.classList.remove("d-none");
-        let addImageLibraryCloseButton=document.querySelector("#AddImageLibraryCloseButton");
-        addImageLibraryCloseButton.addEventListener('click',async()=>{bang.closeAddLibraryForm();})
-        let addImageLibrarySaveButton=document.querySelector("#AddImageLibrarySaveButton");
-        addImageLibrarySaveButton.addEventListener('click',async()=>{bang.saveAddLibraryForm();})
-        dialogEle.showModal();
+            let buttonsDivRow={c:"d-flex justify-content-between my-2 w-100",b:[]};
+            let closeButton={n:"button",type:"button",
+                i:"AddImageLibraryCloseButton",
+                title:"Close form do NOT save data",t:"Close",
+                c:"btn btn-secondary text-warning mx-2"};
+            buttonsDivRow.b.push(closeButton);
+            let saveButton={n:"button",type:"button",
+                i:"AddImageLibrarySaveButton",
+                title:"Save Library",t:"Save",
+                c:"btn btn-success text-warning mx-2"};
+            buttonsDivRow.b.push(saveButton);
+            let buttonsDivRowHtml=jsonToHtml(buttonsDivRow);
+            cardBodyDiv.insertAdjacentHTML('beforeend',buttonsDivRowHtml);
+            mdl.classList.remove("d-none");
+            appDiv.classList.add("d-none");
+            let libraryOperationInput=document.querySelector("#LibraryOperationInput");
+            bang.syncLibraryOperationFields(libraryOperationInput.value);
+            libraryOperationInput.addEventListener("change",(e)=>{bang.syncLibraryOperationFields(e.target.value);});
+            let addImageLibraryCloseButton=document.querySelector("#AddImageLibraryCloseButton");
+            addImageLibraryCloseButton.addEventListener('click',async()=>{bang.closeAddLibraryForm();})
+            let addImageLibrarySaveButton=document.querySelector("#AddImageLibrarySaveButton");
+            addImageLibrarySaveButton.addEventListener('click',async()=>{bang.saveAddLibraryForm();})
+            dialogEle.showModal();
+        } catch (err) {
+            console.error("popupAddLibrary failed", err);
+            document.querySelector("#modal").innerHTML="";
+            document.querySelector("#modal").classList.add("d-none");
+            appDiv.classList.remove("d-none");
+        }
     }
 
     async popupEditLibrary() {
@@ -329,29 +345,29 @@ export default class dynamite{
         let selected=document.querySelector(".imageSelected");
         let data=selected.info;
         let appDiv = document.querySelector("#app");
-        appDiv.classList.add("d-none");
-        for(const mdl of document.querySelectorAll(".popupmdl")){ // remove any existing dialog boxes
-            mdl.innerText="";
-            mdl.classList.add("d-none");
-        }
+        let operationChoices = [
+            {n:"option",value:"Folder",t:"Folder"},
+            {n:"option",value:"Immich",t:"Immich Server"}
+        ];
+        try {
+            for(const mdl of document.querySelectorAll(".popupmdl")){ // remove any existing dialog boxes
+                mdl.innerText="";
+                mdl.classList.add("d-none");
+            }
 
-    
-        // Check if the dialog already exists
-        let existingDialog = document.querySelector("#EditLibraryModal");
-        if (existingDialog) {
-            existingDialog.showModal();
-            return;
-        }
-    
+            let existingDialog = document.querySelector("#EditLibraryModal");
+            if (existingDialog) {
+                existingDialog.remove();
+            }
 
-        let dialog = {n:"dialog",i:"EditLibraryModal",c:"w-50",b:[]};
-        let card = {i:"EditLibraryModalCard",c:"card bg-Bisque",b:[]};
-        let cardHeader = {c:"card-header",t:"Edit Image Library",ttl:"Edit parts of this library",b:[]};
-        if(data.inherent) {
-            cardHeader.t = "Edit Image Library (Inherent)";
-            cardHeader.ttl = "This is an inherent library and cannot be edited. You may only view its properties.";
-        }
-        let cardBody = {i:"CardBodyEditLibrary",c:"card-body d-flex flex-column align-items-center",b:[]};
+            let dialog = {n:"dialog",i:"EditLibraryModal",c:"w-50",b:[]};
+            let card = {i:"EditLibraryModalCard",c:"card bg-Bisque",b:[]};
+            let cardHeader = {c:"card-header",t:"Edit Image Library",ttl:"Edit parts of this library",b:[]};
+            if(data.inherent) {
+                cardHeader.t = "Edit Image Library (Inherent)";
+                cardHeader.ttl = "This is an inherent library and cannot be edited. You may only view its properties.";
+            }
+            let cardBody = {i:"CardBodyEditLibrary",c:"card-body d-flex flex-column align-items-center",b:[]};
     
         //FORM FIELDS
         //USE
@@ -399,71 +415,87 @@ export default class dynamite{
 
 
 
-        card.b.push(cardHeader,cardBody);
-        dialog.b.push(card);
-        let dialogHTM=jsonToHtml(dialog);
-        let mdl = document.querySelector("#modal");
-        mdl.insertAdjacentHTML("afterbegin",dialogHTM);
-        let dialogEle=mdl.querySelector("dialog"); // Get the dialog element after inserting HTML
-        let cardBodyDiv=document.querySelector("#CardBodyEditLibrary");
+            card.b.push(cardHeader,cardBody);
+            dialog.b.push(card);
+            let dialogHTM=jsonToHtml(dialog);
+            let mdl = document.querySelector("#modal");
+            mdl.innerHTML="";
+            mdl.insertAdjacentHTML("afterbegin",dialogHTM);
+            let dialogEle=mdl.querySelector("dialog"); // Get the dialog element after inserting HTML
+            let cardBodyDiv=document.querySelector("#CardBodyEditLibrary");
 
         //Operation
-        let opInputRow={c:"flex-row d-flex my-2 w-100",b:[]};
-        let opLabel={n:"label",for:"LibraryOperationInput",t:"Operation:"}
-        let opInput={n:"input",i:"LibraryOperationInput",type:"text",value:"Folder", 
-            required:true,c: "form-control ms-2",readonly:true };
-        opInputRow.b.push(opLabel);
-        opInputRow.b.push(opInput);
-        let opInputRowHtml=jsonToHtml(opInputRow);
-        cardBodyDiv.insertAdjacentHTML('beforeend',opInputRowHtml);
+            let opInputRow={c:"flex-row d-flex my-2 w-100",b:[]};
+            let opLabel={n:"label",for:"LibraryOperationInput",t:"Operation:"}
+            let opInput={n:"select",i:"LibraryOperationInput",required:true,c: "form-select ms-2",b:operationChoices};
+            opInputRow.b.push(opLabel);
+            opInputRow.b.push(opInput);
+            let opInputRowHtml=jsonToHtml(opInputRow);
+            cardBodyDiv.insertAdjacentHTML('beforeend',opInputRowHtml);
+
+            let operationHelpRow={c:"my-2 w-100 small text-muted",b:[
+                {n:"div",i:"LibraryOperationHelp",t:"Folder sources use a local directory path."}
+            ]};
+            cardBodyDiv.insertAdjacentHTML('beforeend',jsonToHtml(operationHelpRow));
         
         //Inherent
-        let inherentInputRow={c:"flex-row d-flex my-2 w-100",b:[]};
-        let inherentInput={n:"input",i:"LibraryInherentInput",type:"hidden",value:false };
-        inherentInputRow.b.push(inherentInput);
-        let inherentInputRowHtml=jsonToHtml(inherentInputRow);
-        cardBodyDiv.insertAdjacentHTML('beforeend',inherentInputRowHtml);
+            let inherentInputRow={c:"flex-row d-flex my-2 w-100",b:[]};
+            let inherentInput={n:"input",i:"LibraryInherentInput",type:"hidden",value:data.inherent };
+            let requiresKeyInput={n:"input",i:"LibraryRequiresKeyInput",type:"hidden",value:data.requiresKey };
+            inherentInputRow.b.push(inherentInput,requiresKeyInput);
+            let inherentInputRowHtml=jsonToHtml(inherentInputRow);
+            cardBodyDiv.insertAdjacentHTML('beforeend',inherentInputRowHtml);
 
         //Allow (Harsh) Distortions
-        let allowDistortCheckboxRow = {c:"flex-row d-flex my-2 w-100",b:[]}
-        let allowDistortCheckbox = {n:"input",i:"AllowDistortLibraryCheckbox",type:"checkbox"};
-        if(data.allowDistort) allowDistortCheckbox.checked=true;            
-        let allowDistortCheckboxName = {n:"label",for:"allowDistortNameInput",t:"Allow Harsh Distortions"
-            ,ttl:"This forbids distortions like Dali or Vortex from distorting to a level that can be unacceptable to the user."}
-        allowDistortCheckboxRow.b.push(allowDistortCheckbox,allowDistortCheckboxName);
-        let allowDistortCheckboxRowHtml=jsonToHtml(allowDistortCheckboxRow);
-        cardBodyDiv.insertAdjacentHTML('beforeend',allowDistortCheckboxRowHtml);
+            let allowDistortCheckboxRow = {c:"flex-row d-flex my-2 w-100",b:[]}
+            let allowDistortCheckbox = {n:"input",i:"AllowDistortLibraryCheckbox",type:"checkbox"};
+            if(data.allowDistort) allowDistortCheckbox.checked=true;            
+            let allowDistortCheckboxName = {n:"label",for:"allowDistortNameInput",t:"Allow Harsh Distortions"
+                ,ttl:"This forbids distortions like Dali or Vortex from distorting to a level that can be unacceptable to the user."}
+            allowDistortCheckboxRow.b.push(allowDistortCheckbox,allowDistortCheckboxName);
+            let allowDistortCheckboxRowHtml=jsonToHtml(allowDistortCheckboxRow);
+            cardBodyDiv.insertAdjacentHTML('beforeend',allowDistortCheckboxRowHtml);
 
 
-        let buttonsDivRow={c:"d-flex justify-content-between my-2 w-100",b:[]};
-        let closeButton={n:"button",type:"button",
-            i:"EditImageLibraryCloseButton",
-            title:"Close form do NOT save data",t:"Close",
-            c:"btn btn-secondary text-warning mx-2"};
-        buttonsDivRow.b.push(closeButton);
-        let saveButton={n:"button",type:"button",
-            i:"EditImageLibrarySaveButton",
-            title:"Save Library",t:"Save",
-            c:"btn btn-success text-warning mx-2"};
-        if(!data.inherent) {
-            buttonsDivRow.b.push(saveButton);
+            let buttonsDivRow={c:"d-flex justify-content-between my-2 w-100",b:[]};
+            let closeButton={n:"button",type:"button",
+                i:"EditImageLibraryCloseButton",
+                title:"Close form do NOT save data",t:"Close",
+                c:"btn btn-secondary text-warning mx-2"};
+            buttonsDivRow.b.push(closeButton);
+            let saveButton={n:"button",type:"button",
+                i:"EditImageLibrarySaveButton",
+                title:"Save Library",t:"Save",
+                c:"btn btn-success text-warning mx-2"};
+            if(!data.inherent) {
+                buttonsDivRow.b.push(saveButton);
+            }
+            let buttonsDivRowHtml=jsonToHtml(buttonsDivRow);
+            cardBodyDiv.insertAdjacentHTML('beforeend',buttonsDivRowHtml);
+            mdl.classList.remove("d-none");
+            appDiv.classList.add("d-none");
+            let libraryOperationInput=document.querySelector("#LibraryOperationInput");
+            libraryOperationInput.value=data.operation || "Folder";
+            if(data.inherent) libraryOperationInput.disabled=true;
+            bang.syncLibraryOperationFields(libraryOperationInput.value);
+            libraryOperationInput.addEventListener("change",(e)=>{bang.syncLibraryOperationFields(e.target.value);});
+            let editImageLibraryCloseButton=document.querySelector("#EditImageLibraryCloseButton");
+            editImageLibraryCloseButton.addEventListener('click',async()=>{bang.closeEditLibraryForm();})
+            if(!data.inherent) {
+                let editImageLibrarySaveButton=document.querySelector("#EditImageLibrarySaveButton");
+                editImageLibrarySaveButton.addEventListener('click',async()=>{bang.saveEditLibraryForm();})
+            }
+            dialogEle.showModal();
+        } catch (err) {
+            console.error("popupEditLibrary failed", err);
+            document.querySelector("#modal").innerHTML="";
+            document.querySelector("#modal").classList.add("d-none");
+            appDiv.classList.remove("d-none");
         }
-        let buttonsDivRowHtml=jsonToHtml(buttonsDivRow);
-        cardBodyDiv.insertAdjacentHTML('beforeend',buttonsDivRowHtml);
-        cardBodyDiv.insertAdjacentHTML('beforeend',inherentInputRowHtml);
-        mdl.classList.remove("d-none");
-        let editImageLibraryCloseButton=document.querySelector("#EditImageLibraryCloseButton");
-        editImageLibraryCloseButton.addEventListener('click',async()=>{bang.closeEditLibraryForm();})
-        if(!data.inherent) {
-            let editImageLibrarySaveButton=document.querySelector("#EditImageLibrarySaveButton");
-            editImageLibrarySaveButton.addEventListener('click',async()=>{bang.saveEditLibraryForm();})
-        }
-        dialogEle.showModal();
     }
 
 
     async closeAddLibraryForm(){
-        let bang=this;
         let existingDialog = document.querySelector("#AddLibraryModal");
         existingDialog.innerText="";
         existingDialog.remove();
@@ -472,7 +504,6 @@ export default class dynamite{
     }
 
     async closeEditLibraryForm(){
-        let bang=this;
         let existingDialog = document.querySelector("#EditLibraryModal");
         existingDialog.innerText="";
         existingDialog.remove();
@@ -482,17 +513,17 @@ export default class dynamite{
 
     async saveAddLibraryForm(){
         let bang=this;
-        let existingDialog = document.querySelector("#AddLibraryModal");
-        let useCheckbox = document.querySelector("#UseLibraryCheckbox").value;
+        let useCheckbox = document.querySelector("#UseLibraryCheckbox").checked;
         let nameInput = document.querySelector("#LibraryNameInput").value.replaceAll(" ","");
         let titleInput = document.querySelector("#LibraryTitleInput").value;
         let locationInput = document.querySelector("#LibraryLocationInput").value;
         let opInput = document.querySelector("#LibraryOperationInput").value;
         let inherentInput = document.querySelector("#LibraryInherentInput").value;
-        let allowDistortInput = document.querySelector("#AllowDistortLibraryCheckbox").value;
+        let requiresKeyInput = document.querySelector("#LibraryRequiresKeyInput").value === "true";
+        let allowDistortInput = document.querySelector("#AllowDistortLibraryCheckbox").checked;
         let jsonUp={"use":useCheckbox, "name": nameInput, "title": titleInput,
             "location": locationInput, "operation": opInput, "inherent": inherentInput,
-            "allowDistort": allowDistortInput
+            "allowDistort": allowDistortInput, "requiresKey": requiresKeyInput
         }
         let apicallRtn=await bang.traffic.apiCall(bang.traffic.server + "/addImagesField",jsonUp)
         console.log(apicallRtn);
@@ -501,17 +532,17 @@ export default class dynamite{
 
     async saveEditLibraryForm(){
         let bang=this;
-        let existingDialog = document.querySelector("#EditLibraryModal");
         let useCheckbox = document.querySelector("#UseLibraryCheckbox").checked;
         let nameInput = document.querySelector("#LibraryNameInput").value.replaceAll(" ",""); // Remove spaces from the name input
         let titleInput = document.querySelector("#LibraryTitleInput").value;
         let locationInput = document.querySelector("#LibraryLocationInput").value;
         let opInput = document.querySelector("#LibraryOperationInput").value;
         let inherentInput = document.querySelector("#LibraryInherentInput").value;
-        let allowDistortInput = document.querySelector("#AllowDistortLibraryCheckbox").value;
+        let requiresKeyInput = document.querySelector("#LibraryRequiresKeyInput").value === "true";
+        let allowDistortInput = document.querySelector("#AllowDistortLibraryCheckbox").checked;
         let jsonUp={"use":useCheckbox, "name": nameInput, "title": titleInput,
             "location": locationInput, "operation": opInput,"inherent": inherentInput,
-            "allowDistort": allowDistortInput
+            "allowDistort": allowDistortInput, "requiresKey": requiresKeyInput
         }
         //Gotta add this to server
         let apicallRtn=await bang.traffic.apiCall(bang.traffic.server + "/editImagesField",jsonUp)
@@ -519,8 +550,32 @@ export default class dynamite{
         bang.closeEditLibraryForm();
     }
 
+    syncLibraryOperationFields(operation) {
+        let normalizedOperation=(operation || "Folder").trim();
+        let locationInput=document.querySelector("#LibraryLocationInput");
+        let locationAnchor=locationInput?.closest(".flex-row")?.querySelector("a");
+        let helpText=document.querySelector("#LibraryOperationHelp");
+        let requiresKeyInput=document.querySelector("#LibraryRequiresKeyInput");
+        let isImmich=normalizedOperation === "Immich";
+        if(locationInput){
+            locationInput.placeholder=isImmich
+                ? "https://your-immich.example/api?albumIds=album1,album2"
+                : "Enter folder path";
+        }
+        if(locationAnchor){
+            locationAnchor.classList.toggle("d-none", isImmich);
+        }
+        if(helpText){
+            helpText.innerText=isImmich
+                ? "Immich uses the server URL here. Optional album filtering: ?albumIds=id1,id2. Set the API key from the key button after saving."
+                : "Folder sources use a local directory path.";
+        }
+        if(requiresKeyInput){
+            requiresKeyInput.value=isImmich ? "true" : "false";
+        }
+    }
+
     async getFolderUrl(e) {
-        let bang = this;
         try {
             e.preventDefault();
             // Show directory picker

@@ -688,8 +688,11 @@ func addImagesField(w http.ResponseWriter, r *http.Request) {
 	titleResult := gjson.GetBytes(jsonData, "title").String()
 	locationResult := gjson.GetBytes(jsonData, "location").String()
 	operationResult := gjson.GetBytes(jsonData, "operation").String()
+	allowDistortResult := gjson.GetBytes(jsonData, "allowDistort").Bool()
+	requiresKeyResult := gjson.GetBytes(jsonData, "requiresKey").Bool()
+	inherentResult := gjson.GetBytes(jsonData, "inherent").Bool()
 
-	result := config.AddImagesField(useResult, nameResult, titleResult, locationResult, operationResult)
+	result := config.AddImagesField(useResult, nameResult, titleResult, locationResult, operationResult, allowDistortResult, requiresKeyResult, inherentResult)
 	fmt.Println(result)
 
 	// Set Content-Type header
@@ -726,7 +729,6 @@ func editImagesField(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("formApi-Received JSON:", string(jsonData))
 
 	useResult := gjson.GetBytes(jsonData, "use").Bool()
-	_ = useResult
 	nameResult := gjson.GetBytes(jsonData, "name").String()
 
 	// Check if the nameResult is empty
@@ -734,23 +736,16 @@ func editImagesField(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Name field cannot be empty", http.StatusBadRequest)
 		return
 	}
-	imageItem := config.GetImageByName(nameResult)
-	_ = imageItem
 	titleResult := gjson.GetBytes(jsonData, "title").String()
-	_ = titleResult
+	locationResult := gjson.GetBytes(jsonData, "location").String()
+	operationResult := gjson.GetBytes(jsonData, "operation").String()
+	allowDistortResult := gjson.GetBytes(jsonData, "allowDistort").Bool()
+	requiresKeyResult := gjson.GetBytes(jsonData, "requiresKey").Bool()
 
-	allowDistortTextResult := gjson.GetBytes(jsonData, "allowDistort").String()
-	if allowDistortTextResult == "on" {
-		imageItem.AllowDistort = true
-	} else {
-		imageItem.AllowDistort = false
+	if err := config.EditImagesField(useResult, nameResult, titleResult, locationResult, operationResult, allowDistortResult, requiresKeyResult); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
-
-	// locationResult := gjson.GetBytes(jsonData, "location").String()
-	// operationResult := gjson.GetBytes(jsonData, "operation").String()
-
-	//result := config.editImagesField(useResult, nameResult, titleResult, locationResult, operationResult)
-	//fmt.Println(result)
 
 	// Set Content-Type header
 	w.Header().Set("Content-Type", "application/json")

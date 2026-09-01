@@ -614,6 +614,11 @@ func setDarwinWallpapers(wallpaperPaths []string) error {
 		escapedPath = strings.ReplaceAll(escapedPath, "\"", "\\\"")
 		escapedPaths = append(escapedPaths, fmt.Sprintf("\"%s\"", escapedPath))
 	}
+	assignmentPaths := make([]string, len(escapedPaths))
+	copy(assignmentPaths, escapedPaths)
+	for left, right := 0, len(assignmentPaths)-1; left < right; left, right = left+1, right-1 {
+		assignmentPaths[left], assignmentPaths[right] = assignmentPaths[right], assignmentPaths[left]
+	}
 
 	script := fmt.Sprintf(`set wallpaperPaths to {%s}
 tell application "System Events"
@@ -622,7 +627,7 @@ tell application "System Events"
 		set pathIndex to ((desktopIndex - 1) mod (count of wallpaperPaths)) + 1
 		set picture of desktop desktopIndex to item pathIndex of wallpaperPaths
 	end repeat
-end tell`, strings.Join(escapedPaths, ", "))
+end tell`, strings.Join(assignmentPaths, ", "))
 
 	cmd := exec.Command("osascript", "-e", script)
 	output, err := cmd.CombinedOutput()
@@ -682,7 +687,9 @@ func backgroundGenRandomSource(currentPic config.PicHistory) (config.PicHistory,
 	var img image.Image
 	var err error
 	var url string
-	if currentPic.ImageItem.Name == "Bing" {
+	if strings.EqualFold(currentPic.ImageItem.Operation, "Immich") {
+		img, url, err = GetBackgroundImmich(currentPic.ImageItem)
+	} else if currentPic.ImageItem.Name == "Bing" {
 		img, url, err = GetBackgroundBing(currentPic.ImageItem)
 	} else if currentPic.ImageItem.Name == "Flickr" {
 		img, url, err = GetBackgroundFlickr(currentPic.ImageItem)

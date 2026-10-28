@@ -15,7 +15,6 @@ import (
 	"log"
 	"math/rand"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -607,35 +606,10 @@ func setDarwinWallpapers(wallpaperPaths []string) error {
 	if len(wallpaperPaths) == 0 {
 		return fmt.Errorf("no wallpaper paths provided")
 	}
-
-	escapedPaths := make([]string, 0, len(wallpaperPaths))
-	for _, path := range wallpaperPaths {
-		escapedPath := strings.ReplaceAll(path, "\\", "\\\\")
-		escapedPath = strings.ReplaceAll(escapedPath, "\"", "\\\"")
-		escapedPaths = append(escapedPaths, fmt.Sprintf("\"%s\"", escapedPath))
+	if SetPerScreenWallpapers == nil {
+		return fmt.Errorf("no macOS wallpaper setter registered")
 	}
-	assignmentPaths := make([]string, len(escapedPaths))
-	copy(assignmentPaths, escapedPaths)
-	for left, right := 0, len(assignmentPaths)-1; left < right; left, right = left+1, right-1 {
-		assignmentPaths[left], assignmentPaths[right] = assignmentPaths[right], assignmentPaths[left]
-	}
-
-	script := fmt.Sprintf(`set wallpaperPaths to {%s}
-tell application "System Events"
-	set desktopCount to count of desktops
-	repeat with desktopIndex from 1 to desktopCount
-		set pathIndex to ((desktopIndex - 1) mod (count of wallpaperPaths)) + 1
-		set picture of desktop desktopIndex to item pathIndex of wallpaperPaths
-	end repeat
-end tell`, strings.Join(assignmentPaths, ", "))
-
-	cmd := exec.Command("osascript", "-e", script)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("failed to set macOS wallpapers: %w: %s", err, strings.TrimSpace(string(output)))
-	}
-
-	return nil
+	return SetPerScreenWallpapers(wallpaperPaths)
 }
 
 func clearPic(picEmpty bool, currentPic config.PicHistory) (bool, config.PicHistory) {

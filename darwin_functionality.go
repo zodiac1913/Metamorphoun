@@ -4,8 +4,48 @@
 package main
 
 /*
-#cgo CFLAGS: -x objective-c -fobjc-arc -framework Foundation -framework ScreenCaptureKit
-#cgo LDFLAGS: -framework Foundation -framework ScreenCaptureKit
+#cgo CFLAGS: -x objective-c -fobjc-arc -framework Foundation -framework AppKit -framework ScreenCaptureKit
+#cgo LDFLAGS: -framework Foundation -framework AppKit -framework ScreenCaptureKit
+#include <stdio.h>
+#include <stdlib.h>
+#import <AppKit/AppKit.h>
+
+static int metamorphoun_screen_count(void) {
+	@autoreleasepool {
+		return (int)[NSScreen screens].count;
+	}
+}
+
+static int metamorphoun_set_desktop_image(const char *path, int screen_index, char *error_message, size_t error_message_size) {
+	@autoreleasepool {
+		NSArray<NSScreen *> *screens = [NSScreen screens];
+		if (screen_index < 0 || screen_index >= (int)screens.count) {
+			snprintf(error_message, error_message_size, "screen index %d is out of range", screen_index);
+			return 0;
+		}
+
+		NSString *file_path = [NSString stringWithUTF8String:path];
+		if (file_path == nil) {
+			snprintf(error_message, error_message_size, "wallpaper path is not valid UTF-8");
+			return 0;
+		}
+
+		NSError *error = nil;
+		NSURL *url = [NSURL fileURLWithPath:file_path];
+		BOOL success = [[NSWorkspace sharedWorkspace] setDesktopImageURL:url
+			forScreen:screens[screen_index]
+			options:@{}
+			error:&error];
+		if (!success) {
+			const char *description = error.localizedDescription.UTF8String;
+			snprintf(error_message, error_message_size, "%s",
+				description != NULL ? description : "macOS rejected the wallpaper");
+			return 0;
+		}
+
+		return 1;
+	}
+}
 */
 import "C"
 
@@ -20,6 +60,7 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"unsafe"
 
 	"Metamorphoun/config"
 	"Metamorphoun/service"
@@ -32,6 +73,48 @@ var mbcQuotes []byte
 
 func init() {
 	loadMBCQuotes()
+	service.SetSingleWallpaper = setDarwinWallpaper
+	service.SetPerScreenWallpapers = setDarwinWallpapers
+}
+
+func setDarwinWallpaper(path string) error {
+	return setDarwinWallpapers([]string{path})
+}
+
+// Set display wallpapers through AppKit instead of requiring System Events automation.
+func setDarwinWallpapers(wallpaperPaths []string) error {
+	if len(wallpaperPaths) == 0 {
+		return fmt.Errorf("no wallpaper paths provided")
+	}
+
+	screenCount := int(C.metamorphoun_screen_count())
+	if screenCount == 0 {
+		return fmt.Errorf("macOS reported no available displays")
+	}
+	if len(wallpaperPaths) != 1 && len(wallpaperPaths) != screenCount {
+		return fmt.Errorf("received %d wallpaper paths for %d displays", len(wallpaperPaths), screenCount)
+	}
+
+	for screenIndex := 0; screenIndex < screenCount; screenIndex++ {
+		pathIndex := screenIndex
+		if len(wallpaperPaths) == 1 {
+			pathIndex = 0
+		}
+		cPath := C.CString(wallpaperPaths[pathIndex])
+		var errorMessage [512]C.char
+		ok := C.metamorphoun_set_desktop_image(
+			cPath,
+			C.int(screenIndex),
+			&errorMessage[0],
+			C.size_t(len(errorMessage)),
+		)
+		C.free(unsafe.Pointer(cPath))
+		if ok == 0 {
+			return fmt.Errorf("failed to set wallpaper for display %d: %s", screenIndex, C.GoString(&errorMessage[0]))
+		}
+	}
+
+	return nil
 }
 
 func loadMBCQuotes() {

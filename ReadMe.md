@@ -76,7 +76,7 @@ You may need to grant permissions in System Preferences > Security & Privacy:
 
 For per-screen wallpapers on macOS:
 - Enable the `Use a different picture on each screen` setting in the web UI
-- Metamorphoun uses AppleScript through `System Events` to assign wallpapers per desktop
+- Metamorphoun uses macOS AppKit to assign wallpapers to connected displays
 
 ## 🚀 Quick Start
 
@@ -101,7 +101,7 @@ Metamorphoun includes an optional `Use a different picture on each screen` setti
 Platform notes:
 - **Windows**: Uses the native `IDesktopWallpaper` API. Requires Windows 8 or newer.
 - **Linux**: Current implementation is aimed at X11 sessions and uses backend modules for GNOME, KDE, Cinnamon, Mint, and Ubuntu-family systems.
-- **macOS**: Uses AppleScript with `System Events` to assign wallpapers across desktops.
+- **macOS**: Uses AppKit to set wallpapers on connected displays.
 
 If a platform backend is unavailable, Metamorphoun falls back to the normal single-wallpaper behavior.
 
